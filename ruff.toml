@@ -14,9 +14,17 @@ line-length = 100
 [lint]
 select = ["E", "F"]
 
-# E501 (sətir uzunluğu) söndürülüb: layihə sətir limiti ilə yazılmayıb və
-# E,F dəstindəki 141 xətanın 130-u məhz budur. Onu qapıya salmaq lint deyil,
-# formatlaşdırma qərarıdır — kod özü isə oxunaqlıdır.
+# E501 (sətir uzunluğu) söndürülüb.
+#
+# DİQQƏT: bu bənd əvvəl «141 xətanın 130-u» yazırdı — o rəqəm ruff-un
+# STANDART 88 limitinə aiddir. Yuxarıdakı `line-length = 100` ilə ölçüləndə
+# cəmi 13 sətir uzundur: ai/matcher.py (4), ingestion/normalize.py (2),
+# tests/test_matcher.py (2), ai/prompts.py, ingestion/ocr.py,
+# tests/test_chains.py, tests/test_basket.py, tests/test_sanitize.py (1-1).
+#
+# Ən uzunu ai/prompts.py:31 — 140 simvol, JSON sxem sətri, bölünməsi
+# mənasızdır. Yəni E501 real oxunaqlıq problemi gizlətmir; söndürülməsi
+# 13 sətri qapıya salmamaq üçündür, formatlaşdırma qərarıdır.
 ignore = ["E501"]
 
 [lint.per-file-ignores]

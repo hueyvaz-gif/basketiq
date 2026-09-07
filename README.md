@@ -328,7 +328,8 @@ Accent qəsdən **mavi qalıb**, yaşıla keçməyib: yaşıl bu layihədə art�
 siqnalıdır?» sualı yaranardı və məhsulun ən vacib siqnalı zəifləyərdi.
 
 **Market rəng nöqtələri** kimlik bildirir, status yox — ona görə palitrada
-yaşıl və qırmızı **yoxdur**. Rəng market ADINA bağlanır və reyestrdə saxlanılır;
+yaşıl və qırmızı **yoxdur**. Rəng market ADINDAN hesablanır (`app/static/store-colors.js` —
+hash xananı təklif edir, toqquşma əlifba sırasında xətti sınaqla həll olunur);
 sıra indeksinə bağlasaydıq, marketlərin sırası dəyişəndə rənglər də dəyişərdi.
 
 **Ən böyük element səhifədə təkdir:** səbətin ən ucuz cəmi (56px/800). Stat

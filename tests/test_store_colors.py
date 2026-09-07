@@ -62,6 +62,43 @@ const out = scenarios.map((names) => {
 console.log(JSON.stringify(out));
 """
 
+# `note()` ÇAĞIRMADAN birbaşa `slot()`. Əsas DRIVER hər ssenaridə əvvəlcə
+# `note()` edir, ona görə `slot()`-un öz-özünü qeyd edən qolu orada heç vaxt
+# işə düşmür — bu sürücü məhz o qolu yoxlayır.
+DRIVER_NO_NOTE = """
+const fs = require("fs");
+const src = fs.readFileSync(process.argv[2], "utf8");
+const scenarios = JSON.parse(process.argv[3]);
+const out = scenarios.map((names) => {
+  (0, eval)(src);
+  const SC = globalThis.StoreColors;
+  const row = {};
+  for (const n of names) row[n] = { slot: SC.slot(n), css: SC.cssVar(n) };
+  return row;
+});
+console.log(JSON.stringify(out));
+"""
+
+# Əvvəl bir dəst qeyd olunur, sonra ƏLAVƏ ad gəlir; mövcudların xanası
+# əvvəl/sonra müqayisə edilir.
+DRIVER_GROWTH = """
+const fs = require("fs");
+const src = fs.readFileSync(process.argv[2], "utf8");
+const cases = JSON.parse(process.argv[3]);
+const out = cases.map(({ base, added }) => {
+  (0, eval)(src);
+  const SC = globalThis.StoreColors;
+  SC.note(base);
+  const before = {};
+  for (const n of base) before[n] = SC.slot(n);
+  SC.note([...base, added]);
+  const after = {};
+  for (const n of [...base, added]) after[n] = SC.slot(n);
+  return { before, after };
+});
+console.log(JSON.stringify(out));
+"""
+
 
 def strip_comments(source: str) -> str:
     """
@@ -74,9 +111,9 @@ def strip_comments(source: str) -> str:
     return re.sub(r"//.*", "", source)
 
 
-def run_js(scenarios: list[list[str]], tmp_path: Path) -> list[dict]:
+def run_js(scenarios, tmp_path: Path, driver_src: str = DRIVER) -> list[dict]:
     driver = tmp_path / "driver.js"
-    driver.write_text(DRIVER, encoding="utf-8")
+    driver.write_text(driver_src, encoding="utf-8")
     proc = subprocess.run(
         [NODE, str(driver), str(SOURCE), json.dumps(scenarios, ensure_ascii=False)],
         capture_output=True,
@@ -225,7 +262,36 @@ def test_qeyd_olunmamış_ad_da_xana_alır(tmp_path):
     qayıtsa CSS `var(--store-NaN)` olar və nöqtə RƏNGSİZ qalar (səhifə işləyir,
     market kimliyi itir).
     """
-    (row,) = run_js([["Yeni Market"]], tmp_path)
+    # DIQQƏT: `DRIVER_NO_NOTE` işlədilir. Adi `DRIVER` hər ssenaridə əvvəlcə
+    # `note()` çağırır, yəni ad `slot()`-a çatanda ARTIQ qeydiyyatdadır və bu
+    # testin adının vəd etdiyi yol örtülmür.
+    (row,) = run_js([["Yeni Market"]], tmp_path, DRIVER_NO_NOTE)
     value = row["Yeni Market"]
     assert isinstance(value["slot"], int) and 0 <= value["slot"] < 6
     assert value["css"] == f"var(--store-{value['slot'] + 1})"
+
+
+@needs_node
+def test_yeddinci_market_movcudlarin_yarisindan_cox_rengini_pozmur(tmp_path):
+    """
+    6 xana doludursa 7-ci market toqquşma yaradır və `rebuild()` əlifba sırası
+    ilə hamısını yenidən paylayır — yəni MÖVCUD marketlərin rəngi sürüşə bilər.
+    Bu, istifadəçinin «Bravo = göy» yaddaşını pozan yeganə haldır.
+
+    Tam sabitlik mümkün deyil (6 xana, 7 ad), amma pozulma məhdud olmalıdır.
+    Ölçülmüş hədd: heç bir yeni ad mövcud 6 marketin YARISINDAN ÇOXUNU
+    dəyişmir. Bu test həmin həddi kilidləyir — `rebuild()` strategiyası
+    dəyişsə (məsələn əlifba əvəzinə başqa sıra), burada görünəcək.
+    """
+    added = ["Zeytun", "Favorit", "Neptun", "Rahat", "Spar", "Kontinental"]
+    cases = [{"base": REAL_STORES, "added": name} for name in added]
+    results = run_js(cases, tmp_path, DRIVER_GROWTH)
+
+    for name, res in zip(added, results):
+        before, after = res["before"], res["after"]
+        changed = [n for n in REAL_STORES if before[n] != after[n]]
+        assert len(changed) <= 3, (
+            f"{name!r} əlavə olunanda {len(changed)}/6 market rəng dəyişdi: {changed}"
+        )
+        # 7-ci ad da etibarlı xana almalıdır - `undefined` olmamalıdır.
+        assert isinstance(after[name], int) and 0 <= after[name] < 6

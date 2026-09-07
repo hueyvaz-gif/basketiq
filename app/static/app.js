@@ -66,9 +66,6 @@ const storeChip = (name, best = false) =>
  * Palitrada YAŞIL və QIRMIZI yoxdur: onlar status rəngidir. Market nöqtəsi
  * yaşıl olsa, "bu market ucuzdur?" sualı yaranardı.
  */
-const storeDot = (name) =>
-  `<span class="store-dot" style="background:${StoreColors.cssVar(name)}" aria-hidden="true"></span>`;
-
 /** Valyuta işarəsi rəqəmdən nazik göstərilir - fokus ədədin üstündə qalsın. */
 const price = (v) => `${money(v)}<span class="cur">₼</span>`;
 

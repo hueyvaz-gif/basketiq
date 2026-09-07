@@ -64,11 +64,17 @@
      YOXDUR - `stores` cədvəlində yalnız slug/name/website var - ona görə
      saxta brend çəkmirik, kiçik rəng nöqtəsi ilə kifayətlənirik.
      Palitrada YAŞIL və QIRMIZI YOXDUR: onlar status rəngidir, market
-     kimliyi ilə qarışsalar "bu market yaşıldır, yoxsa ucuzdur?" sualı yaranır. */
-  --store-1: #0071E3;
-  --store-2: #4338CA;
+     kimliyi ilə qarışsalar "bu market yaşıldır, yoxsa ucuzdur?" sualı yaranır.
+
+     Palitrada STATUS və BREND token-i ilə eyni hex OLA BİLMƏZ. Əvvəl üç
+     toqquşma vardı: --store-2 = --ai, --store-1 = --accent,
+     --store-4 = --amber-ink. Hər üçü həll olundu.
+     Ayrılıq Lab fəzasında ölçülüb - ən pis hal dE=19.3 (--store-2 <-> --ai),
+     marketlər arasında ən yaxın cüt dE=20.9 (--store-3 <-> --store-6). */
+  --store-1: #1E3A8A;   /* əvvəl #0071E3 = --accent */
+  --store-2: #4338CA;   /* əvvəl #7C3AED = --ai */
   --store-3: #0E7490;
-  --store-4: #B45309;
+  --store-4: #713F12;   /* əvvəl #B45309 = --amber-ink */
   --store-5: #BE185D;
   --store-6: #475569;
 
@@ -303,9 +309,11 @@ table.lines .num, .row-value {
 
 .stat-icon svg { width: 19px; height: 19px; }
 
+/* Dörd stat kartının hamısı `is-accent`-dir (bax app.js renderStats).
+   `.stat.is-green` / `.stat.is-amber` qaydaları B4-dən sonra istifadəçisiz
+   qaldı və silindi. `.pill.is-green`, `.ribbon.is-amber` və `.avatar`
+   variantları BAŞQA qaydalardır — onlar işlənir, toxunulmayıb. */
 .stat.is-accent .stat-icon { color: var(--accent); }
-.stat.is-green  .stat-icon { color: var(--green); }
-.stat.is-amber  .stat-icon { color: var(--amber); }
 
 .stat-label {
   font-size: 11px;

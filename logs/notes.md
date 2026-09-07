@@ -7,13 +7,13 @@
 | Fayl | Dəyişiklik |
 |---|---|
 | `app/static/store-colors.js` | **YENİ.** `StoreColors` qlobalı: `note(names)`, `slot(name)`, `cssVar(name)`. Rəng məntiqinin yeganə mənbəyi. |
-| `app/static/app.js:47-70` | `STORE_COLOR_COUNT`, `storeColorSlot()`, `storeColorVar()` silindi; `storeChip`/`storeDot` `StoreColors.cssVar()` çağırır. |
+| `app/static/app.js:47-70` | `STORE_COLOR_COUNT`, `storeColorIndex` Map-i və `storeColorVar()` silindi; `storeChip` `StoreColors.cssVar()` çağırır. |
 | `app/static/app.js:631, 651` | Bar avatarları `StoreColors.cssVar()`-a keçdi. |
 | `app/static/app.js:738-742` | `loadCompare()` renderdən əvvəl `StoreColors.note(data.stores…)` çağırır. |
-| `app/static/analytics.js:59-71` | `colorFor()` `storeColorSlot` əvəzinə `StoreColors.slot()` çağırır; qoruyucu `typeof` yoxlaması saxlanıldı. |
+| `app/static/analytics.js:59-71` | `colorFor()` öz `storeColors` Map-i və `warmColors()` əvəzinə `StoreColors.slot()` çağırır; qoruyucu `typeof` yoxlaması BU DƏYİŞİKLİKDƏ əlavə olundu (əvvəl yox idi). |
 | `app/static/analytics.js:118` | `drawHistory()` çəkilişdən əvvəl `StoreColors.note(data.stores)` çağırır. |
 | `app/static/index.html:676-680` | `store-colors.js` `app.js` və `analytics.js`-dən əvvəl qoşuldu. |
-| `tests/test_store_colors.py` | **YENİ.** 10 test (4-ü `node` ilə real icra, `node` yoxdursa `skipif`). |
+| `tests/test_store_colors.py` | **YENİ.** 10 test (5-i `node` ilə real icra, `node` yoxdursa `skipif`). |
 
 ### Yanaşma
 
