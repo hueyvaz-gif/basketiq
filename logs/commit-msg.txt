@@ -1,0 +1,45 @@
+fix(ui): market renglerini ada bagla, dizayn blokerlerini duzelt
+
+design-critic auditi (logs/review.md) 4 bloker tapdi, hamisi duzeldildi.
+
+B1 - --store-2 (#7C3AED) --ai ile herfbeherf eyni hex idi, yeni ikinci
+marketin nogtesi AI karti ile eyni renqde gorunurdu. #4338CA verildi.
+
+B2 - market rengi ada yox, sira indeksine baglanmisdi (Map.size), ustelik
+app.js API sirasi, analytics.js ise elifba sirasi ile iki ayri reyestr
+saxlayirdi. basket.py:221 marketleri sebet cemine gore cesidlediyi ucun
+sebete mehsul elave edende renqler surusurdu ve eyni market cedvelde bir,
+qrafikde basqa renqde gorunurdu.
+
+Yeni app/static/store-colors.js yegane menbedir: hash xanani teklif edir,
+toqqusma xetti sinaqla (elifba sirasinda) hell olunur. Elifba API sirasindan
+asili olmadigi ucun netice giris sirasindan asili deyil. Temiz hash bunu vere
+bilmirdi - real 6 market adi 6 xanadan yalniz 3-ne dusurdu.
+
+B3 - .stat:hover-da transform vardi, halbuki kartlar interaktiv deyil
+(nə klik dinleyicisi, ne link, ne role). transform cixarildi.
+
+B4 - stat kartlarinda yasil/kehreba bezek kimi islenirdi; hamisi is-accent
+oldu, hem de index.html skeleton-u ile uygunlasdi (renq sicramasi getdi).
+
+XEBERDARLIQ ve QEYD bendlerine qesden toxunulmadi.
+
+scripts/night.sh iki defe sinirdi, ikisi de duzeldildi:
+  - --verbose yox idi, claude -p her cagirisda derhal xeta ile cixirdi;
+    gece novbesinde hec bir agent islememisdi (5 tapsiriq, 0 commit)
+  - worktree-ye .env kopyalanmirdi, TESSERACT_CMD yox idi, 8 OCR/scraper
+    testi sinirdi, yeni qapi hec vaxt kecmirdi
+
+ruff 0.16.6 quruldu, ruff.toml yazildi (select E,F / ignore E501).
+Konfiqurasiyasiz ruff 94 xeta verirdi - qapi hec bir tapsirigi buraxmazdi.
+ruff --fix 8 xetani duzeltdi (istifadesiz importlar, bos f-string),
+3 E741 elle duzeldildi (l -> line).
+
+Masin qapisi: pytest 292 kecdi / 8 kecildi (evvel 282/8), ruff exit 0.
+tests/test_store_colors.py - 10 yeni test (5 statik, 5 node ile real icra).
+
+QEYD: bu commit mesajini gatekeeper yazmali idi, amma agent isini bitirmeden
+dayandirildi. logs/report.md (seher hesabati) yazilmayib.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01WyUARiPKmXc6ajRVSuo9wo

@@ -51,25 +51,23 @@
   // market iki qrafikdə eyni rəngdə görünməlidir.
   //
   // Palitra layihənin öz token-lərindən qurulur - bənövşəyi/çəhrayı yoxdur.
-  // Rəng ADA bağlanır və reyestrdə saxlanılır; sıra indeksinə bağlasaydıq,
-  // marketlərin sırası dəyişəndə rənglər də dəyişərdi.
   // Market palitrası CSS-dəki `--store-1..6` ilə EYNİDİR: eyni market
   // qrafikdə və cədvəldə eyni rəngdə görünsün. Yaşıl/qırmızı YOXDUR -
   // onlar status rəngidir, market kimliyi ilə qarışmamalıdır.
   const STORE_COLORS = [1, 2, 3, 4, 5, 6].map((i) => cssVar(`--store-${i}`, TOKENS.accent));
-  const storeColors = new Map();
 
+  // Xananı `store-colors.js` hesablayır - BURADA İKİNCİ REYESTR SAXLAMIRIQ.
+  //
+  // Əvvəl bu fayl öz Map-ini ƏLİFBA sırası ilə, app.js isə API sırası ilə
+  // doldururdu. API sırası qiymətə görədir, əlifbaya görə deyil, ona görə eyni
+  // market cədvəldə bir rəngdə, qrafikdə başqa rəngdə görünürdü. İndi hər iki
+  // blok eyni funksiyanı çağırır.
+  //
+  // `store-colors.js` index.html-də bu fayldan ƏVVƏL yüklənir; yenə də
+  // yoxlayırıq ki, yüklənmə sırası dəyişsə qrafik səssizcə yalan rəngə düşməsin.
   function colorFor(name) {
-    if (!storeColors.has(name)) {
-      storeColors.set(name, STORE_COLORS[storeColors.size % STORE_COLORS.length]);
-    }
-    return storeColors.get(name);
-  }
-
-  // Rəngləri ƏLİFBA SIRASI ilə paylayırıq ki, hansı qrafikin əvvəl
-  // çəkilməsindən asılı olmasın.
-  function warmColors(stores) {
-    for (const store of [...stores].sort()) colorFor(store);
+    if (typeof StoreColors === "undefined") return TOKENS.accent;
+    return STORE_COLORS[StoreColors.slot(name)];
   }
 
   let chart = null;
@@ -115,6 +113,10 @@
       return;
     }
 
+    // Xanalar ÇƏKİLİŞDƏN ƏVVƏL paylanır - qrafik, leqenda və cədvəl eyni
+    // paylanmanı görsün (bax `store-colors.js`).
+    if (typeof StoreColors !== "undefined") StoreColors.note(data.stores);
+
     // Hər marketdə neçə müşahidə var? Qrafikin növü buna görə seçilir.
     const perStore = {};
     for (const p of data.points) perStore[p.store] = (perStore[p.store] || 0) + 1;
@@ -144,7 +146,6 @@
       return;
     }
 
-    warmColors(data.stores);
     renderSummary(data);
     if (chart) chart.destroy();
     chart = hasTrend ? trendChart(data) : comparisonChart(data);

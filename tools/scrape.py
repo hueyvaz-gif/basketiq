@@ -106,7 +106,7 @@ def main() -> None:
 
     if report.ingested:
         cid = report.ingested[0]["catalog_id"]
-        print(f"\nNövbəti addım: AI çıxarışı")
+        print("\nNövbəti addım: AI çıxarışı")
         print(f"   curl -X POST 'http://localhost:8000/api/catalogs/{cid}/extract?limit=10'")
 
 

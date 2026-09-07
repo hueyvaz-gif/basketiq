@@ -14,7 +14,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.analytics import check_discounts, price_history, tracked_groups
-from app.db import db_cursor, get_connection
+from app.db import db_cursor
 from app.main import app
 
 STORE_A = "Analitika Test A"

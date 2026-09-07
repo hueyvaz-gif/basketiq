@@ -12,7 +12,6 @@ Yəni model və ya prompt dəyişəndə keş özü-özünə etibarsız olur.
 
 import hashlib
 import json
-from pathlib import Path
 
 from app.config import settings
 

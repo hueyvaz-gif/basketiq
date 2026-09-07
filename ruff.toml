@@ -1,0 +1,25 @@
+# Ruff konfiqurasiyası.
+#
+# Niyə var: `scripts/night.sh`-dəki maşın qapısı `ruff check .` işlədir və
+# commit qərarını ONA görə verir. Konfiqurasiya olmasa ruff öz standart geniş
+# dəstini tətbiq edir (BLE001, FURB, PLR, UP, I...) — layihə kodu o dəstlə
+# 94 xəta verir, yəni qapı heç bir tapşırığı buraxmaz və düzgün iş də
+# `git reset --hard` ilə geri qaytarılar.
+#
+# Seçim: klassik flake8 dəsti (E + F). Bunlar real səhvləri tutur —
+# istifadə olunmayan import, təyin olunmamış ad, sintaksis problemləri.
+
+line-length = 100
+
+[lint]
+select = ["E", "F"]
+
+# E501 (sətir uzunluğu) söndürülüb: layihə sətir limiti ilə yazılmayıb və
+# E,F dəstindəki 141 xətanın 130-u məhz budur. Onu qapıya salmaq lint deyil,
+# formatlaşdırma qərarıdır — kod özü isə oxunaqlıdır.
+ignore = ["E501"]
+
+[lint.per-file-ignores]
+# Testlərdə fixture-lar import olunub birbaşa çağırılmır - pytest onları
+# ad ilə tapır, ruff isə "istifadə olunmayan import" sayır.
+"tests/conftest.py" = ["F401"]

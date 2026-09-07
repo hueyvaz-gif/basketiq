@@ -8,7 +8,7 @@ LLM YOXDUR - datanı birbaşa DB-yə yazırıq və müqayisə məntiqini yoxlay�
 import pytest
 from fastapi.testclient import TestClient
 
-from app.db import db_cursor, get_connection
+from app.db import db_cursor
 from app.main import app
 
 @pytest.fixture

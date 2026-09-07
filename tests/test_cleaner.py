@@ -96,7 +96,7 @@ class TestCleanText:
     def test_yalniz_mehsul_setirleri_qalir(self):
         result = clean_text(self.RAW)
         assert result.stats["kept"] == 3
-        assert [round(l.price, 2) for l in result.lines] == [1.89, 3.40, 6.20]
+        assert [round(line.price, 2) for line in result.lines] == [1.89, 3.40, 6.20]
 
     def test_kohne_qiymet_taninir(self):
         result = clean_text(self.RAW)

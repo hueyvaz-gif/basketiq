@@ -61,7 +61,7 @@ class TestBuildFacts:
 
     def test_tek_marketde_olan_mehsulda_ferq_yazilmir(self):
         facts = build_facts(COMPARE)
-        cay_line = [l for l in facts.splitlines() if "Azercay çay:" in l][0]
+        cay_line = [line for line in facts.splitlines() if "Azercay çay:" in line][0]
         assert "fərq" not in cay_line
 
     def test_bos_sebet_cokmur(self):

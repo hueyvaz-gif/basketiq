@@ -13,7 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from ai.advisor import build_facts
-from app.db import db_cursor, get_connection
+from app.db import db_cursor
 from app.main import app
 from app.profile import Profile, get_profile, save_profile
 from app.recommend import base_name_key, recommend

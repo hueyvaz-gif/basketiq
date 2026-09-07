@@ -5,14 +5,12 @@ Bu süzgəc layihənin ən kritik "pul qoruyan" hissəsidir: səhv qurulsa,
 ya hər cütü LLM-ə göndərər (saatlarla), ya da real uyğunluqları qaçırar.
 """
 
-import pytest
 from langchain_core.language_models.fake_chat_models import FakeListChatModel
 from langchain_core.messages import AIMessage
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.runnables import RunnableLambda
 
 from ai.matcher import (
-    Candidate,
     MatchDecision,
     UnionFind,
     _expand_match,

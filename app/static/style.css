@@ -66,7 +66,7 @@
      Palitrada YAŞIL və QIRMIZI YOXDUR: onlar status rəngidir, market
      kimliyi ilə qarışsalar "bu market yaşıldır, yoxsa ucuzdur?" sualı yaranır. */
   --store-1: #0071E3;
-  --store-2: #7C3AED;
+  --store-2: #4338CA;
   --store-3: #0E7490;
   --store-4: #B45309;
   --store-5: #BE185D;
@@ -283,10 +283,10 @@ table.lines .num, .row-value {
   border-radius: var(--r-card);
   padding: var(--s4);
   box-shadow: var(--shadow);
-  transition: box-shadow var(--ease), transform var(--ease);
+  transition: box-shadow var(--ease);
 }
 
-.stat:hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
+.stat:hover { box-shadow: var(--shadow-lift); }   /* transform YOXDUR: .stat klikləmir, hərəkət təklif etməməlidir */
 
 /* İkon KÜNCDƏ dayanır ki, ədəd sətrin əvvəlindən başlasın - göz rəqəmi
    axtarmır, həmişə eyni yerdə tapır. */

@@ -70,7 +70,7 @@ def test_ocr_neticesinden_qiymetler_cixir(catalog_image):
     assert cleaned.lines, f"Heç bir məhsul sətri tapılmadı. Xam mətn:\n{result.text}"
 
     # OCR hərf səhvi edə bilər, amma qiymətlər tanınmalıdır
-    prices = {round(l.price, 2) for l in cleaned.lines if l.price}
+    prices = {round(line.price, 2) for line in cleaned.lines if line.price}
     assert prices & {1.89, 3.40, 6.20, 0.60}, f"Gözlənilən qiymətlər tapılmadı: {prices}"
 
 

@@ -30,6 +30,15 @@ printf '  %s\n' "${QUEUE[@]}"
 git -C "$REPO" worktree add -b "$BRANCH" "$WORK" >/dev/null || exit 1
 cd "$WORK" || exit 1
 mkdir -p logs
+
+# .gitignore-dakı yerli konfiqurasiya worktree-yə düşmür, ona görə kopyalanır.
+# Bunsuz TESSERACT_CMD təyin olunmur və OCR/scraper testləri (8 ədəd) sınır -
+# yəni qapı heç vaxt keçmir və düzgün iş də geri qaytarılır.
+if [ -f "$REPO/.env" ]; then
+  cp "$REPO/.env" "$WORK/.env"
+else
+  echo "XƏBƏRDARLIQ: $REPO/.env yoxdur - OCR testləri sına bilər." >&2
+fi
 : > logs/failed.txt
 echo "# Gecə hesabatı — $(date)" > logs/report.md
 
@@ -55,7 +64,7 @@ AGENT: $1
 $2" \
     --permission-mode acceptEdits \
     --allowedTools "Read,Edit,Write,Grep,Glob,Bash($PY -m pytest*)" \
-    --output-format stream-json 2>>logs/claude-errors.txt \
+    --output-format stream-json --verbose 2>>logs/claude-errors.txt \
     | tee -a "logs/stream-$(date +%s).jsonl" >/dev/null
 }
 

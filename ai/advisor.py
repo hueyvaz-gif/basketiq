@@ -27,7 +27,7 @@ from langchain_core.output_parsers import StrOutputParser
 
 from ai.llm import get_llm
 from ai.prompts import ADVISOR_PROMPT
-from ai.sanitize import ReasoningFilter, strip_reasoning
+from ai.sanitize import ReasoningFilter
 
 # Cavabın maksimum uzunluğu. 4 cümlə üçün kifayətdir və modelin
 # "danışmağa" başlamasının qarşısını alır.

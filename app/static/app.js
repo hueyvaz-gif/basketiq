@@ -53,31 +53,21 @@ const categoryIcon = (category) => CATEGORY_ICON[category] || "package";
  */
 const storeChip = (name, best = false) =>
   `<span class="store-chip${best ? " is-best" : ""}">` +
-  `<span class="store-mark" style="color:${storeColorVar(name)}">${icon("store")}</span>` +
+  `<span class="store-mark" style="color:${StoreColors.cssVar(name)}">${icon("store")}</span>` +
   `${esc(name)}</span>`;
 
 /**
  * Marketə SABİT rəng nöqtəsi.
  *
- * Rəng ADA bağlanır və reyestrdə saxlanılır - sıra indeksinə bağlasaydıq,
- * marketlərin sırası dəyişəndə rənglər də dəyişərdi və istifadəçi hər dəfə
- * yenidən öyrənməli olardı.
+ * Xananı `store-colors.js` hesablayır - BURADA REYESTR SAXLAMIRIQ. Rəng ADDAN
+ * gəlir, sıra indeksindən yox: `basket.py` marketləri səbət cəminə görə
+ * çeşidlədiyi üçün sıra hər əlavədən sonra dəyişir, rəng isə dəyişməməlidir.
  *
  * Palitrada YAŞIL və QIRMIZI yoxdur: onlar status rəngidir. Market nöqtəsi
  * yaşıl olsa, "bu market ucuzdur?" sualı yaranardı.
  */
-const STORE_COLOR_COUNT = 6;
-const storeColorIndex = new Map();
-
-function storeColorVar(name) {
-  if (!storeColorIndex.has(name)) {
-    storeColorIndex.set(name, storeColorIndex.size % STORE_COLOR_COUNT);
-  }
-  return `var(--store-${storeColorIndex.get(name) + 1})`;
-}
-
 const storeDot = (name) =>
-  `<span class="store-dot" style="background:${storeColorVar(name)}" aria-hidden="true"></span>`;
+  `<span class="store-dot" style="background:${StoreColors.cssVar(name)}" aria-hidden="true"></span>`;
 
 /** Valyuta işarəsi rəqəmdən nazik göstərilir - fokus ədədin üstündə qalsın. */
 const price = (v) => `${money(v)}<span class="cur">₼</span>`;
@@ -638,7 +628,7 @@ function renderBars(data) {
     .map(
       (s) => `<div class="bar-row is-empty">
         <div class="bar-name">
-          <span class="avatar is-sm" style="color:${storeColorVar(s.store)}"
+          <span class="avatar is-sm" style="color:${StoreColors.cssVar(s.store)}"
                 aria-hidden="true">${icon("store")}</span>
           <span>${esc(s.store)}<small>səbətdəki məhsulları satmır</small></span>
         </div>
@@ -658,7 +648,7 @@ function renderBars(data) {
       const width = Math.max(22, (s.total / max) * 100);
       return `<div class="${cls}">
         <div class="bar-name">
-          <span class="avatar is-sm" style="color:${storeColorVar(s.store)}"
+          <span class="avatar is-sm" style="color:${StoreColors.cssVar(s.store)}"
                 aria-hidden="true">${icon("store")}</span>
           <span>${esc(s.store)}<small>${esc(sub)}</small></span>
         </div>
@@ -746,6 +736,11 @@ async function loadCompare() {
   try {
     const data = await (await fetch("/api/basket/compare")).json();
 
+    // Rəng xanaları RENDERDƏN ƏVVƏL paylanır: sətirlər tək-tək çəkilərkən
+    // dəst böyüsəydi, ilk sətirlər köhnə xananı saxlayardı və eyni market
+    // cədvəldə bir, barlarda başqa rəngdə görünərdi.
+    StoreColors.note(data.stores.map((s) => s.store));
+
     renderHero(data);
 
     if (!data.items.length) {
@@ -771,11 +766,15 @@ async function loadCompare() {
 
 /** Statistika kartları — ikon + etiket + rəqəm + izah. */
 function renderStats(db) {
+  // Dördü də NEYTRAL inventar sayğacıdır: "Məhsul" qənaət deyil, "Qiymət"
+  // diqqət tələb etmir. Əvvəl yaşıl/kəhrəba sırf "hamısı mavi olmasın" deyə
+  // verilirdi - rəng bəzək kimi işlədilirdi. Üstəlik index.html-dəki skeleton
+  // is-accent ilə başlayırdı, yəni yüklənəndə rəng sıçrayırdı.
   const cards = [
     ["store", "Market", db.stores, "Qiyməti olan supermarket", "is-accent"],
     ["layers", "Kataloq", db.catalogs, "Emal olunmuş fayl", "is-accent"],
-    ["package", "Məhsul", db.products, "AI ilə çıxarılmış sətir", "is-green"],
-    ["tag", "Qiymət", db.prices, "Ümumi müşahidə", "is-amber"],
+    ["package", "Məhsul", db.products, "AI ilə çıxarılmış sətir", "is-accent"],
+    ["tag", "Qiymət", db.prices, "Ümumi müşahidə", "is-accent"],
   ];
 
   $("#stats").innerHTML = cards
