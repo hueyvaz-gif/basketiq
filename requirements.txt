@@ -41,3 +41,9 @@ pypdfium2>=4.30              # skan PDF səhifəsini şəkilə çevirmək
 # --- Test ---
 pytest>=8.3
 httpx>=0.27
+
+# --- Lint ---
+# scripts/night.sh-dəki maşın qapısı `ruff check .` işlədir və commit
+# qərarını ona görə verir. Burada olmasa qapının yarısı yox olur.
+# Konfiqurasiya: ruff.toml (select E,F / ignore E501).
+ruff>=0.16.6

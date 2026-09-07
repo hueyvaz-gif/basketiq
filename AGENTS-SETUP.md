@@ -69,8 +69,11 @@ yazmaqdır.
 
 ## Bilinən məhdudiyyətlər
 
-- **`ruff` qurulmayıbsa qapının yarısı yoxdur.** `pip install ruff` et, yoxsa
-  yalnız `pytest` yoxlanılır.
+- **`ruff` qurulmayıbsa qapı SINIR.** Əvvəl bu blok susurdu — lint addımı iz
+  qoymadan keçirdi və hesabat «qapı keçdi» yazırdı, halbuki kodun yarısı
+  yoxlanmamışdı. İndi `gate()` `ruff-yoxdur` qaytarır, səbəb `logs/ruff.txt`-ə
+  yazılır. Həlli: `pip install -r requirements.txt` (`ruff` orada elan olunub,
+  konfiqurasiya `ruff.toml`-dadır).
 - **Agent öz UI-ını görmür.** Playwright MCP qoşulmayıbsa dizayn işi kor gedir:
   `claude mcp add playwright npx '@playwright/mcp@latest'` — sonra
   `night-tasks.txt`-də «səhifəni aç, screenshot çək, logs/-a yaz» yaza bilərsən.

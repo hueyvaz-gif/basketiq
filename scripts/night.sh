@@ -70,9 +70,26 @@ else PY="python3"; fi
 # Commit qərarını BU funksiya verir, agent yox.
 gate() {
   "$PY" -m pytest -q > logs/pytest.txt 2>&1 || { echo "pytest"; return 1; }
-  if "$PY" -m ruff --version >/dev/null 2>&1; then
-    "$PY" -m ruff check . > logs/ruff.txt 2>&1 || { echo "ruff"; return 1; }
+
+  # ruff YOXDURSA QAPI SINIR - susmur.
+  #
+  # Əvvəl bu blok `if ruff --version; then ... fi` idi: ruff qurulmayıbsa
+  # şərt yalan olurdu, lint addımı heç bir iz qoymadan keçirdi və hesabat
+  # "qapı keçdi" yazırdı, halbuki kodun yarısı yoxlanmamışdı. Qapının
+  # səssizcə zəifləməsi onun mövcud olmamasından pisdir.
+  #
+  # ruff artıq requirements.txt-dədir, ona görə yoxluğu mühitin sınıq
+  # olması deməkdir - `pip install -r requirements.txt` ilə həll olunur.
+  if ! "$PY" -m ruff --version >/dev/null 2>&1; then
+    echo "ruff qurulmayıb - qapının lint yarısı işləmir." > logs/ruff.txt
+    echo "Həlli: $PY -m pip install -r requirements.txt" >> logs/ruff.txt
+    # Marker "ruff" olmalidir: asagida sebeb `tail -30 "logs/$FAIL.txt"` ile
+    # oxunur, yeni logs/ruff.txt - yuxarida yazdigimiz fayl.
+    echo "ruff"
+    return 1
   fi
+
+  "$PY" -m ruff check . > logs/ruff.txt 2>&1 || { echo "ruff"; return 1; }
   return 0
 }
 
