@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>BasketIQ — supermarket qiymət kəşfiyyatı</title>
+  <!-- Inline SVG favicon: ayrıca fayl yaratmır və brauzerin 404 sorğusunu
+       aradan qaldırır. Emoji DEYİL - dizayn sistemi emoji ikonu qadağan edir,
+       üstelik emoji hər əməliyyat sistemində fərqli çəkilir. -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230071E3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8h18l-1.6 10.2a2 2 0 0 1-2 1.8H6.6a2 2 0 0 1-2-1.8L3 8Z'/%3E%3Cpath d='M8.5 8 10 4m5.5 4L14 4'/%3E%3C/svg%3E">
+
+  <!-- Inter: dizayn sisteminin şrifti. Şəbəkə yoxdursa `--font` stack-i
+       sistem şriftinə düşür və səhifə sınmır. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap">
+
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- ============================================================
+     İkon kitabxanası.
+
+     Niyə <symbol> + <use>? Eyni ikon səhifədə bir neçə dəfə işlənir
+     (sil düyməsi hər sətirdə). <symbol> ilə SVG bir dəfə təyin olunur,
+     istifadə yeri isə bir sətirdir. Xarici kitabxana da lazım gəlmir.
+
+     fill="none" + stroke="currentColor": ikonun rəngi valideynindən gəlir,
+     yəni SVG-nin içində hardcoded rəng yoxdur.
+     ============================================================ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <g id="i-base" fill="none" stroke="currentColor" stroke-width="1.7"
+       stroke-linecap="round" stroke-linejoin="round"></g>
+  </defs>
+
+  <symbol id="icon-basket" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 8h18l-1.6 10.2a2 2 0 0 1-2 1.8H6.6a2 2 0 0 1-2-1.8L3 8Z"/>
+    <path d="M8.5 8 10 4m5.5 4L14 4M9 12v4m6-4v4"/>
+  </symbol>
+
+  <symbol id="icon-store" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3.5 9.5V19a1 1 0 0 0 1 1h15a1 1 0 0 0 1-1V9.5"/>
+    <path d="M3 5.5h18l1 4a3 3 0 0 1-5.6 1.6A3 3 0 0 1 12 12a3 3 0 0 1-4.4-.9A3 3 0 0 1 2 9.5l1-4Z"/>
+  </symbol>
+
+  <symbol id="icon-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3.5 21 8l-9 4.5L3 8l9-4.5Z"/>
+    <path d="m3 12.5 9 4.5 9-4.5M3 16.5 12 21l9-4.5"/>
+  </symbol>
+
+  <symbol id="icon-package" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20.5 8.2v7.6a1.5 1.5 0 0 1-.8 1.3l-6.9 3.7a1.6 1.6 0 0 1-1.6 0l-6.9-3.7a1.5 1.5 0 0 1-.8-1.3V8.2"/>
+    <path d="M3.9 7.4 12 3l8.1 4.4L12 11.9 3.9 7.4ZM12 11.9V21"/>
+  </symbol>
+
+  <symbol id="icon-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M11 3H4a1 1 0 0 0-1 1v7l9.5 9.5a1.5 1.5 0 0 0 2.1 0l6.9-6.9a1.5 1.5 0 0 0 0-2.1L11 3Z"/>
+    <circle cx="7.5" cy="7.5" r="1.4"/>
+  </symbol>
+
+  <symbol id="icon-sparkle" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3.5 13.7 9l5.5 1.7-5.5 1.7L12 18l-1.7-5.6L4.8 10.7 10.3 9 12 3.5Z"/>
+    <path d="M18.5 3v3M20 4.5h-3M6 17v2.5M7.2 18.2H4.8"/>
+  </symbol>
+
+  <symbol id="icon-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 20V4M4 20h16"/>
+    <path d="M8 20v-6m4 6V8m4 12v-9"/>
+  </symbol>
+
+  <symbol id="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m4.5 12.5 5 5 10-11"/>
+  </symbol>
+
+  <symbol id="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 6.5h16M9.5 6.5V4.8a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.7"/>
+    <path d="M6.5 6.5 7.4 19a1.5 1.5 0 0 0 1.5 1.4h6.2a1.5 1.5 0 0 0 1.5-1.4l.9-12.5"/>
+    <path d="M10.5 10v6.5M13.5 10v6.5"/>
+  </symbol>
+
+  <symbol id="icon-tools" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14.5 6.2a3.7 3.7 0 0 0 4.9 4.6l-8 8a2.3 2.3 0 0 1-3.3-3.3l8-8a3.7 3.7 0 0 0-1.6-1.3Z"/>
+    <path d="M6.5 3.5 4 6l2.2 2.2L8.7 5.7 6.5 3.5Z"/>
+  </symbol>
+
+  <symbol id="icon-user" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="8" r="3.6"/>
+    <path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>
+  </symbol>
+
+  <symbol id="icon-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 17V5m0 0L7.5 9.5M12 5l4.5 4.5"/>
+    <path d="M4.5 19h15"/>
+  </symbol>
+
+  <symbol id="icon-download" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 4v11m0 0 4.5-4.5M12 15l-4.5-4.5"/>
+    <path d="M4.5 19.5h15"/>
+  </symbol>
+
+  <symbol id="icon-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M12 2.8v2.4m0 13.6v2.4M4.5 12H2.1m19.8 0h-2.4M6.2 6.2 4.5 4.5m15 15-1.7-1.7m0-11.6 1.7-1.7m-15 15 1.7-1.7"/>
+  </symbol>
+
+
+
+  <!-- ---- Məhsul kateqoriyaları ----
+       Hər ikon `app/models.py`-dəki CATEGORIES siyahısındakı BİR kateqoriyaya
+       uyğundur. Say uyğunluğu qəsdəndir: model yeni kateqoriya qaytara bilməz,
+       ona görə "ikon tapılmadı" halı yalnız "digər"dir. -->
+
+  <symbol id="icon-cat-dairy" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 2.5h6v2.2l2 3.4V21a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 7 21V8.1l2-3.4V2.5Z"/>
+    <path d="M7 11h10"/>
+  </symbol>
+
+  <symbol id="icon-cat-bread" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 11.5a3.5 3.5 0 0 1 3.5-3.5h9a3.5 3.5 0 0 1 0 7H20v4.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8Z"/>
+    <path d="M9 8v11m3-11v11"/>
+  </symbol>
+
+  <symbol id="icon-cat-meat" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14.8 3.4a5.6 5.6 0 0 1 4.3 8.9l-6.6 8a3.4 3.4 0 0 1-5.4-4.1l1-1.4a3.2 3.2 0 0 1-1.7-4.6 5.6 5.6 0 0 1 8.4-6.8Z"/>
+    <circle cx="9.5" cy="15.5" r="1.4"/>
+  </symbol>
+
+  <symbol id="icon-cat-produce" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 7.5c-3.6-2.6-8 .3-8 5 0 4.2 3.4 8 8 8s8-3.8 8-8c0-4.7-4.4-7.6-8-5Z"/>
+    <path d="M12 7.5V4.2M12 4.2c1.6-.4 3-1.3 3.6-2.2-1.7-.2-3 .5-3.6 2.2Z"/>
+  </symbol>
+
+  <symbol id="icon-cat-drinks" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 2.5h4v2.6c0 .8.2 1.5.6 2.2l.8 1.4c.4.7.6 1.4.6 2.2V21a.5.5 0 0 1-.5.5h-7A.5.5 0 0 1 8 21v-10c0-.8.2-1.5.6-2.2l.8-1.4c.4-.7.6-1.4.6-2.2V2.5Z"/>
+    <path d="M8 13h8"/>
+  </symbol>
+
+  <symbol id="icon-cat-oil" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10.5 2.5h3V6l3 3.2c.6.7 1 1.6 1 2.5V21a.5.5 0 0 1-.5.5h-10A.5.5 0 0 1 6.5 21v-9.3c0-.9.4-1.8 1-2.5L10.5 6V2.5Z"/>
+    <path d="M9.5 14.5h5"/>
+  </symbol>
+
+  <symbol id="icon-cat-sweets" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M8.3 10 3.5 7.2v9.6L8.3 14m7.4-4 4.8-2.8v9.6L15.7 14"/>
+  </symbol>
+
+  <symbol id="icon-cat-dry" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6.5 8h11l-1 12.2a1 1 0 0 1-1 .8h-7a1 1 0 0 1-1-.8L6.5 8Z"/>
+    <path d="M8.5 8V5.6a1 1 0 0 1 .7-1l4.6-1.5"/>
+  </symbol>
+
+  <symbol id="icon-cat-clean" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9.5 9h5l1 11.5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1L9.5 9Z"/>
+    <path d="M10.5 9V4.5h3V9M12 2.5v2M8.5 14h7"/>
+  </symbol>
+
+  <!-- ---- Admin ---- -->
+
+  <symbol id="icon-server" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="4" width="18" height="6.5" rx="1.6"/>
+    <rect x="3" y="13.5" width="18" height="6.5" rx="1.6"/>
+    <path d="M6.6 7.2h.01M6.6 16.8h.01"/>
+  </symbol>
+
+  <symbol id="icon-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="6.5" y="6.5" width="11" height="11" rx="2"/>
+    <rect x="10" y="10" width="4" height="4" rx="1"/>
+    <path d="M9.5 3v3.5m5-3.5v3.5m-5 11V21m5-3.5V21M3 9.5h3.5m-3.5 5h3.5m11-5H21m-3.5 5H21"/>
+  </symbol>
+
+  <symbol id="icon-database" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="12" cy="6" rx="7.5" ry="3"/>
+    <path d="M4.5 6v12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6"/>
+    <path d="M4.5 12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3"/>
+  </symbol>
+
+  <symbol id="icon-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="4.5" width="18" height="15" rx="2"/>
+    <path d="m7.5 10 2.5 2-2.5 2M12.5 14.5h4"/>
+  </symbol>
+
+  <symbol id="icon-cloud-download" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 17.5a4 4 0 0 1-.4-8A5.5 5.5 0 0 1 17.4 9.4a3.6 3.6 0 0 1 .6 7.1"/>
+    <path d="M12 11v7.5m0 0 2.8-2.8M12 18.5l-2.8-2.8"/>
+  </symbol>
+
+  <symbol id="icon-file" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M13.5 3H7a1.5 1.5 0 0 0-1.5 1.5v15A1.5 1.5 0 0 0 7 21h10a1.5 1.5 0 0 0 1.5-1.5V8L13.5 3Z"/>
+    <path d="M13.5 3v5h5"/>
+  </symbol>
+
+  <symbol id="icon-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3 5 5.8v5.4c0 4.3 2.9 8.2 7 9.3 4.1-1.1 7-5 7-9.3V5.8L12 3Z"/>
+    <path d="m9 12 2.2 2.2L15.5 10"/>
+  </symbol>
+</svg>
+
+
+<!-- ============================================================
+     ÜST PANEL
+     ============================================================ -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"><svg><use href="#icon-basket"></use></svg></span>
+      <span class="brand-name">BasketIQ</span>
+    </div>
+
+    <nav class="segmented" role="tablist" aria-label="Panel seçimi">
+      <button class="seg-btn" id="tabUser" role="tab" aria-selected="true"
+              aria-controls="panel-user" data-panel="user">
+        <svg aria-hidden="true"><use href="#icon-user"></use></svg>
+        İstifadəçi
+      </button>
+      <button class="seg-btn" id="tabAdmin" role="tab" aria-selected="false"
+              aria-controls="panel-admin" data-panel="admin">
+        <svg aria-hidden="true"><use href="#icon-tools"></use></svg>
+        Admin / Developer
+      </button>
+    </nav>
+
+    <!-- Profilə qısayol. Admin/texniki heç nə burada göstərilmir. -->
+    <a class="icon-btn is-quiet" id="profileJump" href="#profileTitle"
+       aria-label="Profil və parametrlərə keç">
+      <svg aria-hidden="true"><use href="#icon-user"></use></svg>
+    </a>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ==========================================================
+       İSTİFADƏÇİ PANELİ — defolt açıq
+       ========================================================== -->
+  <main class="panel" id="panel-user" role="tabpanel" aria-labelledby="tabUser">
+
+    <div class="page-head">
+      <h1 class="page-title">Səbətiniz üçün ən yaxşı qiyməti tapın</h1>
+      <p class="page-sub">
+        Supermarket qiymətlərini müqayisə edin və daha ağıllı alış-veriş edin.
+      </p>
+    </div>
+
+    <!-- --- Statistika --- -->
+    <div class="stat-grid" id="stats">
+      <div class="stat is-accent">
+        <div class="stat-icon"><svg><use href="#icon-store"></use></svg></div>
+        <div class="stat-label">Market</div>
+        <div class="stat-value skeleton">00</div>
+        <div class="stat-note">Yüklənir</div>
+      </div>
+      <div class="stat is-accent">
+        <div class="stat-icon"><svg><use href="#icon-layers"></use></svg></div>
+        <div class="stat-label">Kataloq</div>
+        <div class="stat-value skeleton">00</div>
+        <div class="stat-note">Yüklənir</div>
+      </div>
+      <div class="stat is-accent">
+        <div class="stat-icon"><svg><use href="#icon-package"></use></svg></div>
+        <div class="stat-label">Məhsul</div>
+        <div class="stat-value skeleton">00</div>
+        <div class="stat-note">Yüklənir</div>
+      </div>
+      <div class="stat is-accent">
+        <div class="stat-icon"><svg><use href="#icon-tag"></use></svg></div>
+        <div class="stat-label">Qiymət</div>
+        <div class="stat-value skeleton">00</div>
+        <div class="stat-note">Yüklənir</div>
+      </div>
+    </div>
+
+    <!-- --- HERO: əsas nəticə --- -->
+    <section class="hero" aria-labelledby="heroTitle">
+      <div>
+        <h2 class="hero-title" id="heroTitle">Səbətiniz harada ucuzdur?</h2>
+        <p class="hero-lead">
+          Seçdiyiniz məhsullar üzrə ən sərfəli marketi müqayisə edin.
+          Səbətin hamısını satmayan market qalib elan edilmir.
+        </p>
+      </div>
+
+      <div id="compareResult">
+        <div class="hero-empty">
+          <div class="hero-empty-title">Səbət boşdur</div>
+          <div>Aşağıdakı axtarışdan məhsul əlavə edin — müqayisə dərhal görünəcək.</div>
+        </div>
+      </div>
+
+      <div id="storeBars"></div>
+    </section>
+
+    <!-- --- Məhsul üzrə müqayisə + axtarış --- -->
+    <section class="card">
+      <div class="card-head">
+        <div class="head-row">
+          <svg aria-hidden="true"><use href="#icon-package"></use></svg>
+          <h2 class="section-heading">Məhsul üzrə müqayisə</h2>
+        </div>
+        <p class="section-sub">Hər sətirdə ən ucuz qiymət yaşıl işarələnib.</p>
+      </div>
+
+      <div id="compareTableWrap"></div>
+
+      <div class="form-row">
+        <label class="field">
+          <span>Məhsul axtar və səbətə əlavə et</span>
+          <input type="text" id="searchInput" placeholder="süd, düyü, yağ…" autocomplete="off">
+        </label>
+      </div>
+      <div id="searchResults" class="result-list"></div>
+    </section>
+
+    <!-- --- AI tövsiyəsi + qiymət tarixçəsi yan-yana (geniş ekranda) --- -->
+    <div class="duo">
+    <section class="card ai-card" aria-labelledby="aiTitle">
+      <div class="ai-head">
+        <div class="ai-title">
+          <svg aria-hidden="true"><use href="#icon-sparkle"></use></svg>
+          <h2 class="section-heading" id="aiTitle">AI tövsiyəsi</h2>
+          <span class="pill is-ai">AI</span>
+        </div>
+        <div class="actions flush">
+          <button class="btn btn-ghost" id="factsBtn" type="button">
+            Faktlara bax
+          </button>
+          <button class="btn" id="adviseBtn" type="button" disabled>
+            <svg aria-hidden="true"><use href="#icon-sparkle"></use></svg>
+            Tövsiyə al
+          </button>
+        </div>
+      </div>
+
+      <p class="section-sub">
+        Bütün rəqəmlər Python-da hesablanır — model yalnız onları izah edir.
+      </p>
+
+      <div id="advisorBox">
+        <div class="ai-placeholder" id="advisorPlaceholder">
+          Səbətinizi doldurun, sonra <strong>Tövsiyə al</strong> düyməsini basın.
+        </div>
+        <div class="advisor-text" id="advisorText"></div>
+        <div id="advisorCheck"></div>
+        <pre class="facts hidden" id="factsBox"></pre>
+      </div>
+    </section>
+
+    <!-- --- Qiymət tarixçəsi --- -->
+    <section class="card" aria-labelledby="historyTitle">
+      <div class="card-head">
+        <div class="head-row">
+          <svg aria-hidden="true"><use href="#icon-chart"></use></svg>
+          <h2 class="section-heading" id="historyTitle">Qiymət tarixçəsi</h2>
+        </div>
+        <p class="section-sub">
+          Eyni marketdən 2 müşahidə olmayanda trend yox, market müqayisəsi göstərilir.
+        </p>
+      </div>
+
+      <div class="form-row flush">
+        <label class="field">
+          <span>Məhsul</span>
+          <select id="historySelect"></select>
+        </label>
+      </div>
+
+      <div id="historyNote"></div>
+
+      <!-- Əsas rəqəm qrafikin ÜSTÜNDƏ: istifadəçi qrafiki oxumadan da
+           son qiyməti görür. Məzmunu analytics.js real datadan doldurur. -->
+      <div class="chart-summary" id="chartSummary"></div>
+
+      <div class="chart-box">
+        <canvas id="historyChart"></canvas>
+      </div>
+
+      <div class="table-scroll gap-md">
+        <table class="lines" id="historyTable"></table>
+      </div>
+    </section>
+    </div>
+
+    <!-- --- Endirim yoxlaması --- -->
+    <section class="card" aria-labelledby="discountTitle">
+      <div class="card-head">
+        <div class="head-row">
+          <svg aria-hidden="true"><use href="#icon-shield"></use></svg>
+          <h2 class="section-heading" id="discountTitle">Endirim yoxlaması</h2>
+        </div>
+        <p class="section-sub">
+          Kataloqdakı «köhnə qiymət» iddiasını öz müşahidələrimizlə tutuşdururuq.
+          Diqqət tələb edənlər yuxarıdadır. «Təsdiqlənməyib» hökmü «saxta» demək
+          deyil — «yoxlaya bilmirik» deməkdir.
+        </p>
+      </div>
+
+      <div id="discountList"><div class="row"><span class="row-label skeleton">Yüklənir</span></div></div>
+
+      <div class="actions">
+        <button class="btn btn-secondary" id="discountRefresh" type="button">Yenilə</button>
+      </div>
+    </section>
+
+    <!-- --- Profil --- -->
+    <section class="card" aria-labelledby="profileTitle">
+      <div class="card-head">
+        <div class="head-row">
+          <svg aria-hidden="true"><use href="#icon-gear"></use></svg>
+          <h2 class="section-heading" id="profileTitle">Profil və parametrlər</h2>
+        </div>
+        <p class="section-sub">
+          Bu ayarlar bəzək deyil: tövsiyə məntiqi onlara görə dəyişir. Tək markete
+          gedirsinizsə, 0.20 AZN üçün ikinci market təklif olunmayacaq.
+        </p>
+      </div>
+
+      <div class="form-row flush">
+        <label class="field small">
+          <span>Neçə nəfərlik ev</span>
+          <input type="number" id="profHousehold" min="1" max="20" value="1">
+        </label>
+        <label class="field small">
+          <span>Həftəlik büdcə (AZN)</span>
+          <input type="number" id="profBudget" min="0" step="1" placeholder="limit yoxdur">
+        </label>
+        <label class="field small">
+          <span>Neçə markete gedirsiniz</span>
+          <select id="profStores">
+            <option value="1">1 — yalnız bir market</option>
+            <option value="2">2 — bölə bilərəm</option>
+            <option value="3">3</option>
+          </select>
+        </label>
+        <label class="field small">
+          <span>2-ci market üçün min. qənaət</span>
+          <input type="number" id="profMinSaving" min="0" step="0.5" value="1">
+        </label>
+      </div>
+
+      <div class="form-row">
+        <label class="field">
+          <span>İstəmədiyiniz sözlər (vergüllə)</span>
+          <input type="text" id="profAvoid" placeholder="məsələn: donuz, alkoqol">
+        </label>
+        <label class="check">
+          <input type="checkbox" id="profUnitPrice" checked>
+          <span>kq/litr qiymətinə bax</span>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-secondary" id="profSaveBtn" type="button">Yadda saxla</button>
+        <button class="btn btn-secondary" id="planRefresh" type="button">Planı yenilə</button>
+      </div>
+
+      <div id="profSummary"></div>
+
+      <div class="card-head gap-lg">
+        <h3 class="section-heading subheading">Sizə tövsiyə olunan plan</h3>
+      </div>
+      <div id="planBox"><div class="row"><span class="row-label skeleton">Yüklənir</span></div></div>
+    </section>
+  </main>
+
+
+  <!-- ==========================================================
+       ADMIN / DEVELOPER PANELİ
+
+       Bu bölmə defolt GİZLİDİR. Adi istifadəçi scraping, OCR rejimi və
+       model diaqnostikası görməməlidir - onlar məhsulun içi, cavabı deyil.
+       ========================================================== -->
+  <main class="panel hidden" id="panel-admin" role="tabpanel" aria-labelledby="tabAdmin">
+
+    <div class="page-head">
+      <h1 class="page-title">Admin / Developer</h1>
+      <p class="page-sub">
+        Data mənbələri, kataloq emalı və sistem diaqnostikası.
+      </p>
+    </div>
+
+    <div class="admin-note">
+      Yuxarıdakı istifadəçi paneli buradakı kataloqlardan qidalanır: mənbədən çək
+      və ya əl ilə yüklə, sonra AI ilə emal et.
+    </div>
+
+    <!-- --- Sistem statusu --- -->
+    <section class="card" aria-labelledby="sysTitle">
+      <div class="card-head">
+        <div class="head-row">
+          <svg aria-hidden="true"><use href="#icon-terminal"></use></svg>
+          <h2 class="section-heading" id="sysTitle">Sistem statusu</h2>
+        </div>
+      </div>
+      <div class="status-grid" id="status">
+        <div class="status-tile"><span class="eyebrow">Yüklənir</span>
+          <div class="status-value skeleton">…</div></div>
+      </div>
+    </section>
+
+    <!-- --- Mənbədən çəkmə --- -->
+    <section class="card" aria-labelledby="sourceTitle">
+      <div class="card-head">
+        <div class="head-row">
+          <svg aria-hidden="true"><use href="#icon-cloud-download"></use></svg>
+          <h2 class="section-heading" id="sourceTitle">Mənbədən avtomatik çək</h2>
+        </div>
+        <p class="section-sub">
+          Market saytından endirim jurnalını tapıb endirir və emal edir.
+          <code>robots.txt</code>-ə riayət olunur, sorğular arasında gecikmə qoyulur.
+        </p>
+      </div>
+
+      <div id="sourceList"><div class="row"><span class="row-label skeleton">Yüklənir</span></div></div>
+
+      <div class="form-row">
+        <label class="field small">
+          <span>Neçə səhifə emal olunsun?</span>
+          <select id="scrapePages">
+            <option value="1">1 səhifə</option>
+            <option value="2" selected>2 səhifə</option>
+            <option value="3">3 səhifə</option>
+            <option value="5">5 səhifə</option>
+          </select>
+        </label>
+        <div class="actions flush">
+          <button class="btn" id="scrapeBtn" type="button">
+            <svg aria-hidden="true"><use href="#icon-download"></use></svg>
+            Mənbədən çək
+          </button>
+        </div>
+      </div>
+
+      <div id="scrapeStatus"></div>
+    </section>
+
+    <!-- --- Kataloq yüklə --- -->
+    <section class="card" aria-labelledby="uploadTitle">
+      <div class="card-head">
+        <div class="head-row">
+          <svg aria-hidden="true"><use href="#icon-upload"></use></svg>
+          <h2 class="section-heading" id="uploadTitle">Kataloq yüklə</h2>
+        </div>
+      </div>
+
+      <div class="dropzone" id="dropzone" role="button" tabindex="0"
+           aria-label="Kataloq faylı seç — PDF, JPG və ya PNG">
+        <div class="dz-icon" aria-hidden="true"><svg><use href="#icon-upload"></use></svg></div>
+        <div class="dz-title">Faylı bura sürüşdürün</div>
+        <div class="dz-sub">və ya <span class="link">seçmək üçün klikləyin</span> — PDF, JPG, PNG</div>
+        <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.webp,.tif,.tiff" hidden>
+      </div>
+
+      <div class="form-row">
+        <label class="field">
+          <span>Market adı</span>
+          <input type="text" id="storeInput" placeholder="Məsələn: Bravo" value="">
+        </label>
+        <label class="field small">
+          <span>PSM (OCR rejimi)</span>
+          <select id="psmInput">
+            <option value="0">avtomatik (.env)</option>
+            <option value="6">6 — vahid blok</option>
+            <option value="4">4 — sütunlu mətn</option>
+            <option value="11">11 — səpələnmiş mətn</option>
+            <option value="3">3 — tam avtomatik</option>
+          </select>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="forceOcr">
+          <span>OCR-ı məcbur et</span>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-secondary" id="uploadBtn" type="button" disabled>Emal et</button>
+        <span class="file-name" id="fileName">Fayl seçilməyib</span>
+      </div>
+
+      <div id="uploadStatus"></div>
+    </section>
+
+    <!-- --- Emal nəticəsi --- -->
+    <section class="card hidden" id="resultCard" aria-labelledby="resultTitle">
+      <div class="card-head">
+        <div class="head-row">
+          <svg aria-hidden="true"><use href="#icon-file"></use></svg>
+          <h2 class="section-heading" id="resultTitle">Emal nəticəsi — təmizlənmiş sətirlər</h2>
+        </div>
+      </div>
+      <div id="resultMeta"></div>
+      <div class="table-scroll">
+        <table class="lines" id="linesTable"></table>
+      </div>
+
+      <div class="form-row">
+        <label class="field small">
+          <span>Neçə sətir emal olunsun?</span>
+          <select id="extractLimit">
+            <option value="5">5 sətir</option>
+            <option value="10" selected>10 sətir</option>
+            <option value="25">25 sətir</option>
+            <option value="0">hamısı</option>
+          </select>
+        </label>
+        <div class="actions flush">
+          <button class="btn btn-secondary" id="extractBtn" type="button">AI ilə çıxar</button>
+          <button class="btn btn-secondary" id="matchBtn" type="button">Məhsulları uyğunlaşdır</button>
+        </div>
+      </div>
+      <div id="extractStatus"></div>
+      <div id="matchStatus"></div>
+    </section>
+
+    <!-- --- Çıxarılmış məhsullar --- -->
+    <section class="card hidden" id="productCard" aria-labelledby="productTitle">
+      <div class="card-head">
+        <div class="head-row">
+          <svg aria-hidden="true"><use href="#icon-package"></use></svg>
+          <h2 class="section-heading" id="productTitle">AI-nin çıxardığı məhsullar</h2>
+        </div>
+      </div>
+      <div id="productMeta"></div>
+      <div class="table-scroll">
+        <table class="lines" id="productTable"></table>
+      </div>
+    </section>
+
+    <!-- --- Kataloqlar --- -->
+    <section class="card" aria-labelledby="catalogTitle">
+      <div class="card-head">
+        <div class="head-row">
+          <svg aria-hidden="true"><use href="#icon-layers"></use></svg>
+          <h2 class="section-heading" id="catalogTitle">Yüklənmiş kataloqlar</h2>
+        </div>
+      </div>
+      <div id="catalogList"><div class="row"><span class="row-label skeleton">Yüklənir</span></div></div>
+    </section>
+  </main>
+
+</div>
+
+<script src="/static/nav.js"></script>
+<script src="/static/app.js"></script>
+<script src="/static/advisor.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="/static/scrape.js"></script>
+<script src="/static/analytics.js"></script>
+<script src="/static/profile.js"></script>
+</body>
+</html>

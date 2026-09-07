@@ -1,0 +1,13 @@
+{
+  "_qeyd": "Claude Desktop üçün nümunə. Faylı buraya kopyala: %APPDATA%\\Claude\\claude_desktop_config.json (Windows) və ya ~/Library/Application Support/Claude/claude_desktop_config.json (macOS). 'cwd' və Python yolunu öz layihənə uyğun dəyiş, sonra Claude Desktop-u yenidən başlat.",
+
+  "_niye_stdio": "Claude Desktop MCP serverini AYRI PROSES kimi işə salır və onunla stdin/stdout üzərindən danışır. Ona görə burada HTTP yox, stdio rejimi işlədilir - port lazım deyil, server yalnız Claude açıq olanda yaşayır.",
+
+  "mcpServers": {
+    "basketiq": {
+      "command": "C:\\Users\\pcuser\\PycharmProjects\\3nd month project\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "mcp_server.server"],
+      "cwd": "C:\\Users\\pcuser\\PycharmProjects\\3nd month project"
+    }
+  }
+}

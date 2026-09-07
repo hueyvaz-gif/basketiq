@@ -1,0 +1,43 @@
+# --- Web / API ---
+fastapi>=0.115
+uvicorn[standard]>=0.32
+python-multipart>=0.0.20     # fayl upload (multipart/form-data) üçün
+python-dotenv>=1.0
+pydantic>=2.9
+
+# --- AI / LangChain ---
+langchain>=0.3
+langchain-core>=0.3
+langchain-ollama>=0.2
+langchain-anthropic>=1.7     # Claude API (əsas), Ollama ehtiyat qalır
+#   Niyə birbaşa `anthropic` SDK deyil? Layihənin AI qatı LCEL zəncirləridir;
+#   ChatAnthropic içəridə elə həmin rəsmi SDK-nı çağırır və `with_fallbacks()`
+#   ilə Ollama-ya keçidi LangChain-in öz mexanizmi həll edir.
+
+# --- MCP (Model Context Protocol) ---
+mcp>=2.1                     # AI agentləri üçün alət serveri
+#   DİQQƏT: 2.x-də API dəyişib - FastMCP artıq MCPServer adlanır.
+#   1.x üçün yazılmış nümunə kodlar burada işləməyəcək.
+
+# --- Scraping ---
+requests>=2.32
+beautifulsoup4>=4.12
+lxml>=5.3
+selenium>=4.25
+
+# --- PDF / OCR ---
+pypdf>=5.1                   # PDF-in text layer-ini oxumaq
+pytesseract>=0.3.13          # OCR (skan PDF / şəkil)
+pillow>=11.0                 # OCR-dan əvvəl şəkil emalı
+pypdfium2>=4.30              # skan PDF səhifəsini şəkilə çevirmək
+#   Niyə pdf2image yox? O, Windows-da ayrıca "poppler" proqramı tələb edir.
+#   pypdfium2 sadəcə pip ilə qurulur, xarici binary lazım deyil.
+
+# --- Səs (bonus) ---
+# Ayrıca fayldadır: requirements-voice.txt
+# Səbəb ölçülüb - Docker image 684 MB -> 1.25 GB. Səs bonusdur, hər
+# deployment-də lazım deyil; onu məcburi etmək kiçik droplet-i bahalaşdırardı.
+
+# --- Test ---
+pytest>=8.3
+httpx>=0.27

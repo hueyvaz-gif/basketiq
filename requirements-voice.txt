@@ -1,0 +1,20 @@
+# Səsli əmrlər (bonus) — Telegram + Whisper
+#
+# Quraşdırmaq:
+#     pip install -r requirements-voice.txt
+#
+# Docker-də:
+#     docker build --build-arg WITH_VOICE=true -t basketiq:voice .
+#
+# NİYƏ AYRICA FAYL? Ölçülüb: bu paketlər image-i 684 MB-dan 1.25 GB-a
+# qaldırır (onnxruntime, ctranslate2, numpy, av). Səs funksiyası bonusdur -
+# dashboard, scraping və müqayisə onsuz da işləyir. Kiçik droplet-də bu
+# fərq real puldur.
+#
+# NİYƏ rəsmi `openai-whisper` DEYİL?
+#   1. O, ~2.5 GB PyTorch tələb edir.
+#   2. Audio açmaq üçün sistemdə ayrıca `ffmpeg` proqramı istəyir.
+# faster-whisper eyni Whisper çəkilərini CTranslate2 üzərində işlədir və
+# audio-nu PyAV ilə özü açır - ffmpeg quraşdırmaq lazım deyil.
+
+faster-whisper>=1.2

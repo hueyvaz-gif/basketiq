@@ -1,0 +1,1103 @@
+/* ============================================================================
+   BasketIQ — dizayn sistemi
+
+   İSTİQAMƏT: Wise + Trolley + fintech dashboard dili.
+   Cəsarətli tipoqrafiya, pill formalar, kartlarda yumşaq kölgə, iri tabular
+   rəqəmlər. Yalnız işıqlı rejim — `prefers-color-scheme: dark` bloku QƏSDƏN
+   yoxdur və `color-scheme: light` sistem dark rejimdə olsa belə brauzerin
+   `input`/`select` sahələrini qaraltmasının qarşısını alır.
+
+   ƏSAS QAYDA: RƏNG MƏNA DAŞIYIR, BƏZƏK DEYİL.
+     mavi   = brend, naviqasiya, əsas hərəkət
+     yaşıl  = QƏNAƏT / ən ucuz / təsdiqlənib
+     kəhrəba= diqqət / təsdiqlənməyib
+     qırmızı= bahalı / şübhəli / xəta
+     bənövşəyi = YALNIZ AI (maşının yazdığı mətn)
+   Bir element "gözəl görünsün" deyə rənglənmir. Rəngi görməyən istifadəçi
+   üçün hər siqnalın mətn və ya forma qarşılığı da var.
+
+   SƏHİFƏ AXINI: verdict -> qrafik -> detallı cədvəl -> istisnalar.
+   Ən böyük element səhifədə TƏKDİR: səbətin ən ucuz cəmi (56px/800).
+   ============================================================================ */
+
+:root {
+  color-scheme: light;
+
+  /* --- Səth --- */
+  --bg: #FAFAF7;          /* xəfif isti ağ - tam ağ deyil, kart ondan ayrılsın */
+  --surface: #FFFFFF;
+  --surface-2: #F3F4F6;   /* input, zebra, bar yolu */
+
+  /* --- Mətn --- */
+  --text: #111827;
+  --text-2: #4B5563;
+  --text-3: #9CA3AF;
+
+  /* --- Brend --- */
+  --accent: #0071E3;
+
+  /* --- Semantik status ---
+     Yaşıl BU LAYİHƏDƏ "qənaət" deməkdir və brend rəngi ilə qarışmır:
+     brend mavidir, ona görə yaşıl gördüyün hər yer pul deməkdir. */
+  --green: #16A34A;
+  --amber: #F59E0B;
+  --red: #EF4444;
+  --ai: #7C3AED;          /* yalnız AI kartı */
+
+  /* Rəngli fon üzərində oxunan mətn tonları. Statusun öz rəngi fon kimi
+     işlənəndə mətn üçün daha tünd variant lazımdır - kəhrəba/qırmızının
+     özü ağ fonda kifayət qədər kontrast vermir. */
+  --on-accent: #FFFFFF;
+  --amber-ink: #B45309;
+  --red-ink: #B91C1C;
+
+  /* Yüngül fonlar: ayrı hex yazmaq əvəzinə əsas token ağ səthlə qarışır,
+     yəni token dəyişsə bunlar da ardınca dəyişir. */
+  --accent-soft: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  --green-soft: color-mix(in srgb, var(--green) 12%, var(--surface));
+  --amber-soft: color-mix(in srgb, var(--amber) 14%, var(--surface));
+  --red-soft: color-mix(in srgb, var(--red) 10%, var(--surface));
+  --ai-soft: #F5F3FF;
+
+  /* --- Market identikliyi ---
+     Hər marketə öz rəng nöqtəsi (Trolley-dəki loqo çipləri kimi). Real loqo
+     YOXDUR - `stores` cədvəlində yalnız slug/name/website var - ona görə
+     saxta brend çəkmirik, kiçik rəng nöqtəsi ilə kifayətlənirik.
+     Palitrada YAŞIL və QIRMIZI YOXDUR: onlar status rəngidir, market
+     kimliyi ilə qarışsalar "bu market yaşıldır, yoxsa ucuzdur?" sualı yaranır. */
+  --store-1: #0071E3;
+  --store-2: #7C3AED;
+  --store-3: #0E7490;
+  --store-4: #B45309;
+  --store-5: #BE185D;
+  --store-6: #475569;
+
+  /* --- Kölgə: yüksəklik burada verilir, border-lə deyil --- */
+  --shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 2px 8px rgba(16, 24, 40, .06);
+  --shadow-lift: 0 2px 4px rgba(16, 24, 40, .05), 0 8px 20px rgba(16, 24, 40, .10);
+  --hairline: rgba(16, 24, 40, .06);   /* yalnız cədvəl sətir ayırıcısı */
+
+  /* --- Forma --- */
+  --r-card: 20px;
+  --r-md: 16px;
+  --r-sm: 12px;
+  --r-xs: 6px;
+  --r-pill: 999px;
+
+  /* --- Boşluq: 8px əsaslı --- */
+  --s1: 4px; --s2: 8px; --s3: 16px; --s4: 24px; --s5: 32px; --s6: 48px;
+
+  --content: 1280px;
+  --measure: 68ch;
+
+  --font: "Manrope", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --ease: .18s cubic-bezier(.4, 0, .2, 1);
+  --ease-slow: .32s cubic-bezier(.4, 0, .2, 1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 400;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.55;
+}
+
+h1, h2, h3 { font-weight: 800; letter-spacing: -.025em; line-height: 1.15; }
+
+/* Bütün rəqəm sahələri bərabər enli olsun: sütunda rəqəmlər sürüşməsin və
+   "19.65" ilə "8.10" eyni yerdə bitsin. */
+.num, .money, .stat-value, .hero-price, .hero-saving, .bar-value,
+table.lines .num, .row-value {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Valyuta işarəsi rəqəmdən NAZİK və AÇIQ - fokus ədədin üstündə qalsın */
+.cur { font-weight: 500; color: var(--text-3); margin-left: .12em; }
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
+
+.hidden { display: none !important; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+
+/* ============================================================================
+   ÜST PANEL
+   ============================================================================ */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg);
+}
+
+.topbar-inner {
+  max-width: var(--content);
+  margin: 0 auto;
+  padding: var(--s3) var(--s4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+.brand { display: flex; align-items: center; gap: 10px; }
+
+.brand-mark {
+  width: 36px; height: 36px;
+  display: grid; place-items: center;
+  border-radius: var(--r-sm);
+  background: var(--accent);
+  color: var(--surface);
+  flex: none;
+}
+
+.brand-mark svg { width: 21px; height: 21px; }
+
+.brand-name { font-size: 19px; font-weight: 800; letter-spacing: -.03em; }
+
+/* --- Segmented control: "chunky" pill toggle (Wise tərzi) --- */
+.segmented {
+  display: flex;
+  gap: var(--s1);
+  padding: 5px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.seg-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-2);
+  background: transparent;
+  border: none;
+  border-radius: var(--r-pill);
+  padding: 10px 18px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--ease), color var(--ease);
+}
+
+.seg-btn svg { width: 16px; height: 16px; flex: none; }
+.seg-btn:hover { color: var(--text); background: var(--surface-2); }
+
+.seg-btn[aria-selected="true"] {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.seg-btn[aria-selected="true"]:hover { background: var(--accent); }
+
+
+/* ============================================================================
+   SƏHİFƏ ÇƏRÇİVƏSİ
+   ============================================================================ */
+
+.wrap { max-width: var(--content); margin: 0 auto; padding: var(--s4) var(--s4) var(--s6); }
+
+/* Bölmələr arasında SABİT məsafə - hər karta ayrıca margin yazılmır */
+.panel { display: flex; flex-direction: column; gap: var(--s4); }
+
+.page-title { font-size: 30px; }
+
+.page-sub {
+  color: var(--text-2);
+  font-size: 16px;
+  margin-top: var(--s2);
+  max-width: var(--measure);
+}
+
+/* Bölmə başlığı - NORMAL CASE, qalın.
+   Köhnə dizaynda hər başlıq 12px boz UPPERCASE idi: səhifədə hər şey eyni
+   çəkidə görünürdü və göz "əsas nədir?" sualına cavab tapmırdı. */
+.section-heading { font-size: 21px; font-weight: 800; letter-spacing: -.025em; color: var(--text); }
+.subheading { font-size: 17px; }
+
+.section-sub { color: var(--text-2); font-size: 14px; margin-top: 6px; max-width: var(--measure); }
+
+.card-head { margin-bottom: var(--s3); }
+.head-row { display: flex; align-items: center; gap: var(--s2); }
+.head-row svg { width: 19px; height: 19px; color: var(--text-3); flex: none; }
+
+/* İkinci dərəcəli metadata üçün uppercase QALIR - kiçik, sakit, əsas
+   məzmunla yarışmır. */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.flush { margin-top: 0 !important; }
+.gap-sm { margin-top: var(--s2); }
+.gap-md { margin-top: var(--s3); }
+.gap-lg { margin-top: var(--s4); }
+.is-muted { opacity: .6; }
+
+
+/* ============================================================================
+   KARTLAR — kəskin border yoxdur, yüksəklik kölgə ilə verilir
+   ============================================================================ */
+
+.card {
+  background: var(--surface);
+  border: none;
+  border-radius: var(--r-card);
+  padding: var(--s4);
+  box-shadow: var(--shadow);
+}
+
+.card-lift { transition: box-shadow var(--ease), transform var(--ease); }
+.card-lift:hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
+
+
+/* ============================================================================
+   STATİSTİKA KARTLARI
+   Böyük ədəd + altında kontekst cümləsi + küncdə rəngli dairəvi ikon.
+   ============================================================================ */
+
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s3); }
+
+.stat {
+  position: relative;
+  background: var(--surface);
+  border-radius: var(--r-card);
+  padding: var(--s4);
+  box-shadow: var(--shadow);
+  transition: box-shadow var(--ease), transform var(--ease);
+}
+
+.stat:hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
+
+/* İkon KÜNCDƏ dayanır ki, ədəd sətrin əvvəlindən başlasın - göz rəqəmi
+   axtarmır, həmişə eyni yerdə tapır. */
+.stat-icon {
+  position: absolute;
+  top: var(--s3);
+  right: var(--s3);
+  width: 38px; height: 38px;
+  display: grid; place-items: center;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, currentColor 12%, var(--surface));
+  color: var(--accent);
+}
+
+.stat-icon svg { width: 19px; height: 19px; }
+
+.stat.is-accent .stat-icon { color: var(--accent); }
+.stat.is-green  .stat-icon { color: var(--green); }
+.stat.is-amber  .stat-icon { color: var(--amber); }
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.stat-value {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -.035em;
+  line-height: 1.05;
+  margin-top: 6px;
+}
+
+.stat-note { font-size: 13px; color: var(--text-2); margin-top: var(--s1); }
+
+
+/* ============================================================================
+   HERO — "SƏBƏTİNİZ HARADA UCUZDUR?"
+
+   Səhifənin VERDICT-i. Səbətin ən ucuz cəmi 56px/800-dür və səhifədə ondan
+   böyük heç nə yoxdur - istifadəçi ilk 3 saniyədə məhz onu görməlidir.
+   ============================================================================ */
+
+.hero {
+  background: var(--surface);
+  border-radius: var(--r-card);
+  padding: var(--s4);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+
+.hero-title { font-size: 26px; }
+.hero-lead { color: var(--text-2); font-size: 15px; margin-top: 6px; max-width: var(--measure); }
+
+.hero-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: var(--s3);
+  align-items: stretch;
+}
+
+/* --- Qalib kart: guşə lenti ilə --- */
+.hero-winner {
+  position: relative;
+  overflow: hidden;
+  background: var(--green-soft);
+  border-radius: var(--r-md);
+  padding: var(--s4);
+  display: flex;
+  flex-direction: column;
+}
+
+/* GUŞƏ LENTİ (Trolley-dəki "X% Cheaper" lenti).
+   45° döndərilib sağ üst küncə oturdulub. `overflow: hidden` valideyndədir -
+   lentin kənarları kartın xaricinə çıxmasın. */
+.ribbon {
+  position: absolute;
+  top: 18px;
+  right: -52px;
+  width: 200px;
+  padding: 6px 0;
+  transform: rotate(45deg);
+  background: var(--green);
+  color: var(--on-accent);
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  box-shadow: var(--shadow);
+}
+
+/* Bölünmüş alış halı: qalib yoxdur, amma rəqəm var.
+   Yaşıl DEYİL - yaşıl "ən ucuz tək market" deməkdir. Kəhrəba: "nəticə var,
+   amma bir neçə marketi gəzmək lazımdır". */
+.hero-winner.is-split { background: var(--amber-soft); }
+.ribbon.is-amber { background: var(--amber); }
+
+.hero-winner-id { display: flex; align-items: center; gap: var(--s3); }
+
+.hero-winner-id .avatar {
+  color: var(--green);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.hero-store { font-size: 30px; font-weight: 800; letter-spacing: -.03em; line-height: 1.1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+/* SƏHİFƏNİN ƏN BÖYÜK ELEMENTİ */
+.hero-price {
+  font-size: 56px;
+  font-weight: 800;
+  letter-spacing: -.04em;
+  line-height: 1;
+  margin-top: var(--s3);
+}
+
+.hero-price-note { font-size: 14px; color: var(--text-2); margin-top: var(--s2); }
+
+.hero-aside {
+  border-radius: var(--r-md);
+  padding: var(--s4);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  background: var(--surface-2);
+}
+
+.hero-saving { font-size: 34px; font-weight: 800; letter-spacing: -.035em; color: var(--green); line-height: 1.1; }
+.hero-aside-note { font-size: 14px; color: var(--text-2); max-width: var(--measure); }
+
+/* Boş hallar. Mətn SOLA hizalanır: mərkəzləşdirilmiş uzun cümlə hər sətirdə
+   fərqli yerdən başlayır və göz onu izləməkdə çətinlik çəkir. */
+.hero-empty {
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  padding: var(--s4);
+  color: var(--text-2);
+}
+
+.hero-empty-title { font-size: 17px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+.hero-empty div { max-width: var(--measure); }
+
+
+/* ============================================================================
+   PILL / BADGE — hamısı tam dəyirmi
+   ============================================================================ */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 5px 12px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--text-2);
+  white-space: nowrap;
+  letter-spacing: -.01em;
+}
+
+.pill svg { width: 13px; height: 13px; }
+.pill.is-green { background: var(--green-soft); color: var(--green); }
+.pill.is-amber { background: var(--amber-soft); color: var(--amber-ink); }
+.pill.is-red   { background: var(--red-soft);   color: var(--red-ink); }
+.pill.is-accent{ background: var(--accent-soft); color: var(--accent); }
+.pill.is-ai    { background: var(--ai-soft); color: var(--ai); }
+
+/* Solid variant - sayğac badge-ləri üçün */
+.pill.solid-green { background: var(--green); color: var(--on-accent); }
+
+
+/* ============================================================================
+   MARKET KİMLİYİ — rəng nöqtəsi + ad
+   ============================================================================ */
+
+.store-dot {
+  width: 8px; height: 8px;
+  border-radius: var(--r-pill);
+  flex: none;
+  background: var(--store-1);
+}
+
+.store-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: none;
+  letter-spacing: -.01em;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+/* Cədvəl başlığındakı market ikonu.
+   İKİ siqnal birlikdə işləyir: ikon "bu, marketdir" deyir, rəng isə HANSI
+   market olduğunu. Rəng tək qalsaydı, rəng görməyən istifadəçi üçün başlıq
+   sadəcə mətn olardı. */
+.store-mark {
+  display: grid;
+  place-items: center;
+  width: 22px; height: 22px;
+  border-radius: var(--r-xs);
+  background: color-mix(in srgb, currentColor 12%, var(--surface));
+  flex: none;
+}
+
+.store-mark svg { width: 14px; height: 14px; }
+
+
+/* --- Market müqayisə sütunları: qalın, dəyər barın İÇİNDƏ --- */
+.bars { display: flex; flex-direction: column; gap: var(--s2); }
+
+.bar-row { display: grid; grid-template-columns: minmax(96px, 150px) 1fr; align-items: center; gap: var(--s3); min-width: 0; }
+
+.bar-name { display: flex; align-items: center; gap: var(--s2); font-size: 14px; font-weight: 700; min-width: 0; }
+.bar-name > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-name small { display: block; font-weight: 500; font-size: 12px; color: var(--text-3); }
+
+.bar-track {
+  position: relative;
+  height: 40px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--accent) 26%, var(--surface-2));
+  transition: width var(--ease-slow);
+}
+
+.bar-row.is-best .bar-fill { background: var(--green); }
+
+/* Rəqəm barın içindədir. Qalib barda ağ, digərlərində tünd - çünki onların
+   dolğunluğu açıqdır və ağ mətn oxunmazdı. */
+.bar-value {
+  position: absolute;
+  top: 0; right: var(--s3);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.bar-row.is-best .bar-value { color: var(--on-accent); }
+
+/* Natamam market: bar ZOLAQLI.
+   Səbəb ciddidir - natamam marketin cəmi kiçikdir (çatışmayan məhsul 0
+   sayılır), yəni barı QISA, deməli "ucuz" görünür. Zolaq və "6/7 məhsul"
+   yazısı bu tələni gözlə görünən edir: rənglə deyil, HƏM naxış, HƏM mətnlə. */
+/* Səbətdən heç nə satmayan market: bar YOXDUR.
+   Bar çəksək cəmi 0.00 olduğu üçün ən qısa - deməli "ən ucuz" - görünərdi. */
+.bar-row.is-empty { opacity: .65; }
+.bar-empty {
+  font-size: 13px;
+  color: var(--text-3);
+  padding: 10px var(--s3);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+
+.bar-row.is-partial .bar-fill {
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--amber) 34%, var(--surface-2)) 0 8px,
+    var(--surface-2) 8px 16px
+  );
+}
+
+
+/* ============================================================================
+   CƏDVƏL
+   ============================================================================ */
+
+.table-scroll { overflow-x: auto; border-radius: var(--r-md); }
+
+table.lines { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
+
+table.lines th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  padding: var(--s2) var(--s3);
+  background: var(--surface-2);
+  white-space: nowrap;
+}
+
+table.lines th:first-child { border-radius: var(--r-sm) 0 0 0; }
+table.lines th:last-child { border-radius: 0 var(--r-sm) 0 0; }
+
+table.lines td {
+  padding: 14px var(--s3);
+  border-bottom: 1px solid var(--hairline);
+  vertical-align: middle;
+}
+
+table.lines tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--surface-2) 45%, var(--surface)); }
+table.lines tbody tr:hover td { background: var(--accent-soft); }
+table.lines tbody tr:last-child td { border-bottom: none; }
+
+table.lines .num { text-align: right; white-space: nowrap; }
+table.lines .old { color: var(--text-3); text-decoration: line-through; }
+table.lines .txt { color: var(--text); }
+table.lines td.na { color: var(--text-3); }
+
+/* ƏN UCUZ qiymət: yaşıl PILL fon.
+   Rəng TƏK siqnal deyil - pillin içində ikon və ekran oxuyucusu üçün gizli
+   mətn də var, yəni rəngi ayırd edə bilməyən istifadəçi məlumatı itirmir. */
+.price-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: var(--r-pill);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.price-pill.is-best { background: var(--green-soft); color: var(--green); }
+.price-pill svg { width: 13px; height: 13px; }
+
+.cell-sub { display: block; font-size: 12px; color: var(--text-3); margin-top: 2px; }
+
+
+/* ============================================================================
+   ENTITY: ikon + ad (market və məhsul)
+   ============================================================================ */
+
+.entity { display: flex; align-items: center; gap: var(--s2); min-width: 0; }
+
+.avatar {
+  width: 38px; height: 38px;
+  flex: none;
+  display: grid; place-items: center;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, currentColor 11%, var(--surface));
+  color: var(--text-2);
+  transition: background var(--ease);
+}
+
+.avatar svg { width: 20px; height: 20px; }
+.avatar.is-sm { width: 30px; height: 30px; border-radius: var(--r-sm); }
+.avatar.is-sm svg { width: 16px; height: 16px; }
+.avatar.is-lg { width: 56px; height: 56px; border-radius: var(--r-md); }
+.avatar.is-lg svg { width: 28px; height: 28px; }
+
+.avatar.is-accent { color: var(--accent); }
+.avatar.is-green  { color: var(--green); }
+.avatar.is-amber  { color: var(--amber); }
+.avatar.is-red    { color: var(--red); }
+
+table.lines tbody tr:hover .avatar { background: color-mix(in srgb, currentColor 20%, var(--surface)); }
+
+.entity-text { min-width: 0; }
+.entity-name { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.entity-meta { font-size: 12px; color: var(--text-3); }
+
+
+/* ============================================================================
+   DÜYMƏLƏR — hamısı pill
+
+   HƏR EKRANDA YALNIZ BİR primary düymə:
+     istifadəçi paneli -> "Tövsiyə al"
+     admin paneli      -> "Mənbədən çək"
+   Səbəb sadədir: iki doldurulmuş düymə yan-yana duranda göz hansının əsas
+   olduğunu seçə bilmir, yəni "primary" anlayışı mənasını itirir.
+   ============================================================================ */
+
+.btn {
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  color: var(--surface);
+  background: var(--accent);
+  border: none;
+  border-radius: var(--r-pill);
+  padding: 12px 22px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  transition: background var(--ease), transform var(--ease), box-shadow var(--ease);
+  box-shadow: var(--shadow);
+}
+
+.btn svg { width: 17px; height: 17px; }
+.btn:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 88%, var(--text)); box-shadow: var(--shadow-lift); }
+.btn:active:not(:disabled) { transform: scale(.98); }
+.btn:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
+
+.btn-secondary {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.btn-secondary:hover:not(:disabled) { background: var(--surface-2); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--accent);
+  box-shadow: none;
+  padding: 8px 14px;
+  font-size: 14px;
+}
+
+.btn-ghost:hover:not(:disabled) { background: var(--accent-soft); box-shadow: none; }
+
+/* --- Yalnız ikonlu düymə (sil) ---
+   Köhnə "×" 12px mətn idi: barmaqla vurulmurdu və gözə dəymirdi. */
+.icon-btn {
+  width: 36px; height: 36px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  border: none;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background var(--ease), color var(--ease);
+}
+
+.icon-btn svg { width: 16px; height: 16px; }
+.icon-btn:hover:not(:disabled) { background: var(--red); color: var(--on-accent); }
+.icon-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* Header-dəki qısayol: <a>-dır, ona görə mətn stilləri sıfırlanır.
+   `is-quiet` = qırmızı hover YOXDUR - bu, silmə düyməsi deyil, keçiddir. */
+.icon-btn.is-quiet { text-decoration: none; background: var(--surface); box-shadow: var(--shadow); }
+.icon-btn.is-quiet:hover { background: var(--accent-soft); color: var(--accent); }
+
+.actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
+.actions.flush { margin-top: 0 !important; }
+
+
+/* ============================================================================
+   FORMA
+   ============================================================================ */
+
+.form-row { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: flex-end; margin-top: var(--s3); }
+
+/* `min-width: 0` MÜTLƏQ lazımdır - telefona görə yox, `select`-ə görə.
+
+   Flex elementi defolt olaraq `min-width: auto` alır, yəni öz məzmunundan
+   kiçilə bilmir. `select`-in ən uzun `option` mətni ("barilla makaronu —
+   2 müşahidə, 2 market") sahəni ~400 piksel edir və dar pəncərədə bütün
+   sətri yana daşırır. Bu, desktop-da da baş verir. */
+.field { display: flex; flex-direction: column; gap: 6px; flex: 1 1 220px; min-width: 0; }
+.field.small { flex: 0 1 200px; }
+.field > span { font-size: 12px; font-weight: 700; color: var(--text-2); }
+
+.field input, .field select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1.5px solid transparent;
+  border-radius: var(--r-sm);
+  padding: 11px 14px;
+  outline: none;
+  transition: border-color var(--ease), background var(--ease);
+}
+
+.field input::placeholder { color: var(--text-3); }
+.field input:focus, .field select:focus { border-color: var(--accent); background: var(--surface); }
+
+.check { display: flex; align-items: center; gap: var(--s2); font-size: 14px; padding-bottom: 11px; }
+.check input { accent-color: var(--accent); width: 17px; height: 17px; flex: none; }
+
+.file-name { font-size: 13px; color: var(--text-2); }
+
+
+/* ============================================================================
+   BİLDİRİŞ / STATUS
+   ============================================================================ */
+
+.notice {
+  margin-top: var(--s3);
+  padding: 12px var(--s3);
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  background: var(--surface-2);
+  max-width: var(--measure);
+}
+
+.notice.info  { background: var(--accent-soft); }
+.notice.ok    { background: var(--green-soft); }
+.notice.warn  { background: var(--amber-soft); }
+.notice.error { background: var(--red-soft); }
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.row:last-child { border-bottom: none; }
+.row-label { font-size: 14px; }
+.row-value { font-size: 14px; font-weight: 700; color: var(--text-2); text-align: right; }
+
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: var(--r-pill); margin-right: var(--s2); background: var(--text-3); }
+.dot.ok { background: var(--green); }
+.dot.warn { background: var(--amber); }
+.dot.bad { background: var(--red); }
+
+.spinner {
+  display: inline-block;
+  width: 13px; height: 13px;
+  margin-right: var(--s2);
+  border: 2px solid var(--surface-2);
+  border-top-color: var(--accent);
+  border-radius: var(--r-pill);
+  animation: spin .7s linear infinite;
+  vertical-align: -2px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, transparent 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: var(--r-sm);
+  color: transparent;
+}
+
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: var(--s3); }
+
+.badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+
+.badge strong { color: var(--text); font-weight: 800; }
+.badge.ok   { background: var(--green-soft); color: var(--green); }
+.badge.warn { background: var(--amber-soft); color: var(--amber-ink); }
+
+.hint { font-size: 14px; color: var(--text-2); max-width: var(--measure); }
+
+
+/* ============================================================================
+   İSTİSNA SİYAHISI (endirim yoxlaması)
+
+   Tətbiqin ƏN GÜCLÜ fərqləndirici funksiyasıdır - "bu endirim iddiası
+   doğrudurmu?" Ona görə vizual olaraq ən çox diqqəti o alır.
+   Quruluş: solda status pill, ortada mətn, sağda tabular rəqəm.
+   ============================================================================ */
+
+.exception-list { display: flex; flex-direction: column; gap: var(--s2); }
+
+.exception {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--s3);
+  padding: 14px var(--s3);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  transition: background var(--ease);
+}
+
+.exception:hover { background: color-mix(in srgb, var(--accent) 5%, var(--surface-2)); }
+
+/* Sol kənarda 3px rəngli zolaq - siyahını sürətlə skan etmək üçün */
+.exception.is-warn { box-shadow: inset 3px 0 0 var(--amber); }
+.exception.is-bad  { box-shadow: inset 3px 0 0 var(--red); }
+.exception.is-ok   { box-shadow: inset 3px 0 0 var(--green); }
+
+.exception-main { min-width: 0; }
+.exception-title { font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+.exception-why { font-size: 13px; color: var(--text-2); margin-top: 2px; }
+
+.exception-price { text-align: right; white-space: nowrap; }
+.exception-now { font-size: 17px; font-weight: 800; }
+.exception-was { font-size: 13px; color: var(--text-3); text-decoration: line-through; }
+
+.counter-row { display: flex; flex-wrap: wrap; gap: var(--s2); margin-bottom: var(--s3); }
+
+
+/* ============================================================================
+   AI TÖVSİYƏSİ
+
+   Bənövşəyi TƏK BURADA işlədilir və məna daşıyır: "bu mətni maşın yazıb".
+   Səhifədə başqa heç nə bənövşəyi deyil, ona görə istifadəçi AI məzmununu
+   oxumadan da tanıyır.
+   ============================================================================ */
+
+.ai-card { background: var(--ai-soft); }
+
+.ai-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; margin-bottom: 6px; }
+.ai-title { display: flex; align-items: center; gap: var(--s2); }
+.ai-title svg { width: 20px; height: 20px; color: var(--ai); flex: none; }
+
+.advisor-text {
+  font-size: 17px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  min-height: 24px;
+  margin-top: var(--s3);
+  max-width: var(--measure);
+}
+
+.advisor-text:empty { display: none; }
+
+/* Yazılarkən yanıb-sönən kursor. Simvol deyil, CSS bloku: "▌" kimi işarələr
+   şriftdən şriftə fərqli ölçüdə çıxır və sətri sıçradır. */
+.advisor-text.typing::after {
+  content: "";
+  display: inline-block;
+  width: 2px; height: 1em;
+  vertical-align: -2px;
+  margin-left: 3px;
+  background: var(--ai);
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink { 50% { opacity: 0; } }
+
+/* Mətndəki əsas dəyərlər vurğulanır. <mark> semantikdir - ekran oxuyucusu
+   da "vurğulanmış" deyir. */
+.advisor-text mark {
+  background: color-mix(in srgb, var(--ai) 14%, transparent);
+  color: var(--text);
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: var(--r-xs);
+}
+
+.advisor-text mark.is-money { background: var(--green-soft); color: var(--green); }
+
+.ai-placeholder { margin-top: var(--s3); font-size: 14px; color: var(--text-2); max-width: var(--measure); }
+
+.facts {
+  margin-top: var(--s3);
+  padding: var(--s3);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+
+/* İki sütunlu cüt: AI tövsiyəsi | qiymət tarixçəsi.
+   Yalnız geniş ekranda - dar ekranda iki sütun hər ikisini oxunmaz edir.
+   `align-items: start` vacibdir: olmasa qısa kart uzununun hündürlüyünə dartılır. */
+.duo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s4); align-items: start; }
+
+@media (max-width: 1100px) { .duo { grid-template-columns: 1fr; } }
+
+
+/* ============================================================================
+   QRAFİK — əsas rəqəm qrafikin ÜSTÜNDƏ
+   ============================================================================ */
+
+.chart-summary { display: flex; align-items: baseline; gap: var(--s2); flex-wrap: wrap; margin-top: var(--s3); }
+.chart-value { font-size: 32px; font-weight: 800; letter-spacing: -.035em; }
+.chart-caption { font-size: 13px; color: var(--text-2); }
+
+/* Hündürlük CSS-dədir, HTML-də inline deyil - əks halda media query onu
+   dəyişə bilmir (inline stil həmişə üstün gəlir). */
+.chart-box { position: relative; height: 240px; margin-top: var(--s2); }
+
+
+/* ============================================================================
+   AXTARIŞ / SİYAHI SƏTİRLƏRİ
+   ============================================================================ */
+
+.search-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: 10px var(--s2);
+  font-size: 14px;
+  border-radius: var(--r-sm);
+  transition: background var(--ease);
+}
+
+.search-item:hover { background: var(--surface-2); }
+.search-meta { font-size: 12px; color: var(--text-3); }
+.result-list { margin-top: var(--s2); }
+
+.cat-row { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); }
+
+code {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--surface-2);
+  padding: 2px 6px;
+  border-radius: var(--r-xs);
+}
+
+
+/* ============================================================================
+   DROPZONE
+   ============================================================================ */
+
+.dropzone {
+  border: 2px dashed color-mix(in srgb, var(--accent) 24%, var(--surface-2));
+  border-radius: var(--r-md);
+  padding: var(--s5) var(--s4);
+  text-align: center;
+  cursor: pointer;
+  background: var(--surface-2);
+  transition: border-color var(--ease), background var(--ease);
+}
+
+.dropzone:hover, .dropzone.over { border-color: var(--accent); background: var(--accent-soft); }
+
+/* Dropzone mətni QISADIR (üç-dörd söz), ona görə mərkəzləşdirmə oxunuşa
+   zərər vermir - qadağa uzun mətn bloklarına aiddir. */
+.dz-icon {
+  width: 46px; height: 46px;
+  margin: 0 auto var(--s2);
+  border-radius: var(--r-pill);
+  display: grid; place-items: center;
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.dz-icon svg { width: 22px; height: 22px; }
+.dz-title { font-size: 16px; font-weight: 800; }
+.dz-sub { font-size: 13px; color: var(--text-2); margin-top: 2px; }
+.link { color: var(--accent); font-weight: 700; }
+
+
+/* ============================================================================
+   ADMIN PANELİ
+   ============================================================================ */
+
+.admin-note {
+  padding: var(--s3);
+  border-radius: var(--r-md);
+  background: var(--amber-soft);
+  font-size: 14px;
+  max-width: var(--measure);
+}
+
+.status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--s2); }
+
+.status-tile {
+  border-radius: var(--r-md);
+  padding: var(--s3);
+  background: var(--surface-2);
+  display: flex;
+  gap: var(--s2);
+  align-items: flex-start;
+}
+
+.status-tile-body { min-width: 0; flex: 1; }
+.status-tile .eyebrow { display: block; margin-bottom: var(--s1); }
+.status-value { display: flex; align-items: center; font-size: 14px; font-weight: 700; }
+.status-detail { font-size: 12px; color: var(--text-3); margin-top: 2px; word-break: break-word; }
+
+
+/* ============================================================================
+   DAR EKRAN — telefon üçün DEYİL
+
+   Telefon breakpoint-i (<=640px) qəsdən yoxdur: layihə yalnız desktop üçün
+   nəzərdə tutulub.
+
+   Aşağıdakı iki breakpoint isə TELEFONA aid deyil - onlar kiçildilmiş brauzer
+   pəncərəsi və noutbuk ekranı üçündür. Dizayn 1280px-lik konteynerə qurulub;
+   1100px-lik pəncərədə `.duo`-nun iki sütunu bir-birinə sıxılıb oxunmaz olur,
+   1000px-də isə 4 stat kartı daralıb rəqəmləri kəsir.
+   ============================================================================ */
+
+@media (max-width: 1000px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .hero-body { grid-template-columns: 1fr; }
+}
+
+/* Hərəkəti azaltmaq istəyən istifadəçi üçün bütün animasiyalar söndürülür */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  .card-lift:hover, .stat:hover { transform: none; }
+}

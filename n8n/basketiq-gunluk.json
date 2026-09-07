@@ -1,0 +1,327 @@
+{
+  "id": "basketiqGunluk01",
+  "name": "BasketIQ - gunluk kataloq emali",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "trigger-schedule",
+      "name": "Her seher 07:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -620,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "url",
+              "name": "basketiq_url",
+              "value": "http://host.docker.internal:8000",
+              "type": "string"
+            },
+            {
+              "id": "key",
+              "name": "api_key",
+              "value": "dev-secret-change-me",
+              "type": "string"
+            },
+            {
+              "id": "src",
+              "name": "menbe",
+              "value": "oba",
+              "type": "string"
+            },
+            {
+              "id": "fs",
+              "name": "fayl_sayi",
+              "value": "1",
+              "type": "string"
+            },
+            {
+              "id": "pg",
+              "name": "sehife",
+              "value": "2",
+              "type": "string"
+            },
+            {
+              "id": "lim",
+              "name": "setir_limiti",
+              "value": "10",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-config",
+      "name": "Konfiqurasiya",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -400,
+        0
+      ],
+      "notes": "Butun ayarlar BIR yerde. URL-i deyismek ucun yalniz bu node-a toxunursan - $env-den asili deyilik, cunki n8n konteynerinde environment girisi bloklana biler."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.basketiq_url }}/api/scrape/{{ $json.menbe }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "max_files",
+              "value": "={{ $json.fayl_sayi }}"
+            },
+            {
+              "name": "max_pages",
+              "value": "={{ $json.sehife }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $json.api_key }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 900000
+        }
+      },
+      "id": "http-scrape",
+      "name": "Kataloqu cek",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -180,
+        0
+      ],
+      "notes": "Timeout 15 deqiqe: OCR yavasdir, n8n-in defolt 5 deqiqesi catmir."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "yeni-kataloq-var",
+              "leftValue": "={{ $json.ingested.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-yeni",
+      "name": "Yeni kataloq varmi",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        40,
+        0
+      ],
+      "notes": "Kataloq hefteda bir deyisir, workflow her gun islyeir - gunlerin coxunda yeni kataloq OLMAYACAQ. Bu, xeta deyil."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Konfiqurasiya').first().json.basketiq_url }}/api/catalogs/{{ $json.ingested[0].catalog_id }}/extract",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "={{ $('Konfiqurasiya').first().json.setir_limiti }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 900000
+        }
+      },
+      "id": "http-extract",
+      "name": "AI ile mehsullari cixar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Konfiqurasiya').first().json.basketiq_url }}/api/basket/compare",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "http-compare",
+      "name": "Sebeti muqayise et",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Emal neticesini insanin oxuyacagi hesabata cevirir.\n//\n// Niye Code node? Sertler var: sebet bos ola biler, qalib market olmaya biler.\n// Sertli metn ucun kod sablondan aydindir.\n\nconst extract = $('AI ile mehsullari cixar').first().json;\nconst compare = $input.first().json;\n\nconst lines = [];\nlines.push('BasketIQ - ' + new Date().toISOString().slice(0, 10));\nlines.push('');\nlines.push('Kataloq #' + extract.catalog_id + ' (' + extract.store + ')');\nlines.push('  ' + extract.processed + ' setir emal olundu, ' + extract.saved + ' mehsul yazildi.');\n\nconst yeni = (extract.products || []).slice(0, 5)\n  .map(function (p) { return '  - ' + p.name + ': ' + p.price + ' AZN'; });\nif (yeni.length) {\n  lines.push('');\n  lines.push('Yeni qiymetler:');\n  lines.push.apply(lines, yeni);\n}\n\nlines.push('');\nif (compare.best) {\n  lines.push('Sebet en ucuz: ' + compare.best.store + ' - ' + compare.best.total + ' AZN');\n  if (compare.savings) {\n    lines.push('Qenaet: ' + compare.savings + ' AZN');\n  }\n} else {\n  lines.push(compare.note || 'Sebet bosdur - muqayise edilmedi.');\n}\n\nreturn [{ json: { hesabat: lines.join('\\n'), kataloq_id: extract.catalog_id } }];"
+      },
+      "id": "code-hesabat",
+      "name": "Hesabat hazirla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        -120
+      ],
+      "notes": "Buradan sonra istenilen bildiris node-u qosula biler: Telegram, Gmail, Slack, Webhook."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Yeni kataloq yoxdur - normal haldir, xeta deyil.\n\nconst data = $input.first().json;\nconst otürülen = (data.skipped || []).length;\nreturn [{ json: {\n  hesabat: 'BasketIQ: yeni kataloq yoxdur (' + otürülen + ' otürüldü).',\n  kataloq_id: null,\n} }];"
+      },
+      "id": "code-deyisiklik-yox",
+      "name": "Deyisiklik yoxdur",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "trigger-manual",
+      "name": "Elle isle sal",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -620,
+        180
+      ],
+      "notes": "Cedvel gozlemeden sinamaq ucun. Basqa workflow-dan da cagirila biler."
+    }
+  ],
+  "connections": {
+    "Her seher 07:00": {
+      "main": [
+        [
+          {
+            "node": "Konfiqurasiya",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfiqurasiya": {
+      "main": [
+        [
+          {
+            "node": "Kataloqu cek",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kataloqu cek": {
+      "main": [
+        [
+          {
+            "node": "Yeni kataloq varmi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Yeni kataloq varmi": {
+      "main": [
+        [
+          {
+            "node": "AI ile mehsullari cixar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Deyisiklik yoxdur",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI ile mehsullari cixar": {
+      "main": [
+        [
+          {
+            "node": "Sebeti muqayise et",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sebeti muqayise et": {
+      "main": [
+        [
+          {
+            "node": "Hesabat hazirla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Elle isle sal": {
+      "main": [
+        [
+          {
+            "node": "Konfiqurasiya",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

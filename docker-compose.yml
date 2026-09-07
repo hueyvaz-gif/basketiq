@@ -1,0 +1,65 @@
+# BasketIQ — production yığımı.
+#
+# İşə salmaq:
+#   cp .env.example .env      # sonra .env-i doldur (INGEST_API_KEY MÜTLƏQ dəyiş)
+#   docker compose up -d
+#   docker compose exec ollama ollama pull qwen3:4b
+#
+# n8n də lazımdırsa:
+#   docker compose --profile n8n up -d
+
+services:
+  basketiq:
+    build: .
+    image: basketiq:latest
+    restart: unless-stopped
+    # Port dəyişəni ilə verilir: lokal maşında 8000 başqa xidmətdə ola bilər.
+    ports:
+      - "${BASKETIQ_PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      # Bu üçü .env-dəkindən ÜSTÜNDÜR - konteynerdə başqa cür ola bilməz.
+      # Ollama artıq localhost-da deyil, qonşu servisdədir.
+      APP_ENV: production
+      OLLAMA_BASE_URL: http://ollama:11434
+      DATA_DIR: /data
+    volumes:
+      # Yazılan hər şey burada: baza, xam kataloqlar, OCR mətni, LLM keşi.
+      # Konteyner silinsə də data qalır.
+      - basketiq_data:/data
+    depends_on:
+      - ollama
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    # Port QƏSDƏN dərc olunmur: Ollama-nı internetə açmaq lazım deyil,
+    # ona yalnız basketiq daxili şəbəkədən müraciət edir. Dərc etsək,
+    # autentifikasiyasız LLM serveri internetdə qalardı.
+    volumes:
+      - ollama_models:/root/.ollama
+
+  # n8n avtomatlaşdırması - yalnız `--profile n8n` ilə qalxır.
+  # Niyə profil? Hər deployment-də lazım deyil; scraping cron ilə də işlədilə bilər.
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    profiles: ["n8n"]
+    restart: unless-stopped
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    environment:
+      GENERIC_TIMEZONE: Asia/Baku
+      # Konteynerlər arasında ünvan servis adıdır - host.docker.internal
+      # yalnız Docker Desktop-da işləyir, Linux serverdə YOX.
+      N8N_HOST: ${N8N_HOST:-localhost}
+      N8N_SECURE_COOKIE: "false"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      - basketiq
+
+volumes:
+  basketiq_data:
+  ollama_models:
+  n8n_data:

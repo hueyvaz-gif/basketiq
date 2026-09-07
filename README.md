@@ -1,0 +1,652 @@
+# BasketIQ
+
+Supermarket endirim kataloqlarını (PDF / şəkil) avtomatik oxuyan, məhsulları
+marketlər arasında uyğunlaşdıran və **"səbətini harada al"** sualına rəqəmlə
+cavab verən AI analitika paneli.
+
+## Problem
+
+Marketlər həftəlik endirimləri maşın-oxunaqlı olmayan **PDF/şəkil kataloq**
+şəklində yayır. "Bu həftə süd, düyü, yağ harada ucuzdur?" sualına cavab tapmaq
+üçün insan 3-4 kataloqu əl ilə vərəqləməlidir.
+
+## Həll
+
+```
+market saytı
+   → requests + BS4           kataloq PDF-ini tap və endir (robots.txt-ə tabe)
+kataloq (PDF/JPG)
+   → pypdf / pytesseract      mətn çıxarma
+   → layout analizi           qlyanslı kataloqda "kart" tapma
+   → cleaning                 zibil sətirlərin atılması
+   → LangChain LCEL .batch()  → Qwen (Ollama)  struktur JSON
+   → hibrid matching          eyni məhsul, fərqli market
+   → SQLite                   unit_price (1 kq / 1 L)
+   → FastAPI + Dashboard      müqayisə, trend, AI tövsiyəsi
+```
+
+## Texnologiyalar
+
+LangChain (LCEL, batch, astream, Output Parser) · Ollama + Qwen · n8n · MCP ·
+BeautifulSoup / Selenium · pypdf · pytesseract · Whisper + Telegram ·
+FastAPI · SQLite · Docker · DigitalOcean
+
+## Quraşdırma
+
+```bash
+py -3.13 -m venv .venv          # Python 3.13 (3.14-də bəzi paketlərin wheel-i yoxdur)
+.venv\Scripts\activate          # Windows
+pip install -r requirements.txt
+
+# Səsli əmrlər (bonus) istəyirsənsə - ayrıca:
+pip install -r requirements-voice.txt
+
+copy .env.example .env          # sonra .env-i redaktə et
+ollama list                     # quraşdırılmış modeli .env-də OLLAMA_MODEL kimi yaz
+
+uvicorn app.main:app --reload
+```
+
+Aç: <http://localhost:8000> · Sağlamlıq: <http://localhost:8000/health>
+
+### Tesseract (OCR)
+
+Windows üçün Tesseract-ı quraşdır və `.env`-də `TESSERACT_CMD` yolunu göstər.
+**Dil paketi seçmək lazım deyil** — `aze`, `rus`, `tur` faylları layihənin
+`data/tessdata/` qovluğundadır (aşağıda "OCR dil faylları" bölməsinə bax).
+
+Linux/Docker-də `TESSERACT_CMD` **boş qalmalıdır**: orada binary PATH-dədir.
+
+## Test
+
+```bash
+pytest -q
+```
+
+## AI zənciri (LangChain LCEL)
+
+```
+prompt | ChatOllama(format="json") | qısa açarların açılması | PydanticOutputParser
+```
+
+Ölçülmüş qərarlar (`tools/profile_llm.py`):
+
+| Qərar | Səbəb | Nəticə |
+|---|---|---|
+| LLM-dən qiymət soruşulmur | rəqəm uydurma riski; regex uydurmur | hallucination = 0 |
+| `reasoning=False` | qwen3-ün `<think>` rejimi CPU-da çox baha | 2-4x sürət |
+| Kompakt format təlimatı | standart təlimat 1444 simvol, bizimki 241 | 37 → 12 san/sətir |
+| Qısa açarlar + rəqəm kateqoriya | cavab yazma 4.5 tok/san — əsas əngəl | 50 → 41 token |
+| Disk keşi | prompt təkrar sınananda yenidən hesablanmasın | 50 san → 0.003 san |
+| Sətir-sətir emal (qrup yox) | qrupda cavab sırası pozula bilər | qiymət düz məhsula yapışır |
+
+## Mənbələr (ölçülüb, fərz edilməyib)
+
+`tools/check_source.py` hər namizəd saytı yoxlayır: robots.txt, statik/dinamik,
+kataloq linki, PDF-də text layer.
+
+| Market | robots.txt | Səhifə | Kataloq | Qərar |
+|---|---|---|---|---|
+| **OBA** | icazə ✓ | statik HTML | 3 PDF, 4-44 səh. | əsas mənbə |
+| **Araz** | icazə ✓ | statik HTML | 1 PDF × 54 səh. | ikinci mənbə |
+| Bravo | **qadağa ✗** | JS (ng-app) | — | istifadə etmirik |
+| Bazarstore | icazə ✓ | JS render | link tapılmadı | istifadə etmirik |
+
+Hər ikisi statik HTML olduğu üçün **Selenium defolt işlədilmir** — `requests` +
+BeautifulSoup kifayətdir. Selenium yalnız statik yol boş qayıdanda işə düşür
+(`--selenium`): brauzer qaldırmaq ~3-5 saniyədir və serverdə ayrıca Chrome
+tələb edir. Eyni "əvvəlcə ucuz yolu sına" prinsipi OCR-da da var.
+
+```bash
+python tools/scrape.py                    # mənbə siyahısı + robots yoxlaması
+python tools/scrape.py oba --dry-run      # yalnız linkləri göstər
+python tools/scrape.py oba --pages 2      # endir + OCR + DB
+```
+
+Təkrar yoxlaması iki pillədədir: əvvəlcə **URL** (9 MB-lıq PDF-i boş yerə
+endirməmək üçün), sonra fayl **hash**-i.
+
+## Layout analizi — qlyanslı kataloqu oxumaq
+
+Real kataloq **sətirlərdən ibarət deyil**, kartlar şəbəkəsidir: ad yuxarı solda,
+qiymət aşağı sağda ayrı rəngli qutuda, aralarında məhsul şəkli. Adi sətir-əsaslı
+OCR bu səhifədən **0 məhsul** çıxarır.
+
+Həll: qiymət qutusunu **rəngə görə** tapıb kartın "lövbəri" sayırıq, sonra hər
+sözü öz lövbərinə bağlayırıq.
+
+| Qərar | Səbəb | Ölçmə |
+|---|---|---|
+| Qırmızı qutu = lövbər | qiymət həmişə rənglidir, mətn isə yox | 10/10 kart |
+| Sözü "özündən sonrakı" lövbərə bağla | ad əvvəl, qiymət sonra oxunur | "ən yaxın" qaydası 3 kartı qarışdırırdı |
+| Sarı qutuya 10% kənar | maska rəqəmin kənarını kəsir | 6/10 → 10/10 |
+| Qırmızı qutuya kənar YOX | orada ağ fon rəqəmə çevrilir | 10/10 → 4/10 |
+| Köhnə qiymət üçün 3 psm + süzgəc | üstündən keçən xətt rəqəmi korlayır | səhv dəyər əvəzinə `None` |
+| Fonu ağ olmayan sözü at | qablaşdırma üzərindəki yazı məhsulun adı deyil | "ESKIMO", "МИРАТОРГ" atıldı |
+| `char_whitelist` həmişə yaxşı deyil | LSTM-də çıxışı tamam boğa bilir | boş sətir → `'\| 199'` |
+
+**Nəticə** (OBA jurnalı, səhifə 2, 10 məhsul): ad 10/10, yeni qiymət 10/10,
+köhnə qiymət 10/10, ~15-30 san/səhifə.
+
+**Bilinən məhdudiyyət:** Araz-ın dizaynında qiymət 2 ölçülü yazılır (böyük
+rəqəm, sağ yuxarısında kiçik qəpik, altında ₼) və sağ sütunda qutu ümumiyyətlə
+yoxdur. Orada 8 məhsuldan 5-i tapılır, qiymətlərin 4-ü düzgündür. Səhv rəqəm
+yazmaqdansa `None` qaytarırıq.
+
+Kart tapılmayan səhifədə sistem avtomatik adi OCR-a qayıdır — sadə siyahı
+şəklindəki kataloq üçün düzgün cavab elə odur.
+
+## MCP serveri — layihəni AI agentlərinə açmaq
+
+FastAPI endpoint-lərini insan və skript çağırır. MCP isə eyni funksiyaları
+**modelin** çağıra bilməsi üçün standart formatda elan edir: alətin adı, nə
+etdiyi, hansı parametrləri var. Model bu təsviri oxuyub özü qərar verir ki,
+"səbətim harada ucuzdur?" sualına hansı aləti çağırmalıdır.
+
+13 alət: `search_products`, `show_basket`, `add_to_basket`, `remove_from_basket`,
+`compare_basket`, `list_sources`, `list_catalogs`, `scrape_catalog`,
+`extract_catalog`, `health`, `show_profile`, `update_profile`, `recommend_plan`.
+
+| Qərar | Səbəb |
+|---|---|
+| Alətlər öz məntiqini yazmır | `app/api/*` funksiyalarını çağırır — "natamam market qalib elan edilmir" qaydası bir yerdə qalır |
+| Cavablar qısa mətndir, JSON deyil | alətin qaytardığı hər simvol modelin konteksinə düşür; cavab yazması 4.5 tok/san |
+| Xəta mətnə çevrilir | modelə `HTTPException(404)` yox, "Kataloq tapılmadı" getməlidir — ikincidən nə edəcəyini anlayır |
+| Ağır iş `anyio.to_thread`-də | MCP FastAPI ilə eyni prosesdədir; OCR-ı birbaşa çağırsaq bütün veb tətbiq donar |
+| FastAPI-yə mount olunur | bir proses, bir port, bir deployment |
+
+**Mount tələsi:** mount olunmuş ASGI tətbiqinin öz `lifespan`-ı avtomatik işə
+düşmür, MCP-nin sessiya meneceri isə məhz orada başlayır. Üstəlik həmin menecer
+bir nüsxədə yalnız bir dəfə işə salına bilir — ona görə `/mcp` altına nazik
+proxy qoyulub və MCP tətbiqi hər start-da yenidən yaradılır.
+
+```bash
+# HTTP (n8n, uzaq klientlər) - FastAPI ilə birlikdə qalxır
+uvicorn app.main:app          # -> http://localhost:8000/mcp
+
+# stdio (Claude Desktop) - ayrı proses
+python -m mcp_server.server
+```
+
+Claude Desktop üçün nümunə konfiqurasiya:
+`mcp_server/claude_desktop_config.example.json`
+
+## n8n avtomatlaşdırması
+
+Gündəlik zəncir: kataloqu çək → AI ilə emal et → səbəti müqayisə et → hesabat.
+
+Workflow və təlimat: [`n8n/README.md`](n8n/README.md),
+fayl: `n8n/basketiq-gunluk.json`
+
+Niyə cron skripti deyil? n8n-də hansı addımın nə qaytardığı və harada qırıldığı
+görünür — OCR + LLM kimi uzun zəncirlərdə bu, loq oxumaqdan qat-qat faydalıdır.
+
+## Profil əsaslı tövsiyə
+
+`compare()` sualı: "hansı market ucuzdur?"
+Bu bölmənin sualı isə başqadır: **"MƏNƏ nə etmək sərfəlidir?"**
+
+Ən ucuz market həmişə doğru cavab deyil. Profil bu fərqi rəqəmə çevirir:
+
+| Profil sahəsi | Tövsiyəni necə dəyişir |
+|---|---|
+| `max_stores` | 1-dirsə səbət bölünmür — bir markete gedən adama "iki marketi gəz" demək məsləhət deyil |
+| `min_split_saving` | 2-ci market yalnız bu qədər qənaətə dəyərsə təklif olunur (defolt 1 AZN) |
+| `weekly_budget` | cəm büdcəni aşırsa xəbərdarlıq + büdcəni yeyən 3 məhsul |
+| `household_size` | 3+ nəfərdirsə daha böyük qablaşdırma yoxlanılır (**vahid qiymət** üzrə) |
+| `avoid` | səbətdə istənilməyən söz varsa bildirilir |
+
+Nümunə (real data): səbəti 2 markete bölmək **0.16 AZN** qənaət edir.
+`min_split_saving = 0.50` olanda sistem **tək market** tövsiyə edir və səbəbini
+yazır. `0.10` olanda isə bölünmüş plan verilir və hansı məhsulun harada
+alınacağını göstərir. Yəni profil bəzək deyil — qərarı dəyişir.
+
+**Səbəb mətni dəqiq olmalıdır.** Bölmə iki fərqli səbəbdən rədd edilə bilər:
+qənaət azdır, ya da plan icazə veriləndən çox market tələb edir. Əvvəlcə hər
+ikisinə eyni mətn yazılırdı — istifadəçi yanlış ayarı dəyişməyə çalışardı.
+Test bunu tutdu.
+
+**Profil AI tövsiyəsinə də ötürülür** (`ai/advisor.py`): faktlar blokunun
+başına `İSTİFADƏÇİ: ...` sətri əlavə olunur. Model rəqəmləri yenə hesablamır —
+sadəcə tövsiyəni istifadəçinin şəraitinə uyğunlaşdırır.
+
+## Endirim yoxlaması — "saxta endirim" bayrağı
+
+Kataloqda yazılır "9.99 → 5.99". Amma məhsul heç vaxt 9.99-a satılmayıbsa, bu,
+endirim deyil — şişirdilmiş köhnə qiymətdir. Marketin öz rəqəminə inanmaq üçün
+səbəb yoxdur; bizim isə **öz müşahidələrimiz** var.
+
+Hökm üç deyil, **dörd** haldır:
+
+| Hökm | Nə vaxt | Nümunə səbəb |
+|---|---|---|
+| **Təsdiqlənib** | bu qiyməti (±5%) əvvəllər özümüz görmüşük | "əvvəllər 9.90 AZN-ə görmüşük" |
+| **Təsdiqlənməyib** | tarixçə yoxdur və ya azdır | "bu məhsulu əvvəllər görməmişik" |
+| **Şübhəli** | iddia gördüyümüz maksimumdan 25%+ yüksəkdir, ya da endirim 70%-dən dərindir | "iddia 12.00, gördüyümüz maksimum 4.20" |
+| **Endirim yoxdur** | köhnə qiymət göstərilməyib | — |
+
+**Niyə "saxta" sözü hökmdə yoxdur?** Çünki iddia hüquqi məsuliyyət daşıyır,
+bizim datamız isə 2-3 kataloqdur. Bilmədiyini "saxta" adlandırmaq —
+faydasız xəbərdarlıqdan da pisdir. "Şübhəli" dürüstdür, "saxta" deyil.
+
+Ayrıca `cheaper_elsewhere` yoxlanılır: endirim həqiqi ola bilər, amma qonşu
+market elə həmişə daha ucuz satır — "20% endirim var, yanındakı marketdə isə
+endirimsiz qiymət daha aşağıdır".
+
+## Qiymət tarixçəsi qrafiki
+
+`group_key` üzrə bütün müşahidələr, market üzrə ayrı xətt (Chart.js, CDN-dən).
+Kitabxana yüklənməsə səhifə qırılmır — rəqəmlər cədvəldə qalır.
+
+Bir müşahidəsi olan məhsulda qrafik çəkilmir, əvəzinə açıq yazılır:
+"cəmi 1 müşahidə var, trend üçün ən azı 2 lazımdır". Tək nöqtəni trend kimi
+göstərmək istifadəçini aldatmaq olardı.
+
+## Səsli əmrlər (Telegram + Whisper)
+
+```
+Telegram səs mesajı
+   → faster-whisper        səs -> mətn
+   → regex təhlili         mətn -> niyyət (add / remove / show / compare / price)
+   → (alınmasa) LLM        sərbəst cümlələr üçün ehtiyat yol
+   → app/api/* funksiyaları     ← MCP və HTTP ilə EYNİ məntiq
+```
+
+Bot üçün `.env`-də `TELEGRAM_BOT_TOKEN` lazımdır (@BotFather-dən alınır).
+Token olmadan `voice.bot` işə düşmür və nə etmək lazım olduğunu yazır.
+
+```bash
+python -m voice.bot                                  # bot (long polling)
+python tools/voice_check.py qeyd.ogg                 # bir səs faylını yoxla
+python tools/voice_check.py --text "düyü neçəyədir"  # səsi keç, təhlili yoxla
+```
+
+| Qərar | Səbəb |
+|---|---|
+| `faster-whisper`, rəsmi `openai-whisper` yox | rəsmi paket ~2.5 GB PyTorch **və** sistemdə ffmpeg istəyir; bu maşında ffmpeg yoxdur. faster-whisper audio-nu PyAV ilə özü açır |
+| Əvvəlcə regex, sonra LLM | ölçülüb: LLM təhlili 10-35 san əlavə edir. Şablon əmrlər onsuz da regex ilə tanınır |
+| `language="az"` sabitlənib | dili özü seçəndə qısa mesajda türk/rus götürür və nəticə korlanır |
+| `beam_size=1`, `vad_filter=True` | CPU-da 3-4 dəfə sürət; qısa əmrdə dəqiqliyə təsiri yoxdur |
+| Telegram üçün adi `requests` | bota cəmi 3 metod lazımdır (getUpdates, getFile, sendMessage); çərçivə əlavə asılılıq və öyrənmə yükü gətirərdi |
+| Long polling, webhook yox | webhook internetdən əlçatan HTTPS ünvan tələb edir |
+| Transkript **həmişə** göstərilir | Whisper səhv oxusa, istifadəçi səbəbi dərhal görür |
+| Ölçü sözü yoxdursa miqdar = 1 | "coca cola 2"-dəki rəqəm miqdar deyil; səhv miqdar səbətə səssizcə düşür |
+
+**Ölçmələr** (i5-8265U, GPU yox, `small` model):
+
+| Əməliyyat | Vaxt |
+|---|---|
+| Modelin ilk yüklənməsi | ~33 san (bir dəfə) |
+| 3.4 san səs → mətn | ~11 san |
+| 2.7 san səs → mətn | ~6.7 san |
+| LLM ehtiyat təhlili | 10-35 san |
+
+`VOICE_LLM_FALLBACK=false` qoysan yalnız şablon əmrlər işləyəcək, amma cavab
+dərhal gələcək.
+
+**Dəqiqlik hələ real səslə yoxlanmayıb.** Sınaq üçün Windows-un TTS səsi
+işlədildi, o isə ingilis dilindədir və Azərbaycan sözlərini yanlış tələffüz
+edir ("səbətim harada ucuzdur" → «Sabədim Harada Oqizdər»). Boru xətti tam
+işləyir; modelin real Azərbaycan nitqindəki dəqiqliyini `tools/voice_check.py`
+ilə öz səsinlə yoxlamaq lazımdır.
+
+## Frontend: istifadəçi paneli vs. admin paneli
+
+Səhifə **iki panelə** bölünüb (`app/static/nav.js`) və defolt açıq olan
+istifadəçi panelidir:
+
+| İstifadəçi paneli | Admin / Developer paneli |
+|---|---|
+| statistika, səbət müqayisəsi (hero), AI tövsiyəsi, qiymət tarixçəsi, endirim yoxlaması, profil | sistem statusu, mənbədən çəkmə, kataloq yükləmə, OCR/PSM ayarları, çıxarış və uyğunlaşdırma, kataloq siyahısı |
+
+Səbəb: `robots.txt`, PSM rejimi, Ollama base URL və model adı **məhsulun içidir,
+cavabı deyil**. Alış-veriş edən adam onları görməməlidir — amma developer üçün
+onlar bir klik uzaqdadır (`#admin`).
+
+**Hər iki panel DOM-dadır**, yalnız biri `display:none`-dur. Panel DOM-da
+olmasaydı, digər skriptlərin `getElementById(...).addEventListener(...)`
+sətirləri `null`-a düşüb faylı qırardı.
+
+### Dizayn dili: Wise + Trolley + fintech dashboard
+
+Vizual istiqamət üç mənbədən götürülüb: **Wise** (cəsarətli tipoqrafiya, pill
+formalar, kölgəli ağ kartlar), **Trolley** (market çipləri, guşə lenti) və
+fintech dashboard təcrübəsi (**verdict → qrafik → cədvəl → istisnalar** axını).
+
+**Rəng məna daşıyır, bəzək deyil.** Beş rəngin hər biri bir siqnaldır:
+
+| Rəng | Məna | Harada |
+|---|---|---|
+| mavi `#0071E3` | brend, naviqasiya, əsas hərəkət | logo, tab, primary düymə |
+| yaşıl `#16A34A` | **qənaət / ən ucuz / təsdiqlənib** | hero lenti, qiymət pill-i, status |
+| kəhrəba `#F59E0B` | diqqət / təsdiqlənməyib | natamam market zolağı, status |
+| qırmızı `#EF4444` | bahalı / şübhəli / xəta | sil düyməsi, status |
+| bənövşəyi `#7C3AED` | **yalnız AI** | AI kartı və nişanı |
+
+Accent qəsdən **mavi qalıb**, yaşıla keçməyib: yaşıl bu layihədə artıq
+«qənaət» deməkdir. İkisi eyni rəng olsaydı, «bu yaşıl brenddir, yoxsa ucuzluq
+siqnalıdır?» sualı yaranardı və məhsulun ən vacib siqnalı zəifləyərdi.
+
+**Market rəng nöqtələri** kimlik bildirir, status yox — ona görə palitrada
+yaşıl və qırmızı **yoxdur**. Rəng market ADINA bağlanır və reyestrdə saxlanılır;
+sıra indeksinə bağlasaydıq, marketlərin sırası dəyişəndə rənglər də dəyişərdi.
+
+**Ən böyük element səhifədə təkdir:** səbətin ən ucuz cəmi (56px/800). Stat
+rəqəmləri 36px, səhifə başlığı 30px — yəni istifadəçi ilk baxışda cavabı
+görür. Bu iyerarxiyanı `test_verdict_səhifənin_ən_böyük_elementidir` qoruyur.
+
+**Hər ekranda bir primary düymə:** istifadəçi panelində «Tövsiyə al», admin
+panelində «Mənbədən çək». İki doldurulmuş düymə yan-yana duranda göz hansının
+əsas olduğunu seçə bilmir və «primary» anlayışı mənasını itirir.
+
+### Endirim yoxlaması: exception-first
+
+Bu bölmə tətbiqin **ən güclü fərqləndirici funksiyasıdır** — kataloq «köhnə
+qiymət» iddiası edir, biz onu öz müşahidələrimizlə tutuşduruq. Ona görə vizual
+diqqətin ən çoxunu o alır və siyahı **diqqət tələb edən sətirlərlə başlayır**:
+
+```
+şübhəli  →  təsdiqlənməyib  →  endirim yoxdur  →  təsdiqlənib
+```
+
+Hər sətir: solda status pill, ortada məhsul + səbəb, sağda tabular qiymət.
+Sol kənarda 3px rəngli zolaq siyahını sürətlə skan etməyə imkan verir.
+
+İki səssiz risk testlə kilidlənib: backend-dəki `VERDICTS` ilə frontend
+xəritəsinin **tam** üst-üstə düşməsi, və `rank` sırasının pozulmaması. İkisi də
+sınsa səhifə yenə «işləyər» — sadəcə ən vacib sətirlər aşağı düşər və statuslar
+neytral boz görünər.
+
+### İkon sistemi: market və məhsul vizual entity kimi
+
+Marketlər və məhsullar düz mətn deyil, **ikon + ad** qrupu kimi göstərilir
+(`.entity` + `.avatar`). Hər ikisi eyni naxışdan istifadə edir — yalnız ölçü
+fərqlidir.
+
+| Nə | İkon haradan gəlir |
+|---|---|
+| Market | **Vahid** mağaza ikonu. `stores` cədvəlində yalnız `slug`/`name`/`website` var — **real loqo yoxdur**, ona görə saxta loqo çəkilmir |
+| Məhsul | `products.category` sahəsindən: «süd məhsulları» → şüşə, «yağ və souslar» → yağ qabı, «içkilər» → butulka… |
+
+Məhsul **şəkli** də yoxdur: nə DB-də sütun var, nə kataloqdan çıxarılır.
+Uydurma şəkil qoymaq istifadəçini yanıldardı, ona görə kateqoriya ikonu
+işlədilir — o, ən azı doğru məlumat verir.
+
+`category` sahəsi **yeni data deyil** — `products` cədvəlində onsuz da var idi,
+sadəcə `/api/basket/compare` cavabına daxil edilməmişdi.
+
+**Səssiz sınma riski və onun testi.** `CATEGORIES` siyahısına yeni kateqoriya
+əlavə olunsa, frontend onu xəritədə tapmır və hamısına eyni «paket» ikonu
+verir — səhifə işləyir, heç bir xəta yoxdur, sadəcə ikonlar mənasını itirir.
+`tests/test_ui_contract.py` bunu tutur: siyahı ilə xəritənin **tam** üst-üstə
+düşdüyünü, hər ikonun SVG kitabxanasında mövcudluğunu və hər JS selektorunun
+HTML-də olduğunu yoxlayır.
+
+### AI mətnində vurğulama
+
+Tövsiyə mətnində məbləğlər və qalib marketin adı `<mark>` ilə işıqlanır.
+İki incə detal var:
+
+- **Valyuta vahidi məcburidir** (`19.65 AZN`, `2,45 ₼`). Olmasaydı «2.5%»
+  yağlılıq və «1.8 L» həcm də vurğulanardı — onlar isə məbləğ deyil.
+- **`` işləmir.** Azərbaycan şəkilçisi ada yapışır: `Araz` nə «Arazda»,
+  nə «Araz-a» tutur. Onun əvəzinə «hərf olmayan simvol» sərhədi işlədilir —
+  «Arazda» sözündə yalnız «Araz» işıqlanır, şəkilçi vurğudan kənarda qalır.
+
+Mətn modeldən gəldiyi üçün əvvəlcə tam `escapeHtml`-dən keçir, `<mark>`
+etiketləri **sonra** əlavə olunur — modelin yazdığı `<script>` sadəcə mətn
+kimi qalır.
+
+### Dizayn qərarları
+
+| Qərar | Səbəb |
+|---|---|
+| Bütün rənglər `:root` token-lərindən və `color-mix()` törəmələrindən | brend mavisini dəyişmək bir sətirdir; qrafik sütunları da ardınca gəlir |
+| Qrafik rəngləri CSS-dən **oxunur** (`getComputedStyle`) | canvas CSS dəyişənlərini bilmir; hardcode etsək səhifə bir rəngdə, qrafik başqa rəngdə qalardı |
+| Dark mode **yoxdur** (`color-scheme: light`) | qiymət siqnalları (yaşıl/kəhrəba/qırmızı) iki fonda eyni oxunmur |
+| Hover-də yalnız **interaktiv** kartlar qalxır | əvvəl hər kart qalxırdı — kursor gəzdikcə səhifə "titrəyirdi" |
+| Ən ucuz xana: yaşıl fon **+ ✓ + `sr-only` mətn** | rəng tək siqnal olsa, rəng görməyən istifadəçi məlumatı itirir |
+| Natamam marketin sütunu **zolaqlıdır** | onun cəmi kiçikdir (çatışmayan məhsul 0 sayılır), yəni sütunu qısa — "ucuz" görünür; zolaq və "6/7 məhsul" yazısı bu tələni gözlə görünən edir |
+| Qənaət yoxdursa **uydurulmur** | backend `savings`-i yalnız iki TAM səbət olanda hesablayır; əks halda səbəb yazılır |
+
+---
+
+## Chain-of-thought filtri: xam model mətni brauzerə çatmır
+
+Model bəzən cavabdan əvvəl öz-özü ilə danışır:
+
+```
+<think>Okay, let me work through this. Araz 19.65, Bravo 16.54...</think>
+Araz marketini seçin, çünki...
+```
+
+Bu mətn istifadəçi üçün deyil. Ekranda görünsə üç problem yaranır: tövsiyə
+qarışıq olur; model natamam düşüncəsini "fakt" kimi yazır; və rəqəm yoxlaması
+düşüncədəki aralıq rəqəmləri sayıb **yalan xəbərdarlıq** verir.
+
+Filtr `ai/sanitize.py`-dədir və `stream_advice()`-in içində işləyir — yəni
+modelə çıxışın **yeganə qapısında**. Xam mətn bu funksiyadan kənara çıxmır.
+
+**Niyə iki mexanizm var?** Cavab token-token axır, yəni `<think>` etiketi iki
+parçaya bölünə bilər (`<thi` + `nk>`). Adi `re.sub()` bunu tuta bilməz.
+
+| Mexanizm | Nə edir |
+|---|---|
+| `ReasoningFilter` | axın üçün vəziyyət maşını: etiketin yarısı gələndə ~12 simvol buferdə saxlanır, tam gələndə blokun sonuna qədər atılır |
+| `strip_reasoning()` | axın bitəndən sonra tam mətn üzərində: `Reasoning:` sətir etiketləri və `Cavab:` son-cavab markeri |
+
+Son təmiz mətn SSE-nin `done` hadisəsi ilə göndərilir və UI mətni onunla əvəz
+edir. Adətən iki versiya eynidir və heç nə görünmür — ölçüldü:
+`axın == son mətn: True`.
+
+**Yalançı pozitivdən qorunma:** yalnız **blok strukturu** silinir. `"Bunun
+reasoning hissəsi maraqlıdır"` toxunulmaz qalır, çünki marker sətrin əvvəlində
+və ikinöqtə ilə tanınır. `"Qiymət < 20 AZN"` da qalır — `<` hər zaman etiket
+demək deyil. Hər ikisi `tests/test_sanitize.py`-də kilidlənib (42 test, hər hal
+1/3/7/tam parça ölçüləri ilə).
+
+---
+
+## LLM seçimi: Claude API + Ollama ehtiyat
+
+```
+LLM_PROVIDER=claude  ->  Claude API əsas, Ollama EHTİYAT
+LLM_PROVIDER=ollama  ->  yalnız Ollama (defolt)
+```
+
+Claude qırılanda (açar bitib, limit aşılıb, internet yoxdur) sorğu **sükutla
+Ollama-ya keçir** — dashboard işləməyə davam edir, sadəcə yavaş. Deployment üçün
+vacibdir: xarici xidmətin dayanması bütün layihəni dayandırmamalıdır.
+
+| Qərar | Səbəb |
+|---|---|
+| LangChain-in `with_fallbacks()` | zəncirlərdə (`chains.py`, `advisor.py`, `matcher.py`) **heç nə dəyişmir** — `.batch()` və `.astream()` eyni qalır |
+| `langchain_anthropic`, birbaşa SDK yox | AI qatı LCEL zəncirləridir; `ChatAnthropic` içəridə elə rəsmi `anthropic` SDK-nı çağırır |
+| Açar yoxdursa Claude ümumiyyətlə qurulmur | əks halda hər sorğu 401 alıb fallback-ə düşərdi — nəticə düzgün, amma hər çağırışa boş gecikmə |
+| Keş açarı **aktiv** modelin adını daşıyır | əks halda Claude-un cavabı Ollama keşindən oxunardı |
+| `effort=low` | çıxarış qısa JSON qaytarır — dərin düşünmə nə dəqiqlik qatır, nə lazımdır |
+
+### Ölçülmüş fərq (eyni sətir, eyni prompt)
+
+| | Claude (`claude-opus-5`, effort=low) | Ollama (`qwen3:4b`, GPU yoxdur) |
+|---|---|---|
+| Kataloq çıxarışı (1 sətir) | **1.7 san** | **64 san** |
+| Məhsul uyğunlaşdırma | 2.1 san | — |
+| Məsləhət (ilk söz / tam) | 2.9 san / 7.3 san | — |
+
+Hər iki halda nəticə **eynidir** — `{"name": "süd", "brand": "Milla", "size_value": 1.0,
+"size_unit": "l", ...}`. Fərq yalnız gözləmədədir. 64 saniyə "işləmir" demək
+deyil: internetsiz maşında layihə hələ də tam işləyir.
+
+### İki tələ: fallback səhvi GİZLƏDİR
+
+Açarı qoyub `LLM_PROVIDER=claude` yazdıqdan sonra hər şey işləyirdi — `/health`
+`"claude"` göstərirdi, cavablar düzgün gəlirdi. Amma Claude **bir dəfə də işə
+düşməmişdi**: hər sorğu sükutla Ollama-ya düşürdü. Səbəb fallback-in özüdür —
+o, xarici xidmətin dayanmasını gizlətmək üçün qurulub, ona görə bizim
+konfiqurasiya səhvimizi də gizlədirdi.
+
+| Tələ | Nə baş verirdi | Həll |
+|---|---|---|
+| **`temperature`** | `400 invalid_request_error: temperature is deprecated for this model` — Opus 5 / Sonnet 5 kimi yeni modellərdə sampling parametrləri çıxarılıb. Fallback 400-ü də "səhv" sayıb Ollama-ya keçirdi | `ai/llm.py` → `_TEMPERATURE_SUPPORTED`: yalnız köhnə modellərə (`haiku`, `claude-3`) göndərilir. Determinizmi `effort=low` + dəqiq prompt verir |
+| **Cavabın formatı** | Ollama sadə sətir qaytarır, Claude isə **blok siyahısı** (düşünmə bloku + mətn bloku). Zəncirin ortasındakı `json.loads()` siyahını qəbul etmir: `TypeError: ... not list`. `.with_retry()` ikinci dəfə də eyni səhvi alırdı və sətir **atılırdı** | `ai/llm.py` → `message_text()`: LangChain-in `.text` xüsusiyyəti ilə hər iki formatdan təmiz mətn çıxarılır |
+
+Üçüncü ayar isə səhv deyil, ölçüdür: **`LLM_CLAUDE_MAX_TOKENS`** Ollama-nın
+`LLM_NUM_PREDICT`-indən ayrıdır, çünki Claude-un düşünmə tokenləri də həmin
+tavana daxildir — 800 verilsə JSON yarımçıq kəsilə bilər. Bu, tavandır; ödəniş
+real işlənmiş token qədərdir.
+
+Hər üçü `tests/test_llm_fallback.py`-də **şəbəkəsiz** regressiya testi ilə
+kilidlənib: saxta `ChatAnthropic` ilə hansı parametrlərin göndərildiyi yoxlanılır.
+
+**Ad toqquşması tələsi:** ayarlar `CLAUDE_*` yox, **`LLM_CLAUDE_*`** ilə başlayır.
+Səbəb real problemdir: Claude Code mühitində `CLAUDE_EFFORT` artıq təyin olunub
+və bizim ayarımızı sükutla əvəz edirdi (`low` → `high`). Ümumi adlar başqa
+alətlərlə toqquşur.
+
+**Kurikulum qeydi:** 3-cü ayın mövzusu Ollama + Qwen-dir. Claude API scope-dan
+kənardır və qəsdən **seçimli** edilib — defolt hələ də Ollama-dır, LCEL
+öyrənməsi isə tam qorunur.
+
+## Deployment (Docker / DigitalOcean)
+
+```bash
+cp .env.example .env      # INGEST_API_KEY-i MÜTLƏQ dəyiş
+docker compose up -d
+docker compose exec ollama ollama pull qwen3:4b
+```
+
+Ətraflı: [`deploy/README.md`](deploy/README.md) — droplet ölçüsü, real qiymət,
+HTTPS, ehtiyat nüsxə, nə sınanıb / nə sınanmayıb.
+
+| Qərar | Səbəb |
+|---|---|
+| `DATA_DIR` ilə tək volume | baza, kataloqlar, OCR mətni, keş bir yerdə — ehtiyat nüsxə natamam qalmır |
+| Ollama portu dərc olunmur | autentifikasiyasız LLM serveri internetdə qalmamalıdır |
+| `python:3.13-slim`, alpine yox | alpine-də pillow/lxml mənbədən kompilyasiya olunur (dəqiqələr) |
+| Dil faylları image-də | `apt`-dakı `tesseract-ocr-aze` versiyası fərqli ola bilər; bizimki sınanıb |
+| `HEALTHCHECK` → `/health` | həm baza, həm Ollama modeli yoxlanılır |
+| Caddy, nginx yox | HTTPS bir sətirdir; SSE üçün `flush_interval -1` |
+| Səs bonusu seçimlidir | image 684 MB → 1.25 GB; `--build-arg WITH_VOICE=true` |
+
+**Ölçülmüş qiymət reallığı:** layihənin bahalı hissəsi LLM-dir. Yalnız BasketIQ
+(dashboard + scraping + OCR) 1 GB droplet-də ~$6/ay işləyir; `qwen3:4b` əlavə
+olunanda 8 GB lazımdır (~$48/ay). Kod dəyişmədən LLM-i kənarda saxlamaq olar —
+yalnız `OLLAMA_BASE_URL` fərqlidir.
+
+## Matching (hibrid, 3 pillə)
+
+| Pillə | Xərc | Nə edir |
+|---|---|---|
+| 1. `canonical_key` | pulsuz | "Milla süd 1000 ml" və "Süd Milla 1 L" → eyni açar |
+| 2. Oxşarlıq süzgəci | pulsuz | cütlərin 94.9%-ni LLM-ə çatmadan atır |
+| 3. LLM qərarı | ~2 san/cüt | "yumurta" ≟ "toyuq yumurtası" |
+
+Süzgəcin ölçülmüş bölgüsü (`python tools/match_stats.py --reset`, 13 məhsul):
+
+```
+  Mümkün cüt (C(13,2))   :  78
+  - ölçü ziddiyyəti      : -52     1 kq ≠ 500 q -> fərqli məhsuldur
+  - oxşarlıq həddi altı  : -22     hədd 0.34
+  = LLM-ə gedən          :   4
+```
+
+LLM-ə çatan 4 cütün hamısı mənalıdır — üçü eyni məhsulun fərqli yazılışı,
+biri isə `«yumurta» ≟ «toyuq yumurtası»`, yəni məhz kodun həll edə bilmədiyi hal.
+
+`--reset` niyə lazımdır? Matching bir dəfə işləyəndən sonra hər şey
+qruplaşır və süzgəc 0 namizəd qaytarır. Alət `group_key`-i müvəqqəti sıfırlayır,
+ölçür və `finally` blokunda geri qaytarır — ehtiyat nüsxə də fayla yazılır.
+
+Süzgəc Azərbaycan dilinin **aqlütinativ** quruluşunu nəzərə alır: `düyü`/`düyüsü`,
+`makaron`/`makaronu`, `yağ`/`yağı` — biri digərinin prefiksidirsə eyni kök sayılır.
+`MIN_PREFIX=3` isə `su`/`süd` qarışmasının qarşısını alır.
+
+## Səbət müqayisəsi
+
+Müqayisə `product_id` üzərində yox, **`group_key`** üzərində aparılır — çünki eyni
+məhsul hər marketdə ayrı sətirdir.
+
+**Natamam market "ən ucuz" elan edilmir.** Səbətin 7 məhsulundan 6-nı satan market
+cəmdə ucuz görünür, çünki çatışmayan məhsul 0 sayılır. Sistem əhatəni ayrıca göstərir
+və yalnız tam səbəti olan marketlər arasında qalib seçir.
+
+## Alətlər
+
+```bash
+# Sınaq üçün süni kataloq şəkli yaradır -> data/sample_catalog.png
+python tools/make_sample_catalog.py
+
+# Bir faylı uçdan-uca yoxlayır: OCR -> təmizləmə -> nəticə cədvəli
+python tools/inspect_catalog.py data/sample_catalog.png
+python tools/inspect_catalog.py kataloq.pdf --psm 4 --raw
+
+# Scraping mənbəyini qiymətləndirir (robots.txt, statik/dinamik, text layer)
+python tools/check_source.py https://example.az/kataloq
+
+# Mənbədən kataloq çəkir
+python tools/scrape.py oba --pages 2
+
+# Matching süzgəcinin statistikası (--reset ilkin vəziyyəti ölçür)
+python tools/match_stats.py --reset
+
+# Səs əmrini uçdan-uca yoxlayır
+python tools/voice_check.py qeyd.ogg
+```
+
+## OCR dil faylları
+
+`aze`, `rus`, `tur` dil faylları `data/tessdata/` qovluğunda saxlanılır və
+`TESSDATA_PREFIX` ilə göstərilir — belədə `Program Files`-a admin hüququ ilə
+toxunmaq lazım gəlmir.
+
+## Etik qeyd
+
+Yalnız ictimai olaraq dərc olunmuş kataloqlar emal olunur, `robots.txt`-ə
+riayət edilir, sorğular arasında gecikmə qoyulur. Layihə təhsil məqsədlidir.
+
+## Testlər öz bazasında işləyir (real səhvdən sonra)
+
+`tests/conftest.py` `DATABASE_PATH`-i müvəqqəti fayla yönəldir — `app.config`
+idxal olunmamışdan ƏVVƏL, çünki `conftest.py` pytest tərəfindən test
+modullarından əvvəl oxunur.
+
+**Niyə lazım oldu?** Əvvəl belə bir fayl yox idi və `pytest` birbaşa
+`data/basketiq.db` üzərində işləyirdi. `test_mcp.py` və `test_voice.py` isə
+belə başlayır:
+
+```sql
+DELETE FROM basket_items WHERE basket_id = 1;
+INSERT INTO basket_items (basket_id, product_id, qty) VALUES (1, ?, ?);
+```
+
+`basket_id = 1` dashboard-un işlətdiyi səbətdir. Yəni **hər test qaçışı
+istifadəçinin səbətini silib test məhsulları ilə əvəz edirdi**. Səhv tam
+səssiz idi: testlər yaşıl keçirdi, sadəcə səhifədə tanımadığın məhsullar
+görünürdü. Tapılma yolu da təsadüfi oldu — səbətdə iki naməlum məhsul
+göründü və `basket_items`-ə yazan bütün kod axtarıldı.
+
+**Nəticə:** 282 test keçir, 8-i atlanır (boş test bazasında məntiqli olaraq),
+istifadəçinin datası toxunulmur.
+
+## Status
+
+- [x] Həftə 1 — skelet, konfiqurasiya, DB sxemi, mənbə yoxlayıcı
+- [x] Həftə 1 — manual upload + OCR + cleaner + upload UI
+- [x] Həftə 1 — scraping (OBA + Araz) + kart-əsaslı layout analizi ¹
+- [x] Həftə 2 — LangChain LCEL extraction zənciri + keş + normalizasiya
+- [x] Həftə 2 — hibrid matching + səbət müqayisəsi
+- [x] Həftə 3 — MCP serveri (10 alət) + n8n workflow
+- [x] Həftə 3 — qiymət tarixçəsi qrafiki + endirim yoxlaması
+- [x] Bonus — profil əsaslı tövsiyə (+3 MCP aləti, cəmi 13)
+- [x] Bonus — Telegram səsli əmrlər (Whisper + regex/LLM təhlili)
+- [x] Həftə 4 — Docker + compose + deployment sənədi ²
+- [x] Bonus — Claude API (əsas) + Ollama (ehtiyat), LCEL fallback
+- [x] Bonus — chain-of-thought filtri (xam model mətni brauzerə çatmır)
+- [x] Bonus — UI redizayn: istifadəçi/admin ayrılığı, market və məhsul ikonları,
+      exception-first endirim siyahısı
+
+¹ Mənbə seçimi ölçmə tələb etdiyi üçün Həftə 2-dən sonra tamamlandı.
+² Real droplet-də yox, lokal Docker-də sınanıb — təfərrüat `deploy/README.md`-də.
+
+**Testlər:** 290 — 282 keçir, 8 atlanır (`pytest -q`)

@@ -1,0 +1,28 @@
+# Virtual mühit və keşlər - image-də yeri yoxdur
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# IDE
+.idea/
+.vscode/
+
+# Sirlər: .env konteynerə env_file ilə verilir, image-ə YAZILMIR.
+# Image registry-yə düşərsə, içindəki açar hamıya açıq olardı.
+.env
+
+# Yüklənmiş kataloqlar və baza - qalıcı volume-dadır (DATA_DIR), image-də yox.
+# tessdata isə image-də QALMALIDIR, ona görə data/ tam istisna edilmir.
+data/raw/
+data/text/
+data/cache/
+data/*.db
+data/*.png
+
+# Git və sənədlər
+.git/
+.gitignore
+*.md
+!README.md

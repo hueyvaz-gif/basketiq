@@ -1,0 +1,16 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.idea/
+.vscode/
+
+# Yüklənmiş kataloqlar və DB repo-ya düşmür
+data/raw/*
+data/text/*
+data/*.db
+data/group_key_backup.json
+!data/raw/.gitkeep
+!data/text/.gitkeep

@@ -1,0 +1,22 @@
+# Bir sətir = bir tapşırıq = bir commit. Sıra vacibdir.
+# Boş sətirlər və # ilə başlayanlar keçilir.
+#
+# QAYDA: əvvəl AUDİT (kod dəyişmir), sonra DÜZƏLİŞ. Birbaşa "redizayn et" yazma.
+# QAYDA: ilk gecə 3-4 sətirdən çox qoyma. Səhər hamısını 20 dəqiqəyə oxumalısan.
+
+# ── 1. Ölç, dəyişmə ──────────────────────────────────────────────────────────
+app/static/*.css-də bütün padding/margin/gap dəyərlərini topla. Neçə fərqli dəyər var, hansılar yalnız 1-2 dəfə işlədilib? Cədvəl kimi logs/spacing.md-ə yaz. KOD DƏYİŞMƏ.
+
+app/static/*.css-də bütün font-size və font-weight dəyərlərini topla. Tipoqrafiya şkalasında neçə pillə var, hansı pillələr bir-birinə çox yaxındır? logs/type.md-ə yaz. KOD DƏYİŞMƏ.
+
+# ── 2. Yalnız audit oxunandan sonra düzəliş ──────────────────────────────────
+logs/spacing.md-i oxu. Yalnız 1-2 dəfə işlədilən tək-tük dəyərləri ən yaxın ümumi dəyərə yığ və :root-da boşluq token-ləri kimi elan et. Vizual nəticə əhəmiyyətli dəyişməməlidir.
+
+# ── 3. Ölçülə bilən UI işi ───────────────────────────────────────────────────
+Səhifəni 380px enində yoxla: hansı cədvəl, kart və düymə sınır? Siyahını logs/mobile.md-ə yaz, sonra YALNIZ səbət müqayisəsi cədvəlini mobil üçün düzəlt. Digər bölmələrə toxunma.
+
+# ── 4. Səssiz sınma qorunması ────────────────────────────────────────────────
+tests/test_ui_contract.py üslubunda yeni test yaz: :root-da elan olunmuş hər rəng token-i CSS-də ən azı bir dəfə işlədilir, və CSS-də :root xaricində hardcode hex yoxdur.
+
+# ── n8n səsli mesaj — ayrıca gecəyə saxla, əvvəl təhlil ──────────────────────
+# n8n-ə səsli giriş əlavə etmək istəyirik. voice/bot.py long polling ilə n8n Telegram node-u arasında getUpdates toqquşma riskini təhlil et: iki variant (webhook-a keçid / n8n yalnız faylı emal edir) müqayisə et, logs/voice-n8n.md-ə yaz. KOD DƏYİŞMƏ.
