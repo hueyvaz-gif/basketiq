@@ -31,13 +31,32 @@ git -C "$REPO" worktree add -b "$BRANCH" "$WORK" >/dev/null || exit 1
 cd "$WORK" || exit 1
 mkdir -p logs
 
-# .gitignore-dakı yerli konfiqurasiya worktree-yə düşmür, ona görə kopyalanır.
-# Bunsuz TESSERACT_CMD təyin olunmur və OCR/scraper testləri (8 ədəd) sınır -
-# yəni qapı heç vaxt keçmir və düzgün iş də geri qaytarılır.
+# .gitignore-dakı yerli konfiqurasiya worktree-yə düşmür. Bunsuz TESSERACT_CMD
+# təyin olunmur və OCR/scraper testləri (8 ədəd) sınır - yəni qapı heç vaxt
+# keçmir və düzgün iş də geri qaytarılır.
+#
+# .env-i BÜTÖV KOPYALAMIRIQ. $WORK repo-dan kənardadır ($REPO/../basketiq-*),
+# yəni .gitignore onu qorumur; bütöv nüsxə ANTHROPIC_API_KEY və INGEST_API_KEY-i
+# açıq mətnlə diskdə qoyardı və hər gecə növbəsi bir dənə də əlavə edərdi.
+#
+# Əvəzinə yalnız OCR dəyərləri mühitə ötürülür - onlar sirr deyil, sadəcə yoldur.
+# `load_dotenv()` (app/config.py:16) mövcud mühit dəyişənlərini ƏVƏZ ETMİR,
+# ona görə export etmək faylı kopyalamaqla eyni nəticəni verir.
 if [ -f "$REPO/.env" ]; then
-  cp "$REPO/.env" "$WORK/.env"
-else
-  echo "XƏBƏRDARLIQ: $REPO/.env yoxdur - OCR testləri sına bilər." >&2
+  # `tr -d` ilə CR-lər əvvəlcədən atılır: .env Windows-da CRLF ilə saxlanıla
+  # bilər, CR isə dəyərin sonuna yapışıb yolu yararsız edərdi.
+  while IFS= read -r LINE; do
+    case "$LINE" in
+      TESSERACT_CMD=*|TESSERACT_LANGS=*)
+        VAL="${LINE#*=}"
+        VAL="${VAL%\"}"; VAL="${VAL#\"}"      # ətrafdakı dırnaqlar varsa
+        export "${LINE%%=*}=$VAL"
+        ;;
+    esac
+  done < <(tr -d '\r' < "$REPO/.env")
+fi
+if [ -z "${TESSERACT_CMD:-}" ]; then
+  echo "XƏBƏRDARLIQ: TESSERACT_CMD tapılmadı - 8 OCR/scraper testi sına bilər." >&2
 fi
 : > logs/failed.txt
 echo "# Gecə hesabatı — $(date)" > logs/report.md
