@@ -149,7 +149,33 @@ def test_tapilmayan_mehsul_aydin_cavab(sebet_qorunur):
     assert "tapılmadı" in reply
 
 
-def test_axtarisda_geri_cekilme(sebet_qorunur):
+@pytest.fixture
+def duyu_mehsulu():
+    """
+    Axtarış testi üçün adında «düyü» keçən məhsul.
+
+    ƏVVƏL BU FIXTURE YOX İDİ və test bazada təsadüfən duran «düyü» məhsuluna
+    güvənirdi. Boş bazada `sebet_qorunur` fixture-u `skip` etdiyi üçün test
+    ümumiyyətlə işləmirdi - yəni yaşıl görünürdü, amma heç nə yoxlamırdı.
+    Bazaya başqa testlərdən məhsul düşən kimi test işə düşdü və düşdü.
+    İndi lazım olan datanı özü yaradır.
+    """
+    with db_cursor() as cur:
+        cur.execute(
+            "INSERT INTO products (canonical_key, name, size_value, size_unit, "
+            "                      category, group_key) "
+            "VALUES ('v|duyu|1kg', 'düyü', 1, 'kg', 'çörək və taxıl', 'v|duyu|1kg')"
+        )
+        product_id = cur.lastrowid
+
+    yield product_id
+
+    with db_cursor() as cur:
+        cur.execute("DELETE FROM basket_items WHERE product_id = ?", (product_id,))
+        cur.execute("DELETE FROM products WHERE id = ?", (product_id,))
+
+
+def test_axtarisda_geri_cekilme(sebet_qorunur, duyu_mehsulu):
     """
     Səs mətnində əmr sözü qala bilər. Tam sorğu heç nə tapmasa, sözlər
     bir-bir yoxlanılır. Diqqət: zibil söz məhsulun adından UZUN ola bilər

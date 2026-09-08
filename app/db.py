@@ -70,6 +70,44 @@ CREATE INDEX IF NOT EXISTS idx_prices_product ON prices(product_id);
 CREATE INDEX IF NOT EXISTS idx_prices_store   ON prices(store_id);
 CREATE INDEX IF NOT EXISTS idx_prices_seen    ON prices(seen_at);
 
+-- Gündəlik qiymət müşahidəsi (BasketIQ v2).
+--
+-- NİYƏ `prices` KİFAYƏT ETMİR? `prices` bir KATALOQ sətrinə bağlıdır
+-- (`catalog_id` NOT NULL) - yəni yalnız həftəlik jurnaldan gələn qiyməti
+-- saxlaya bilir. Onlayn mağazadan gündəlik çəkilən qiymətin kataloqu yoxdur.
+--
+-- `source` sahəsi həlledicidir: sayt qiyməti ilə kataloq iddiası EYNİ
+-- cədvəldədir, amma bir-birinə qarışmır. Endirim yoxlaması yalnız
+-- `source='site'` sətirlərini oxuyur - kataloqun öz iddiasını yenə kataloqla
+-- təsdiqləmək dairəvi məntiqdir.
+--
+-- Sətirlər ÜSTÜNƏ YAZILMIR: hər gün yeni sətir. Tarixçə qrafiki və endirim
+-- yoxlaması bunun üzərində qurulur.
+CREATE TABLE IF NOT EXISTS price_snapshots (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id   INTEGER NOT NULL REFERENCES products(id),
+    store_id     INTEGER NOT NULL REFERENCES stores(id),
+    price        REAL    NOT NULL,
+    unit_price   REAL,                    -- 1 kq / 1 L üzrə
+    is_promo     INTEGER NOT NULL DEFAULT 0,
+    source       TEXT    NOT NULL CHECK (source IN ('site', 'catalog')),
+    observed_at  TEXT    NOT NULL         -- ISO tarix və ya tam vaxt möhürü
+);
+
+CREATE INDEX IF NOT EXISTS ix_snapshots_product_date
+    ON price_snapshots(product_id, observed_at);
+
+-- GÜNDƏ BİR SƏTİR - və məhz gündə.
+--
+-- Tapşırıqdakı ilkin variant sütunun özünə idi:
+--     UNIQUE(product_id, store_id, source, observed_at)
+-- `observed_at` tam vaxt möhürü saxladığı üçün bu indeks HEÇ NƏYİ tutmurdu:
+-- eyni məhsul saat 09:00 və 18:30-da çəkiləndə iki ayrı sətir yaranırdı,
+-- yəni "hər gün bir sətir" qaydası kağız üzərində qalırdı. Ölçüldü:
+-- ifadəli indekslə ikinci yazı IntegrityError verir, ertəsi gün isə keçir.
+CREATE UNIQUE INDEX IF NOT EXISTS ux_snapshot_daily
+    ON price_snapshots(product_id, store_id, source, date(observed_at));
+
 -- İstifadəçinin səbəti
 CREATE TABLE IF NOT EXISTS baskets (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -123,6 +161,67 @@ def db_cursor():
         conn.close()
 
 
+# Eyni marketin iki ayrı sətir kimi yazıldığı hallar.
+#
+# `(mənbə slug, hədəf slug, düzgün ad)` - mənbədəki bütün sətirlər hədəfə
+# köçürülür, sonra mənbə sətri silinir.
+#
+# NİYƏ LAZIM OLDU? Kataloq yüklənəndə market adı sərbəst mətndir və
+# `get_or_create_store()` onu SLUG üzrə axtarır. "Araz" əl ilə, "Araz Market"
+# isə scraper tərəfindən yaradılmışdı - eyni şirkət, iki market. Nəticə
+# istifadəçi panelində görünürdü: müqayisə cədvəlində iki ayrı sütun və
+# "Araz Market səbətdəki məhsulları satmır" yazısı.
+#
+# Bu siyahı ƏL İLƏ doldurulur. Adları avtomatik oxşarlığa görə birləşdirmək
+# təhlükəlidir: "Bravo" ilə "Bravo Express" fərqli şəbəkə ola bilər.
+STORE_MERGES: tuple[tuple[str, str, str], ...] = (
+    ("araz-market", "araz", "Araz"),
+)
+
+
+def _merge_duplicate_stores(conn: sqlite3.Connection) -> list[str]:
+    """
+    `STORE_MERGES` siyahısını tətbiq edir. Təkrar çağırmaq təhlükəsizdir.
+
+    Data İTMİR: qiymətlər, kataloqlar və snapshot-lar hədəf marketə köçürülür,
+    yalnız artıq boşalmış `stores` sətri silinir.
+    """
+    applied: list[str] = []
+    for src_slug, dst_slug, canonical_name in STORE_MERGES:
+        src = conn.execute("SELECT id FROM stores WHERE slug = ?", (src_slug,)).fetchone()
+        if src is None:
+            continue
+
+        dst = conn.execute("SELECT id FROM stores WHERE slug = ?", (dst_slug,)).fetchone()
+        if dst is None:
+            # Hədəf yoxdur - köçürəcək yer də yoxdur. Sadəcə adını düzəldirik,
+            # beləliklə növbəti dəfə təkrar yaranmır.
+            conn.execute(
+                "UPDATE stores SET slug = ?, name = ? WHERE id = ?",
+                (dst_slug, canonical_name, src["id"]),
+            )
+            applied.append(f"{src_slug} → {dst_slug} (adı dəyişdirildi)")
+            continue
+
+        if src["id"] == dst["id"]:
+            continue
+
+        moved = 0
+        for table in ("prices", "catalogs", "price_snapshots"):
+            cur = conn.execute(
+                f"UPDATE {table} SET store_id = ? WHERE store_id = ?",
+                (dst["id"], src["id"]),
+            )
+            moved += cur.rowcount
+        conn.execute("DELETE FROM stores WHERE id = ?", (src["id"],))
+        conn.execute(
+            "UPDATE stores SET name = ? WHERE id = ?", (canonical_name, dst["id"])
+        )
+        applied.append(f"{src_slug} → {dst_slug} ({moved} sətir köçürüldü)")
+
+    return applied
+
+
 def _migrate(conn: sqlite3.Connection) -> None:
     """
     Köhnə DB-lərə yeni sütunları əlavə edir.
@@ -134,14 +233,31 @@ def _migrate(conn: sqlite3.Connection) -> None:
     if "group_key" not in columns:
         conn.execute("ALTER TABLE products ADD COLUMN group_key TEXT")
 
+    # Onlayn mağazadan gələn əlavə sahələr (BasketIQ v2).
+    # `barcode` matching üçün BİRİNCİ açardır: eyni barkod = eyni məhsul,
+    # LLM-ə göndərmək lazım deyil. `product_url` isə şəffaflıq üçündür -
+    # qiymətin hansı səhifədən götürüldüyü göstərilə bilsin.
+    for column, ddl in (
+        ("barcode", "ALTER TABLE products ADD COLUMN barcode TEXT"),
+        ("product_url", "ALTER TABLE products ADD COLUMN product_url TEXT"),
+    ):
+        if column not in columns:
+            conn.execute(ddl)
+
     # Sütun mövcud olduqdan SONRA indeks
     conn.execute("CREATE INDEX IF NOT EXISTS idx_products_group ON products(group_key)")
+    # Barkod UNİKAL DEYİL: eyni barkod fərqli marketlərdə ayrı `products`
+    # sətri kimi görünə bilər - onları birləşdirmək matching-in işidir,
+    # bazanın deyil. İndeks yalnız axtarışı sürətləndirir.
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode)")
 
     # group_key boş qalan sətirlər öz canonical_key-ini alır
     conn.execute(
         "UPDATE products SET group_key = canonical_key "
         "WHERE group_key IS NULL OR group_key = ''"
     )
+
+    _merge_duplicate_stores(conn)
 
 
 def init_db() -> None:
@@ -170,7 +286,7 @@ def db_stats() -> dict:
     conn = get_connection()
     try:
         out = {}
-        for table in ("stores", "catalogs", "products", "prices"):
+        for table in ("stores", "catalogs", "products", "prices", "price_snapshots"):
             out[table] = conn.execute(f"SELECT COUNT(*) AS c FROM {table}").fetchone()["c"]
         return out
     finally:

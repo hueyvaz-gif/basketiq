@@ -11,6 +11,7 @@ __pycache__/
 data/raw/*
 data/text/*
 data/*.db
+data/*.db.bak-*
 data/group_key_backup.json
 !data/raw/.gitkeep
 !data/text/.gitkeep
