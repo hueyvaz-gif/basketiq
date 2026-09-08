@@ -237,9 +237,20 @@ def _migrate(conn: sqlite3.Connection) -> None:
     # `barcode` matching üçün BİRİNCİ açardır: eyni barkod = eyni məhsul,
     # LLM-ə göndərmək lazım deyil. `product_url` isə şəffaflıq üçündür -
     # qiymətin hansı səhifədən götürüldüyü göstərilə bilsin.
+    # `image_path` — məhsulun ŞƏKLİ (BasketIQ v3).
+    #
+    # NİYƏ URL YOX, YERLİ YOL? Marketlərin bir hissəsi xarici saytdan şəkil
+    # göstərməyə (hotlink) icazə vermir - şəkil brauzerdə qırıq görünərdi və
+    # səbəbi heç bir yerdə yazılmazdı. Ona görə şəkil bir dəfə endirilir
+    # (və ya kataloqdan kəsilir), `app/static/images/products/` altında
+    # saxlanılır, bazada isə yalnız fayl adı qalır.
+    #
+    # BOŞ QALA BİLƏR: şəkli tapılmayan məhsul üçün UI neytral placeholder
+    # göstərir - səhifə sınmır.
     for column, ddl in (
         ("barcode", "ALTER TABLE products ADD COLUMN barcode TEXT"),
         ("product_url", "ALTER TABLE products ADD COLUMN product_url TEXT"),
+        ("image_path", "ALTER TABLE products ADD COLUMN image_path TEXT"),
     ):
         if column not in columns:
             conn.execute(ddl)

@@ -71,36 +71,31 @@
        ========================================================== -->
   <main class="panel" id="panel-user" role="tabpanel" aria-labelledby="tabUser">
 
+    <!-- --- AXTARIŞ (trolley: səhifənin ƏN ÜST elementi) ---
+
+         Trolley-də ilk gördüyün şey axtarış sahəsidir, çünki saytın sualı
+         birdir: «bu məhsul harada ucuzdur?». Bizdə də belədir - forma
+         `/search` səhifəsinə aparır, orada şəkilli nəticələr və filtrlər var.
+
+         BU, SƏBƏTƏ ƏLAVƏ ETMİR. Layihədə alış-veriş yoxdur: nə checkout,
+         nə ödəniş. Axtarışın yeganə məqsədi qiyməti göstərməkdir. -->
     <div class="page-head">
-      <h1 class="page-title">Səbətiniz üçün ən yaxşı qiyməti tapın</h1>
+      <h1 class="page-title">İstənilən məhsulun qiymətini müqayisə edin</h1>
       <p class="page-sub">
-        Supermarket qiymətlərini müqayisə edin və daha ağıllı alış-veriş edin.
+        Dörd marketin qiymətini yan-yana göstəririk — harada ucuz olduğunu
+        bir baxışda görün.
       </p>
     </div>
 
-    <!-- --- HERO: BİR SUAL, BİR CAVAB (v2, bölmə 8.2) ---
+    <form class="searchbar" id="heroSearchForm" action="/search" method="get"
+          role="search" aria-label="Məhsul axtarışı">
+      <svg class="searchbar-icon" aria-hidden="true"><use href="#icon-search"></use></svg>
+      <input type="search" id="heroSearchInput" name="q"
+             placeholder="Məhsul və ya brend axtarın — süd, Milla, yağ…"
+             autocomplete="off">
+      <button class="btn" type="submit">Axtar</button>
+    </form>
 
-         İlk ekranda cəmi üç şey var: səbət, cavab, bir sətir izah.
-         Market sütunları və şərtlər aşağı - "ətraflı" bölməsinə keçdi,
-         çünki ən böyük rəqəm dərhal iki şərtlə məhdudlaşdırılanda
-         cavab olmaqdan çıxır. -->
-    <section class="hero" aria-labelledby="heroTitle">
-      <h2 class="sr-only" id="heroTitle">Səbətiniz harada ucuzdur?</h2>
-
-      <div class="basket-mini" id="basketList"></div>
-
-      <div id="compareResult">
-        <div class="hero-empty">
-          <div class="hero-empty-title">Səbət boşdur</div>
-          <div>Aşağıdakı axtarışdan məhsul əlavə edin — cavab dərhal görünəcək.</div>
-        </div>
-      </div>
-
-      <details class="fold fold-inline" id="storeDetails">
-        <summary class="fold-head"><span>Market üzrə ətraflı</span></summary>
-        <div id="storeBars"></div>
-      </details>
-    </section>
 
     <!-- --- MARKET ŞƏBƏKƏSİ ---
 
@@ -129,13 +124,12 @@
 
     <!-- --- BUGÜNÜN ƏN SƏRFƏLİ ENDİRİMLƏRİ ---
 
-         Trolley-nin ana səhifəsindəki «deals» bölməsinin qarşılığı.
-         Hər məhsul üçün BİR kart: ən böyük faiz endirim + həmin məhsulun
-         digər marketlərdəki qiyməti.
+         Trolley-nin ana səhifəsindəki «Today's Top Deals» bölməsinin
+         qarşılığı: NÖMRƏLƏNMİŞ SİYAHI - solda məhsulun şəkli, sağda ad,
+         ölçü və marketlərin qiymətləri yan-yana.
 
-         Hero-dan SONRA yerləşir: hero istifadəçinin öz sualına
-         («səbətim harada ucuzdur?») cavab verir, bu bölmə isə kəşfdir.
-         Kəşfi cavabdan yuxarı qoysaq, səhifənin əsas sualı itərdi. -->
+         Kart şəbəkəsi DEYİL: bu bölmənin məzmunu müqayisədir, müqayisə isə
+         en tələb edir - kiçik kartda üç marketin qiyməti yan-yana sığmır. -->
     <section class="card" aria-labelledby="dealsTitle">
       <div class="card-head">
         <div class="head-row">
@@ -143,13 +137,13 @@
           <h2 class="section-heading" id="dealsTitle">Bugünün ən sərfəli endirimləri</h2>
         </div>
         <p class="section-sub">
-          Hər məhsul üçün ən böyük faiz endirim göstərilir. Kartın altındakı
-          sətir eyni məhsulun digər marketlərdəki qiymətidir — endirim həqiqi
-          olsa da, qonşu market daha ucuz sata bilər.
+          Hər məhsul üçün ən böyük faiz endirim. Sağdakı sütunlar eyni
+          məhsulun digər marketlərdəki qiymətidir — endirim həqiqi olsa da,
+          qonşu market daha ucuz sata bilər.
         </p>
       </div>
 
-      <div id="dealsGrid" class="deal-grid">
+      <div id="dealsGrid" class="deal-list">
         <div class="row"><span class="row-label skeleton">Yüklənir</span></div>
       </div>
 
@@ -158,7 +152,40 @@
       </div>
     </section>
 
-    <!-- --- Məhsul üzrə müqayisə + axtarış --- -->
+        <!-- --- SƏBƏTİM ---
+
+         BURAYA KÖÇÜRÜLDÜ (v3). Əvvəl səhifənin ƏN ÜSTÜNDƏ idi və ilk
+         ekranda boş səbət qutusu görünürdü - istifadəçi hələ heç nə
+         seçməmişkən ondan cavab gözlənilirdi.
+
+         Trolley-nin sırası fərqlidir: əvvəl AXTAR, sonra MARKETLƏR,
+         sonra ENDİRİMLƏR - yəni istifadəçi əvvəlcə məhsul tapır.
+         Səbət isə ondan sonra gələn alətdir. -->
+    <!-- --- HERO: BİR SUAL, BİR CAVAB (v2, bölmə 8.2) ---
+
+         İlk ekranda cəmi üç şey var: səbət, cavab, bir sətir izah.
+         Market sütunları və şərtlər aşağı - "ətraflı" bölməsinə keçdi,
+         çünki ən böyük rəqəm dərhal iki şərtlə məhdudlaşdırılanda
+         cavab olmaqdan çıxır. -->
+    <section class="hero" aria-labelledby="heroTitle">
+      <h2 class="sr-only" id="heroTitle">Səbətiniz harada ucuzdur?</h2>
+
+      <div class="basket-mini" id="basketList"></div>
+
+      <div id="compareResult">
+        <div class="hero-empty">
+          <div class="hero-empty-title">Səbət boşdur</div>
+          <div>Aşağıdakı axtarışdan məhsul əlavə edin — cavab dərhal görünəcək.</div>
+        </div>
+      </div>
+
+      <details class="fold fold-inline" id="storeDetails">
+        <summary class="fold-head"><span>Market üzrə ətraflı</span></summary>
+        <div id="storeBars"></div>
+      </details>
+    </section>
+
+<!-- --- Məhsul üzrə müqayisə + axtarış --- -->
     <section class="card">
       <div class="card-head">
         <div class="head-row">

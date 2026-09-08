@@ -144,6 +144,18 @@ def product_page(product_id: int):
     return FileResponse(STATIC_DIR / "product.html", headers={"Cache-Control": NO_CACHE})
 
 
+@app.get("/search", include_in_schema=False)
+def search_page():
+    """
+    Axtarış / kateqoriya nəticələri səhifəsi.
+
+    Filtr vəziyyəti ÜNVANDADIR (`?q=...&market=...`), yəni nəticə paylaşıla
+    və brauzerin «geri» düyməsi ilə gəzilə bilər. Serverdə şablon yoxdur -
+    `search.js` parametrləri ünvandan oxuyub API-ni çağırır.
+    """
+    return FileResponse(STATIC_DIR / "search.html", headers={"Cache-Control": NO_CACHE})
+
+
 @app.get("/store/{slug}", include_in_schema=False)
 def store_page_html(slug: str):
     """

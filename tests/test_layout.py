@@ -3,7 +3,7 @@ Layout analizi testləri - "kart" tapan OCR.
 
 Real kataloq şəkli repo-ya qoyula bilməz (müəllif hüququ), ona görə PIL ilə
 süni kart şəbəkəsi çəkirik: ad yuxarıda, qiymət aşağıda qırmızı qutuda,
-üstündə sarı qutuda köhnə qiymət. Bu, OBA kataloqunun quruluşunu təkrarlayır.
+üstündə sarı qutuda köhnə qiymət. Bu, kart quruluşlu kataloqu təkrarlayır.
 
 Testlərin əsas sualı: qiymət DÜZGÜN məhsula yapışırmı? Səhv yapışma ən
 təhlükəli səhvdir, çünki nəticə "düzgün görünür" - sadəcə yanlışdır.
@@ -56,7 +56,7 @@ def _font(size: int):
 
 @pytest.fixture(scope="module")
 def card_page() -> Image.Image:
-    """OBA quruluşunda süni kataloq səhifəsi."""
+    """Kart quruluşunda süni kataloq səhifəsi."""
     font = _font(30)
     if font is None:
         pytest.skip("TrueType şrift tapılmadı - layout testi ötürülür")

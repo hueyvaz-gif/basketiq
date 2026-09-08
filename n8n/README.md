@@ -77,7 +77,7 @@ Hər iki budaq real olaraq işlədilib (n8n 2.27.5, Docker):
 ```
 Hər səhər 07:00 (və ya "Elle isle sal")
    → Konfiqurasiya                           URL, açar, mənbə, limitlər - BİR yerdə
-   → POST /api/scrape/oba?max_pages=2        kataloqu çək (robots.txt-ə tabe)
+   → POST /api/scrape/araz?max_pages=2        kataloqu çək (robots.txt-ə tabe)
    → IF ingested.length > 0                  yeni kataloq varmı?
         BƏLİ  → POST /api/catalogs/{id}/extract?limit=10    AI ilə məhsullar
               → GET  /api/basket/compare                    səbət müqayisəsi

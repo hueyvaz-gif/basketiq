@@ -15,9 +15,9 @@ məntiqdir, ona görə iki qat ayrı saxlanılır.
     | Bravo      | icazə ✓    | JS (ng-app), PDF yox  | YOX - link tapılmadı |
     | Bazarstore | icazə ✓    | sayt baxımdadır       | YOX               |
 
-NİYƏ OBA YOXDUR? Layihə qərarı ilə çıxarıldı (BasketIQ v2, addım 3.1).
-Bazadakı köhnə OBA sətirləri SİLİNMİR - tarixçə üçün faydalıdır; sadəcə yeni
-çəkiliş olmur.
+NİYƏ YALNIZ BU DÖRD MƏNBƏ? Layihənin market siyahısı `app/stores.py`-dədir.
+Siyahıdan kənar market üçün nə çəkiliş olur, nə də onun datası UI-da
+görünür (`tools/purge_store.py` onu bazadan da silir).
 
 NİYƏ BRAVO KATALOQ MƏNBƏYİ DEYİL? `robots.txt` icazə verir (əvvəlki "qadağa"
 qeydi səhv idi - səbəb aşağıda, `robots_allows()`-da), amma `special-offers`

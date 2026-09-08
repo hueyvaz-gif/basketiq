@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <!-- Başlıq JS ilə məhsulun adına dəyişir: server tərəfdə şablon
-       mühərriki yoxdur, HTML isə bütün məhsullar üçün eynidir. -->
   <title>Məhsul — BasketIQ</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300a300' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8h18l-1.6 10.2a2 2 0 0 1-2 1.8H6.6a2 2 0 0 1-2-1.8L3 8Z'/%3E%3Cpath d='M8.5 8 10 4m5.5 4L14 4'/%3E%3C/svg%3E">
 
@@ -18,7 +16,6 @@
 </head>
 <body>
 
-<!-- İkonlar `icons.svg`-dən gəlir - eyni fayl ana səhifə ilə paylaşılır. -->
 <script src="/static/icons.js"></script>
 
 <header class="topbar">
@@ -28,116 +25,86 @@
       <span class="brand-name">BasketIQ</span>
     </a>
 
-    <a class="btn btn-secondary" href="/">
+    <form class="searchbar is-compact" action="/search" method="get" role="search">
+      <svg class="searchbar-icon" aria-hidden="true"><use href="#icon-search"></use></svg>
+      <input type="search" name="q" placeholder="Məhsul və ya brend axtarın" autocomplete="off">
+    </form>
+
+    <a class="icon-btn is-quiet" href="/" aria-label="Ana səhifə">
       <svg aria-hidden="true"><use href="#icon-basket"></use></svg>
-      Səbətə qayıt
     </a>
   </div>
 </header>
 
 <div class="wrap">
-  <main class="panel">
+  <!-- İKİ SÜTUN (trolley quruluşu): solda məhsulun kimliyi (ad + şəkil),
+       sağda isə bütün qiymət məlumatı. Solda heç bir rəqəm yoxdur - göz
+       əvvəlcə məhsulu tanıyır, sonra qiymətə keçir. -->
+  <main class="product-page">
 
-    <!-- Məhsulun başlığı: ad, brend, ölçü, kateqoriya. -->
-    <div class="page-head" id="productHead">
-      <h1 class="page-title skeleton">Yüklənir</h1>
+    <!-- ---------- SOL: kimlik ---------- -->
+    <div class="product-aside" id="productAside">
+      <div class="skeleton" style="height:280px"></div>
     </div>
 
-    <!-- --- HARADA AL ---
-         Trolley-nin «Where to buy» cədvəlinin qarşılığı.
+    <!-- ---------- SAĞ: qiymətlər ---------- -->
+    <div class="product-main">
 
-         SÜTUN YOX, SƏTİR: hər market bir sətirdir. Məhsul bir marketdə
-         yoxdursa, sətir sadəcə yaranmır - boş xana, «0.00» və ya xəta
-         göstərilmir. Dörd marketin hansının datası hazır olmadığı isə
-         cədvəlin altında bir sətirlə yazılır. -->
-    <section class="card" aria-labelledby="offersTitle">
-      <div class="card-head">
-        <div class="head-row">
-          <svg aria-hidden="true"><use href="#icon-store"></use></svg>
-          <h2 class="section-heading" id="offersTitle">Harada al</h2>
+      <!-- «Harada al»: hər market bir SƏTİR. Məhsul bir marketdə yoxdursa,
+           sətir ümumiyyətlə yaranmır - boş xana və ya «0.00» göstərilmir. -->
+      <section class="block" aria-labelledby="offersTitle">
+        <h2 class="block-title" id="offersTitle">Harada al</h2>
+        <div id="offersBox">
+          <div class="row"><span class="row-label skeleton">Yüklənir</span></div>
         </div>
-        <p class="section-sub">
-          Yalnız bu məhsulun tapıldığı marketlər göstərilir. Ən ucuz qiymət
-          çərçivə və ✓ nişanı ilə işarələnib.
+        <p class="fineprint" id="marketNote"></p>
+      </section>
+
+      <!-- «Bugünkü qiymət» zolağı: bu qiymət ucuzdur, yoxsa adi?
+           Müşahidə sayı azdırsa bölmə ümumiyyətlə göstərilmir. -->
+      <section class="block hidden" id="priceBarCard" aria-labelledby="priceBarTitle">
+        <h2 class="block-title" id="priceBarTitle">Bugünkü qiymət</h2>
+        <div id="priceBar"></div>
+      </section>
+
+      <!-- Ölçü variantları: «ən ucuz» ilə «ən sərfəli» eyni sətir olmaya bilər. -->
+      <section class="block hidden" id="variantsCard" aria-labelledby="variantsTitle">
+        <h2 class="block-title" id="variantsTitle">Ölçülər</h2>
+        <div id="variantsBox"></div>
+      </section>
+
+      <!-- AI qeydi — MÜŞTƏRİ RƏYİ DEYİL və rəy bölməsi bu səhifədə YOXDUR.
+           Layihədə nə istifadəçi hesabı, nə rəy cədvəli var; model yalnız
+           yuxarıdakı rəqəmləri cümləyə çevirir (`ai/product_note.py`). -->
+      <section class="block ai-block hidden" id="noteCard" aria-labelledby="noteTitle">
+        <h2 class="block-title" id="noteTitle">
+          AI qeydi <span class="pill is-ai">AI</span>
+        </h2>
+        <p class="block-sub">
+          Müştəri rəyi deyil — yuxarıdakı qiymətlərin bir cümləlik izahı.
         </p>
-      </div>
-
-      <div id="offersBox">
-        <div class="row"><span class="row-label skeleton">Yüklənir</span></div>
-      </div>
-
-      <div id="marketNote" class="fineprint"></div>
-    </section>
-
-    <!-- --- ÖLÇÜ VARİANTLARI ---
-         «Ən ucuz» ilə «ən sərfəli» eyni sətir olmaya bilər: kiçik paket
-         ucuzdur, böyük paket isə 1 kq/L hesabı ilə sərfəlidir. Variant
-         tək olanda bu bölmə ÜMUMİYYƏTLƏ göstərilmir. -->
-    <section class="card hidden" id="variantsCard" aria-labelledby="variantsTitle">
-      <div class="card-head">
-        <div class="head-row">
-          <svg aria-hidden="true"><use href="#icon-layers"></use></svg>
-          <h2 class="section-heading" id="variantsTitle">Ölçü variantları</h2>
+        <div class="advisor-text" id="noteText"></div>
+        <div class="actions">
+          <button class="btn btn-ghost" id="noteFactsBtn" type="button">Faktlara bax</button>
         </div>
-        <p class="section-sub">
-          «Ən ucuz» cibdən çıxan puldur, «ən sərfəli» isə 1 kq / 1 L qiymətidir —
-          bunlar eyni sətir olmaya bilər.
-        </p>
-      </div>
-      <div id="variantsBox"></div>
-    </section>
+        <pre class="facts hidden" id="noteFacts"></pre>
+      </section>
 
-    <!-- --- AI QEYDİ (trolley-dəki «rəylər» bölməsinin əvəzi) ---
-         Burada MÜŞTƏRİ RƏYİ YOXDUR və uydurulmur: layihədə nə istifadəçi
-         hesabı, nə rəy cədvəli var. Model yalnız yuxarıdakı cədvəlin
-         rəqəmlərini cümləyə çevirir. Yoxlamalardan biri düşsə, bölmə
-         göstərilmir - detallar `ai/product_note.py`-dədir. -->
-    <section class="card ai-card hidden" id="noteCard" aria-labelledby="noteTitle">
-      <div class="card-head">
-        <div class="head-row">
-          <svg aria-hidden="true"><use href="#icon-sparkle"></use></svg>
-          <h2 class="section-heading" id="noteTitle">AI qeydi</h2>
-          <span class="pill is-ai">AI</span>
-        </div>
-        <p class="section-sub">
-          Bu, müştəri rəyi deyil — yuxarıdakı qiymətlərin bir cümləlik izahıdır.
-          Bütün rəqəmlər Python-da hesablanır.
-        </p>
-      </div>
-      <div class="advisor-text" id="noteText"></div>
-      <div class="actions">
-        <button class="btn btn-ghost" id="noteFactsBtn" type="button">Faktlara bax</button>
-      </div>
-      <pre class="facts hidden" id="noteFacts"></pre>
-    </section>
+      <section class="block hidden" id="brandCard" aria-labelledby="brandTitle">
+        <h2 class="block-title" id="brandTitle">Eyni brenddən</h2>
+        <div id="brandBox" class="product-grid"></div>
+      </section>
 
-    <!-- --- OXŞAR MƏHSULLAR --- -->
-    <section class="card hidden" id="similarCard" aria-labelledby="similarTitle">
-      <div class="card-head">
-        <div class="head-row">
-          <svg aria-hidden="true"><use href="#icon-package"></use></svg>
-          <h2 class="section-heading" id="similarTitle">Oxşar məhsullar</h2>
-        </div>
-        <p class="section-sub">Eyni kateqoriyadan, qiyməti bizdə olan məhsullar.</p>
-      </div>
-      <div id="similarBox" class="deal-grid is-compact"></div>
-    </section>
+      <section class="block hidden" id="similarCard" aria-labelledby="similarTitle">
+        <h2 class="block-title" id="similarTitle">Oxşar məhsullar</h2>
+        <div id="similarBox" class="product-grid"></div>
+      </section>
 
-    <!-- --- EYNİ BRENDDƏN --- -->
-    <section class="card hidden" id="brandCard" aria-labelledby="brandTitle">
-      <div class="card-head">
-        <div class="head-row">
-          <svg aria-hidden="true"><use href="#icon-tag"></use></svg>
-          <h2 class="section-heading" id="brandTitle">Eyni brenddən</h2>
-        </div>
-      </div>
-      <div id="brandBox" class="deal-grid is-compact"></div>
-    </section>
-
-    <p class="fineprint">
-      Qiymətlər marketlərin dərc etdiyi həftəlik kataloqlardan götürülüb və
-      filialda, eləcə də kataloqun qüvvədə olduğu müddətdən sonra fərqlənə bilər.
-    </p>
+      <p class="fineprint">
+        Qiymətlər marketlərin dərc etdiyi həftəlik kataloqlardan götürülüb və
+        filialda fərqlənə bilər. Bu sayt satış etmir — yalnız qiymət göstərir.
+      </p>
+    </div>
   </main>
 </div>
 

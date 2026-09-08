@@ -6,12 +6,12 @@
 // dəyişəndə biri yenilənib digəri köhnə qalardı və heç bir yerdə xəta
 // çıxmazdı (səhifə sadəcə başqa ikon göstərərdi).
 //
-// NİYƏ `<use href="icons.svg#icon-x">` DEYİL?
+// NİYƏ XARİCİ FAYLA BİRBAŞA `<use>` İSTİNADI DEYİL?
 // Xarici fayla birbaşa `<use>` istinadı Safari-də İŞLƏMİR - ikonların yeri
 // sükutla boş qalır. Faylı oxuyub səhifəyə salmaq bütün brauzerlərdə işləyir.
 //
 // GEC GƏLƏN SPRITE PROBLEMİ VƏ HƏLLİ:
-// Fayl şəbəkədən gəldiyi üçün səhifədəki `<use href="#icon-x">` elementləri
+// Fayl şəbəkədən gəldiyi üçün səhifədəki `<use>` istinadları
 // sprite hazır olmamışdan ƏVVƏL çəkilir. Brauzerlərin bir hissəsi hədəf
 // element sonradan əlavə olunanda istinadı yenidən həll edir, bir hissəsi
 // isə YOX - və fərq yalnız real brauzerdə görünür. Ona görə istinadları ƏL

@@ -103,7 +103,6 @@ məntiqdir — ona görə iddia ilk qatdakı öz müşahidələrimizlə yoxlanı
 | **Araz** | icazə ✓ | 1 PDF × 54 səh. (statik HTML) | **yox** — data ünvanı qadağan | **yalnız kataloq mənbəyi** |
 | **Bravo** | icazə ✓ | yox — PDF linki tapılmadı | Umico üzərindən (Selenium) | **yalnız mağaza mənbəyi** |
 | Bazarstore | icazə ✓ | yox | yox — sayt baxımdadır | gözləyir |
-| OBA | icazə ✓ | 3 PDF, 4-44 səh. | — | **çıxarıldı** (v2 qərarı) |
 
 **Araz-ın mağaza qatı niyə yoxdur?** `arazmarket.az/robots.txt` `Disallow: /api/`
 və `Disallow: /_next/` yazır — yəni səhifənin data ünvanları qadağandır.
@@ -112,9 +111,10 @@ Qiymət ilk HTML-də görünmür (1.46 MB fayl, 634 simvol mətn, məzmun yerin�
 işlədilmir: brauzer səhifəni render edəndə həmin qadağan ünvanları özü çağırır,
 yəni «yalnız səhifəni açdım» deyib qadağanı dolayı yolla keçmək olardı.
 
-**OBA niyə çıxarıldı?** Texniki səbəb yox, layihə qərarı (BasketIQ v2).
-Bazadakı 352 OBA qiyməti **silinmir** — tarixçə üçün faydalıdır; sadəcə yeni
-çəkiliş olmur.
+**Market siyahısı bağlıdır.** Layihənin marketləri `app/stores.py`-dədir və
+cəmi dörddür: Araz Market, Bravo Market, Bazar Store, Rahat Market. Siyahıdan
+kənar market nə mənbə kimi çəkilir, nə də UI-da görünür; bazaya keçmiş belə
+sətirlər `tools/purge_store.py` ilə tamamilə silinir (ehtiyat nüsxə ilə).
 
 **«Bravo qadağalıdır» qeydi səhv idi.** Əvvəlki cədvəldə Bravo `qadağa ✗` kimi
 yazılmışdı. Yoxlanıldı: `bravosupermarket.az/robots.txt` faktiki olaraq
@@ -203,7 +203,7 @@ sözü öz lövbərinə bağlayırıq.
 | Fonu ağ olmayan sözü at | qablaşdırma üzərindəki yazı məhsulun adı deyil | "ESKIMO", "МИРАТОРГ" atıldı |
 | `char_whitelist` həmişə yaxşı deyil | LSTM-də çıxışı tamam boğa bilir | boş sətir → `'\| 199'` |
 
-**Nəticə** (OBA jurnalı, səhifə 2, 10 məhsul): ad 10/10, yeni qiymət 10/10,
+**Nəticə** (qlyanslı jurnal, səhifə 2, 10 məhsul): ad 10/10, yeni qiymət 10/10,
 köhnə qiymət 10/10, ~15-30 san/səhifə.
 
 **Bilinən məhdudiyyət:** Araz-ın dizaynında qiymət 2 ölçülü yazılır (böyük
@@ -554,7 +554,7 @@ Marketlərin **yeganə reyestri** `app/stores.py`-dır:
 | Rahat Market | `rahat` | **hələ yox** → «Tezliklə» |
 
 Bazadakı `stores` cədvəli bundan genişdir: orada test marketləri və köhnə
-mənbə (`oba`) da qalıb. Reyestrdən kənar market **istifadəçi panelinin heç bir
+mənbələr də qala bilər. Reyestrdən kənar market **istifadəçi panelinin heç bir
 yerində görünmür** — istifadəçiyə vəd olunmayan market göstərmək məlumat
 deyil, səs-küydür.
 
@@ -586,8 +586,8 @@ Market» adlanır. İki ad iki problem yaradır: istifadəçi eyni marketi iki c
 görür, üstəlik market rəngi ADDAN hesablandığı üçün (`store-colors.js`) eyni
 market cədvəldə bir, qrafikdə başqa rəngə düşür.
 
-Süzgəcin görünən nəticəsi: səbətdəki iki məhsul yalnız OBA-da satıldığı üçün
-artıq «heç bir marketdə tapılmadı» kimi göstərilir. Bu, itki deyil —
+Süzgəcin görünən nəticəsi: yalnız kənar marketdə satılan məhsullar
+UI-dan çıxdı. Bu, itki deyil —
 **dürüstlükdür**: həmin qiymətlər bizim dörd marketimizdən gəlmirdi.
 
 ### 1. Market şəbəkəsi (`store-grid.js`)
@@ -966,7 +966,7 @@ istifadəçinin datası toxunulmur.
 
 - [x] Həftə 1 — skelet, konfiqurasiya, DB sxemi, mənbə yoxlayıcı
 - [x] Həftə 1 — manual upload + OCR + cleaner + upload UI
-- [x] Həftə 1 — scraping (OBA + Araz) + kart-əsaslı layout analizi ¹ ³
+- [x] Həftə 1 — scraping (Araz) + kart-əsaslı layout analizi ¹
 - [x] Həftə 2 — LangChain LCEL extraction zənciri + keş + normalizasiya
 - [x] Həftə 2 — hibrid matching + səbət müqayisəsi
 - [x] Həftə 3 — MCP serveri (10 alət) + n8n workflow
@@ -979,13 +979,12 @@ istifadəçinin datası toxunulmur.
 - [x] Bonus — UI redizayn: istifadəçi/admin ayrılığı, market və məhsul ikonları,
       exception-first endirim siyahısı
 - [x] v2 — `robots.txt` oxuyucusu (RFC 9309) + `urllib`-dəki iki səhvin düzəlişi
-- [x] v2 — OBA çıxarıldı, dublikat market sətirləri birləşdirildi
+- [x] v2 — dublikat market sətirləri birləşdirildi
 - [x] v2 — `price_snapshots` cədvəli (gündəlik qiymət qatı üçün hazır, **boş**)
 - [x] v2 — trolley dizayn sistemi + interfeysin sadələşdirilməsi (4918px → 1831px)
 - [ ] v2 — baza qiymət (mağaza) qatı: **mənbə tapılmadı**, bax «Mənbələr» bölməsi
 
 ¹ Mənbə seçimi ölçmə tələb etdiyi üçün Həftə 2-dən sonra tamamlandı.
 ² Real droplet-də yox, lokal Docker-də sınanıb — təfərrüat `deploy/README.md`-də.
-³ OBA v2-də mənbə siyahısından çıxarıldı; bazadakı köhnə sətirləri qalır.
 
 **Testlər:** 326 — 321 keçir, 5 atlanır (`pytest -q`)

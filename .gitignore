@@ -18,3 +18,7 @@ data/group_key_backup.json
 
 # LLM keşi generasiya olunur - repo-ya düşmür
 data/cache/
+
+# Kataloqdan kesilen mehsul sekilleri generasiya olunur (tools/build_images.py)
+app/static/images/products/*
+!app/static/images/products/.gitkeep

@@ -1,7 +1,7 @@
 """
 Kataloq səhifəsinin QURULUŞ analizi - "kart" tapan OCR.
 
-PROBLEM (real kataloqda ölçülüb, OBA endirim jurnalı):
+PROBLEM (real kataloqda ölçülüb, qlyanslı endirim jurnalı):
 Adi sətir-əsaslı OCR bu səhifələrdə 43 sətirdən 0 məhsul çıxarır. Səbəb odur ki,
 qlyanslı kataloq SƏTİRLƏRDƏN ibarət deyil - o, KARTLAR şəbəkəsidir:
 
@@ -29,7 +29,7 @@ Bu format pipeline-ın qalanına TAM UYĞUNDUR - cleaner qiymətləri sıralayı
 kiçiyini cari, ən böyüyünü köhnə qiymət sayır. Yəni bu modul mövcud zəncirə
 heç nə dəyişmədən qoşulur.
 
-ÖLÇÜLMÜŞ NƏTİCƏ (OBA endirim jurnalı, səhifə 2, 10 məhsul):
+ÖLÇÜLMÜŞ NƏTİCƏ (qlyanslı endirim jurnalı, səhifə 2, 10 məhsul):
     ad:            10/10
     yeni qiymət:   10/10
     köhnə qiymət:  10/10
@@ -42,8 +42,8 @@ kiçik "99", altında "₼") - Tesseract-ın sətir modeli bunu çətin tutur. �
 səhifənin sağ sütununda qiymət ümumiyyətlə qutusuzdur, sadəcə qırmızı mətndir,
 yəni lövbər yoxdur. Bu, bilinən məhdudiyyətdir.
 
-QEYD (BasketIQ v2): aşağıdakı ölçmələr OBA kataloqları üzərində aparılıb və
-metodun özü dəyişmir. Amma OBA artıq mənbə deyil - indi yeganə kataloq mənbəyi
+QEYD (BasketIQ v2): aşağıdakı ölçmələr kart quruluşlu kataloqlar üzərində aparılıb və
+metodun özü dəyişmir. Həmin mənbə artıq işlədilmir - indi yeganə kataloq mənbəyi
 Araz-dır, yəni real işdə bu metod məhz yuxarıdakı DAHA ZƏİF halda işləyir
 (5 kartdan 4 qiymət). Bunu "10/10" kimi oxumaq səhv olar.
 
@@ -98,7 +98,7 @@ WORD_TOLERANCE = 0.15
 # prompt-unu uzadır, faydası isə sıfırdır.
 BADGE_WORDS = {
     "endirim", "endirimlə", "endirimli", "endirimlər", "qənaətli", "qenaetli",
-    "daha", "yalnız", "yalniz", "obadadir", "obadadır", "hədiyyə", "hediyye",
+    "daha", "yalnız", "yalniz", "hədiyyə", "hediyye",
 }
 
 
@@ -265,7 +265,7 @@ def _read_price_split(crop: Image.Image) -> float | None:
     Hissələri ayrı-ayrı versək, hər biri adi bir sətir olur.
 
     Ölçülüb (Araz, 8 qiymət): tam qutu 1/8, bölmə 5/8.
-    OBA-da isə əksinə (tam 10/10, bölmə 7/10) - ona görə bu, YALNIZ ehtiyat
+    kart kataloqunda isə əksinə (tam 10/10, bölmə 7/10) - ona görə bu, YALNIZ ehtiyat
     yoldur, birinci üsul nəticə verməyəndə işə düşür.
     """
     width, height = crop.size
@@ -455,8 +455,8 @@ def _valley(bins: list[bool], low: float, high: float) -> float:
     İki lövbər arasındakı ƏN GENİŞ boş zolağın ortası.
 
     Niyə sadəcə iki lövbərin ortası deyil? Çünki lövbərin kartdakı yeri
-    kataloqdan kataloqa dəyişir: OBA-da qiymət kartın ALTINDA, Araz-da isə
-    ORTASINDA durur. OBA-da "iki lövbərin ortası" sərhədi kartın öz adından
+    kataloqdan kataloqa dəyişir: kart kataloqunda qiymət kartın ALTINDA, Araz-da isə
+    ORTASINDA durur. kart kataloqunda «iki lövbərin ortası» sərhədi kartın öz adından
     aşağı düşür və ad qonşu kartın olur (ölçüldü: 10 kartdan 6-sı qarışdı).
     Mətnin özündəki boşluq isə həqiqi sərhəddir - kartlar arasında ağ zolaq var.
     """
@@ -566,8 +566,8 @@ def parse_page(page: Image.Image) -> LayoutResult:
     # Sözü hansı karta yazaq? Lövbərlərdən ŞƏBƏKƏ XANALARI qururuq.
     #
     # Niyə "ən yaxın lövbər" deyil? Çünki lövbərin kartdakı yeri kataloqdan
-    # kataloqa dəyişir: OBA-da qiymət kartın AŞAĞI SAĞINDA, Araz-da isə
-    # ORTA SAĞINDA durur. OBA-da məhsulun adı öz qiymətindən çox, yuxarıdakı
+    # kataloqa dəyişir: kart kataloqunda qiymət kartın AŞAĞI SAĞINDA, Araz-da isə
+    # ORTA SAĞINDA durur. Kart kataloqunda məhsulun adı öz qiymətindən çox, yuxarıdakı
     # kartın qiymətinə yaxın olur - "ən yaxın" qaydası adları qonşu məhsula
     # yapışdırırdı (ölçüldü: 10 kartdan 3-ü qarışdı).
     #
@@ -597,7 +597,7 @@ def parse_page(page: Image.Image) -> LayoutResult:
         # Söz özündən SONRA gələn ilk lövbərə aiddir.
         #
         # Bu, kartın oxunuş sırasıdır: əvvəl ad, sonra qiymət. Ölçülmüş
-        # koordinatlar bunu təsdiqləyir - OBA-da kartın mətni öz qiymətindən
+        # koordinatlar bunu təsdiqləyir - kart kataloqunda kartın mətni öz qiymətindən
         # 450 piksel yuxarıdadır, sıra addımı isə 600-dür. Yəni mətn demək olar
         # əvvəlki sıranın qiyməti ilə eyni səviyyədədir; "ən yaxın lövbər" və
         # "iki lövbərin ortası" qaydalarının hər ikisi məhz buna görə səhv edir.

@@ -82,7 +82,7 @@ async def test_health_bazani_ve_modeli_bildirir():
 async def test_menbe_siyahisi():
     text = await _call("list_sources")
     assert "araz" in text
-    assert "oba" not in text
+    assert "kenar-market" not in text
 
 
 async def test_tapilmayan_mehsul_aydin_cavab_verir():

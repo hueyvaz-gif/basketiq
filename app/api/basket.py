@@ -139,7 +139,7 @@ def _all_stores() -> list[dict]:
     Müqayisədə iştirak edən marketlər — YALNIZ bizim dördümüz.
 
     ƏVVƏL BÜTÜN BAZA GƏLİRDİ və bu, ekranda görünürdü: səbət cavabı
-    «ən çox əhatə: OBA» yazırdı, halbuki OBA bizim marketimiz deyil və ana
+    kənar marketi «ən çox əhatə» kimi göstərirdi, halbuki o, bizim marketimiz deyil və ana
     səhifədəki market şəbəkəsində ümumiyyətlə yoxdur. İstifadəçi ona vəd
     edilməyən, üstəlik başqa yerdə göstərilməyən marketə yönləndirilirdi.
 

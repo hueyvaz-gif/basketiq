@@ -85,10 +85,11 @@ def test_səhifələrin_istinad_etdiyi_hər_ikon_mövcuddur():
     xəta yoxdur.
     """
     symbols = sprite_symbols()
-    pages_and_scripts = [
-        "index.html", "product.html", "store.html",
-        "app.js", "deals.js", "product.js", "store.js", "store-grid.js", "ui.js",
-    ]
+    # Fayllar SİYAHIDAN yox, qovluqdan gəlir: yeni səhifə və ya skript
+    # yarananda o, avtomatik olaraq yoxlamaya düşür.
+    pages_and_scripts = all_pages() + sorted(
+        path.name for path in STATIC.glob("*.js")
+    )
     for name in pages_and_scripts:
         used = set(re.findall(r'#icon-([\w-]+)', read_static(name)))
         missing = sorted(u for u in used if u not in symbols)
@@ -103,7 +104,7 @@ def test_ikon_kitabxanasının_ikinci_nüsxəsi_yoxdur():
     yenilənib digəri köhnə qalar və səhifə yenə «işləyər» — sadəcə səhv
     ikon göstərər. Belə fərqi gözlə tapmaq praktiki olaraq mümkün deyil.
     """
-    for page in ["index.html", "product.html", "store.html"]:
+    for page in all_pages():
         assert '<symbol id="icon-' not in read_static(page), (
             f"{page} ikon sprite-ının ikinci nüsxəsini saxlayır — "
             "kitabxana yalnız icons.svg-də olmalıdır"
@@ -198,7 +199,29 @@ SCRIPT_PAGES = {
     ],
     "product.html": ["product.js"],
     "store.html": ["store.js"],
+    "search.html": ["search.js"],
 }
+
+
+def all_pages() -> list[str]:
+    """`app/static/` içindəki BÜTÜN HTML səhifələri."""
+    return sorted(path.name for path in STATIC.glob("*.html"))
+
+
+def test_hər_səhifə_müqavilədə_qeydiyyatdadır():
+    """
+    Yeni səhifə əlavə olunanda o, avtomatik olaraq YOXLANMALIDIR.
+
+    REAL SƏHVDƏN ÇIXIB: `search.html` yaradıldı, `SCRIPT_PAGES` isə əl ilə
+    yazıldığı üçün yenilənmədi. Nəticədə bütün müqavilə testləri yaşıl
+    keçirdi, halbuki yeni səhifənin nə ID-ləri, nə ikonları, nə də skript
+    sırası bir dəfə də yoxlanmamışdı. Siyahını fayl sistemi ilə tutuşdurmaq
+    bu boşluğu bağlayır.
+    """
+    missing = [page for page in all_pages() if page not in SCRIPT_PAGES]
+    assert not missing, (
+        f"bu səhifələr SCRIPT_PAGES-də yoxdur və heç bir testə düşmür: {missing}"
+    )
 
 
 def test_bütün_js_selektorları_html_də_mövcuddur():
@@ -216,7 +239,15 @@ def test_bütün_js_selektorları_html_də_mövcuddur():
             wanted |= set(re.findall(r'sel\("([\w-]+)"\)', source))
             wanted |= set(re.findall(r'advisorEl\("([\w-]+)"\)', source))
             wanted |= set(re.findall(r'\bel\("([\w-]+)"\)', source))
-            missing = sorted(w for w in wanted if w not in ids)
+
+            # SKRİPTİN ÖZÜ YARATDIĞI elementlər də mövcud sayılır.
+            #
+            # `search.js` filtr menyusunu `innerHTML` ilə çəkir və sonra öz
+            # yaratdığı `#categoryFilter`-i axtarır. HTML-də belə ID yoxdur,
+            # amma səhv də yoxdur - element sorğu anında mövcuddur. Bu
+            # istisna olmasa, dinamik səhifə yazmaq mümkün olmazdı.
+            created = set(re.findall(r'id="([\w-]+)"', source))
+            missing = sorted(w for w in wanted if w not in ids and w not in created)
             assert not missing, f"{name} ({page}) olmayan elementi axtarır: {missing}"
 
 

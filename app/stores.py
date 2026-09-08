@@ -4,7 +4,7 @@ BasketIQ-in DÖRD marketi — yeganə reyestr.
 NİYƏ AYRICA FAYL?
 Layihənin `stores` cədvəli sərbəstdir: kataloq yükləyəndə market adı mətn
 kimi yazılır, ona görə orada test marketləri və köhnə mənbələr də qalır
-(`test-market`, `test-scrape-market`, `oba`). Trolley üslubundakı yeni
+(`test-market`, `test-scrape-market`). Trolley üslubundakı yeni
 ekranlar — «bugünün endirimləri» və «harada al» — bu qarışıq siyahının
 üstündə qurula bilməz: istifadəçiyə «Test Scrape Market»in qiymətini
 göstərmək məlumat deyil, səs-küydür.
@@ -130,8 +130,8 @@ def store_filter(conn: Connection, column: str = "pr.store_id") -> tuple[str, tu
     NİYƏ HAZIR ŞƏRT QAYTARIRIQ?
     Filtri hər sorğuda əl ilə yazmaq üç ayrı modulda üç ayrı həqiqət
     yaradardı: biri yenilənib digəri köhnə qalar, istifadəçi isə eyni
-    səhifədə bir yerdə «Araz Market», başqa yerdə «OBA» görərdi. Məhz bu
-    baş vermişdi - səbət cavabı OBA-nı tövsiyə edirdi, halbuki market
+    səhifədə bir yerdə «Araz Market», başqa yerdə kənar market adı görərdi. Məhz
+    bu baş vermişdi - səbət cavabı kənar marketi tövsiyə edirdi, halbuki market
     şəbəkəsində belə market yox idi.
 
     BOŞ HAL QƏSDƏN «HEÇ NƏ» QAYTARIR. Reyestrdəki marketlərin heç birinin

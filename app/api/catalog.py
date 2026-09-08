@@ -12,7 +12,7 @@ səhifə isə tam işləkdir.
 from fastapi import APIRouter, HTTPException
 
 from ai.product_note import product_note
-from app.catalog import product_detail, store_page, todays_deals
+from app.catalog import product_detail, search, store_page, todays_deals
 from app.stores import market_status
 
 router = APIRouter(prefix="/api/catalog", tags=["catalog"])
@@ -35,6 +35,32 @@ def deals(limit: int = 12):
     """«Bugünün ən sərfəli endirimləri» — hər məhsul üçün ən böyük faiz."""
     limit = max(1, min(limit, 60))
     return todays_deals(limit=limit)
+
+
+@router.get("/search")
+def catalog_search(
+    q: str = "",
+    market: str | None = None,
+    category: str | None = None,
+    min_price: float | None = None,
+    max_price: float | None = None,
+    limit: int = 48,
+):
+    """
+    Axtarış / kateqoriya səhifəsinin datası: şəkilli kartlar + filtr menyusu.
+
+    Bütün parametrlər isteğe bağlıdır - heç biri verilməsə bütün kataloq
+    qayıdır (limit çərçivəsində).
+    """
+    limit = max(1, min(limit, 200))
+    return search(
+        q=q,
+        market=market,
+        category=category,
+        min_price=min_price,
+        max_price=max_price,
+        limit=limit,
+    )
 
 
 @router.get("/store/{slug}")

@@ -1,118 +1,95 @@
-// Məhsul səhifəsi: harada al, ölçü variantları, AI qeydi, oxşar məhsullar.
+// Məhsul səhifəsi — trolley quruluşu: solda kimlik, sağda qiymətlər.
 //
 // SƏHİFƏNİN QAYDASI: HƏR BÖLMƏ ÖZ DATASINA GÖRƏ VAR OLUR.
-// Variant yoxdursa «Ölçü variantları» kartı çəkilmir; brend yoxdursa «Eyni
-// brenddən» yoxdur; model əlçatmazdırsa «AI qeydi» yoxdur. Boş kart
-// istifadəçiyə "burada nəsə olmalı idi, amma sındı" kimi görünür — halbuki
-// sadəcə həmin data bizdə yoxdur.
+// Variant yoxdursa «Ölçülər» yoxdur; ikinci müşahidə yoxdursa qiymət zolağı
+// yoxdur; model əlçatmazdırsa AI qeydi yoxdur. Boş bölmə istifadəçiyə
+// «burada nəsə sındı» kimi görünür — halbuki sadəcə həmin data bizdə yoxdur.
 //
-// AI QEYDİ AYRICA SORĞUDUR: baza cavabı millisaniyələrlə, model cavabı
-// saniyələrlə gəlir. Bir sorğuda birləşdirsək, cədvəl də modeli gözləyərdi.
+// RƏY BÖLMƏSİ YOXDUR və uydurulmur: layihədə nə istifadəçi hesabı, nə rəy
+// cədvəli var.
 
 (() => {
   const productId = Number(location.pathname.split("/").pop());
-
   const el = (id) => document.getElementById(id);
 
-  /** «2 marketdə» sətri — say sözlə yazılır, rəqəm tək başına quru qalmasın. */
-  const storeCountText = (n) =>
-    n === 1 ? "1 marketdə tapılıb" : `${n} marketdə tapılıb`;
+  let logos = new Map();
 
-  // ------------------------------------------------------------------ başlıq
+  // ------------------------------------------------------------ sol sütun
 
-  function renderHead(product, offers) {
-    const meta = [product.size, product.category].filter(Boolean);
-    const cheapest = offers.length ? offers[0] : null;
-
+  function renderAside(product, offers) {
     document.title = `${product.label} — BasketIQ`;
 
-    el("productHead").innerHTML =
-      `<div class="product-head">` +
-      `<span class="avatar is-lg">${icon(categoryIcon(product.category))}</span>` +
-      `<div class="product-head-text">` +
-      `<h1 class="page-title">${esc(product.label)}</h1>` +
-      `<p class="page-sub">${meta.map(esc).join(" · ")}</p>` +
+    const cheapest = offers.length ? offers[0] : null;
+    const brand = product.brand ? `<div class="product-brand">${esc(product.brand)}</div>` : "";
+    const name = esc(
+      product.brand ? product.label.replace(product.brand + " ", "") : product.label
+    );
+    const size = product.size ? `<span class="size-pill">${esc(product.size)}</span>` : "";
+
+    el("productAside").innerHTML =
+      brand +
+      `<h1 class="product-name">${name}</h1>` +
+      `<div class="product-pills">${size}` +
+      (product.category ? `<span class="cat-pill">${esc(product.category)}</span>` : "") +
       `</div>` +
+      `<div class="product-photo"><img src="${esc(product.image)}" alt="${esc(product.label)}"></div>` +
       (cheapest
-        ? `<div class="product-head-price">` +
-          `<div class="eyebrow">Ən ucuz</div>` +
-          `<div class="product-price">${price(cheapest.price)}</div>` +
-          `<div class="product-price-store">${esc(cheapest.store)}</div>` +
+        ? `<div class="product-best">` +
+          `<span class="eyebrow">Ən aşağı qiymət</span>` +
+          `<span class="product-best-price">${price(cheapest.price)}</span>` +
+          `<span class="product-best-store">${esc(cheapest.store)}</span>` +
           `</div>`
-        : "") +
-      `</div>`;
+        : "");
   }
 
-  // ---------------------------------------------------------------- harada al
+  // --------------------------------------------------------- «Harada al»
+
+  function offerRow(offer) {
+    const logo = logos.get(offer.store_slug);
+    const mark = logo
+      ? `<img class="wtb-logo" src="${esc(logo)}" alt="${esc(offer.store)}">`
+      : `<span class="wtb-name">${esc(offer.store)}</span>`;
+
+    const old = offer.old_price
+      ? `<span class="wtb-old">${money(offer.old_price)} ₼</span>`
+      : "";
+    const unit = offer.unit_price
+      ? `<div class="wtb-unit">1 ${esc(offer.base_unit)} = ${money(offer.unit_price)} ₼</div>`
+      : "";
+
+    const badges = [];
+    if (offer.is_cheapest) badges.push(`<span class="tag-best">Ən ucuz</span>`);
+    if (offer.is_best_value) badges.push(`<span class="tag-value">Ən sərfəli</span>`);
+
+    return (
+      `<div class="wtb-row${offer.is_cheapest ? " is-best" : ""}">` +
+      `<div class="wtb-store">${mark}</div>` +
+      `<div class="wtb-price">` +
+      `<div class="wtb-now">${price(offer.price)} ${old}</div>` +
+      unit +
+      `</div>` +
+      `<div class="wtb-tags">${badges.join(" ")}</div>` +
+      `</div>`
+    );
+  }
 
   function renderOffers(offers, compare) {
     const box = el("offersBox");
-
     if (!offers.length) {
-      // Qiyməti olmayan məhsul: xəta deyil, sadəcə datamız yoxdur.
       box.innerHTML =
-        `<div class="notice warn">Bu məhsulun heç bir marketdə cari qiyməti yoxdur. ` +
-        `Kataloq yenilənəndə qiymət burada görünəcək.</div>`;
+        `<div class="notice warn">Bu məhsulun heç bir marketdə cari qiyməti yoxdur.</div>`;
       return;
     }
 
-    const rows = offers
-      .map((o) => {
-        const badges = [];
-        if (o.is_cheapest) badges.push(`<span class="pill is-accent">Ən ucuz</span>`);
-        if (o.is_best_value)
-          badges.push(`<span class="pill is-green">Ən sərfəli</span>`);
-
-        const unit = o.unit_price
-          ? `<span class="cell-sub">1 ${esc(o.base_unit)} = ${money(o.unit_price)} ₼</span>`
-          : "";
-
-        const old = o.old_price
-          ? `<span class="cell-sub old">${money(o.old_price)} ₼ ` +
-            `(−${o.discount_pct.toFixed(0)}%)</span>`
-          : "";
-
-        // Ən ucuz sətir RƏNGLƏ deyil, ÇƏRÇİVƏ + ✓ ilə işarələnir: brend rəngi
-        // artıq yaşıldır, ona görə yaşıl fon iki məna daşıyardı.
-        const pill = o.is_cheapest
-          ? `<span class="price-pill is-best">${icon("check")}` +
-            `<span class="sr-only">Ən ucuz:</span>${price(o.price)}</span>`
-          : `<span class="price-pill">${price(o.price)}</span>`;
-
-        return (
-          `<tr>` +
-          `<td><div class="entity">${storeAvatar(o.store, "is-sm")}` +
-          `<div class="entity-text"><div class="entity-name">${esc(o.store)}</div>` +
-          `<div class="entity-meta">${badges.join(" ") || "&nbsp;"}</div></div></div></td>` +
-          `<td class="num">${pill}${old}</td>` +
-          `<td class="num txt">${unit || "—"}</td>` +
-          `</tr>`
-        );
-      })
-      .join("");
-
     const summary = compare
-      ? `<div class="badges"><span class="badge ok">` +
-        `Ən ucuz: <strong>${esc(compare.store)}</strong></span>` +
-        `<span class="badge">Fərq: <strong>${money(compare.spread)} ₼</strong></span>` +
-        `<span class="badge">${storeCountText(compare.stores)}</span></div>`
-      : `<div class="badges"><span class="badge warn">` +
-        `${storeCountText(offers.length)} — müqayisə üçün ikinci qiymət yoxdur</span></div>`;
+      ? `<p class="block-sub">${compare.stores} marketdə var — ən ucuz ilə ən bahalı ` +
+        `arasında fərq <strong>${money(compare.spread)} ₼</strong>.</p>`
+      : `<p class="block-sub">Yalnız bir marketdə tapılıb — müqayisə üçün ikinci qiymət yoxdur.</p>`;
 
-    box.innerHTML =
-      summary +
-      `<div class="table-scroll"><table class="lines">` +
-      `<thead><tr><th>Market</th><th class="num">Qiymət</th>` +
-      `<th class="num">Vahid qiyməti</th></tr></thead>` +
-      `<tbody>${rows}</tbody></table></div>`;
+    box.innerHTML = summary + `<div class="wtb">${offers.map(offerRow).join("")}</div>`;
   }
 
-  /**
-   * Cədvəlin altındakı bir sətir: hansı marketin datası hələ yoxdur.
-   *
-   * Bu sətir olmasaydı, istifadəçi dörd market gözləyib iki görər və səbəbini
-   * bilməzdi. «Tezliklə» isə vədin harada dayandığını açıq deyir.
-   */
+  /** Hansı marketin datası yoxdur — bir sətirlik izah. */
   function renderMarketNote(markets, offers) {
     const shown = new Set(offers.map((o) => o.store_slug));
     const soon = markets.filter((m) => !m.available).map((m) => m.name);
@@ -121,87 +98,92 @@
       .map((m) => m.name);
 
     const parts = [];
-    if (missing.length)
-      parts.push(`Bu məhsul ${missing.join(", ")} kataloqunda tapılmadı.`);
+    if (missing.length) parts.push(`${missing.join(", ")} kataloqunda tapılmadı.`);
     if (soon.length) parts.push(`${soon.join(" və ")} — tezliklə.`);
-
     el("marketNote").textContent = parts.join(" ");
   }
 
-  // ------------------------------------------------------------- variantlar
+  // ------------------------------------------------------- qiymət zolağı
+
+  function renderPriceBar(summary) {
+    if (!summary) return;
+
+    // Nişan zolağın kənarına yapışmasın deyə 2-98% arasında saxlanılır.
+    const pos = Math.min(98, Math.max(2, summary.position));
+
+    el("priceBar").innerHTML =
+      `<div class="pricebar">` +
+      `<span class="pricebar-marker" style="left:${pos}%">${money(summary.current)} ₼</span>` +
+      `<span class="pricebar-track"></span>` +
+      `<span class="pricebar-ends">` +
+      `<span><b>Ən aşağı</b> ${money(summary.lowest)} ₼</span>` +
+      `<span><b>Adətən</b> ${money(summary.usually)} ₼</span>` +
+      `</span>` +
+      `</div>` +
+      `<p class="fineprint">${summary.observations} müşahidəyə əsaslanır.</p>`;
+    el("priceBarCard").classList.remove("hidden");
+  }
+
+  // ---------------------------------------------------------- variantlar
 
   function renderVariants(variants) {
     if (!variants.length) return;
 
-    const rows = variants
-      .map((v) => {
-        const badges = [];
-        if (v.is_cheapest) badges.push(`<span class="pill is-accent">Ən ucuz</span>`);
-        if (v.is_best_value) badges.push(`<span class="pill is-green">Ən sərfəli</span>`);
-
-        const unit = v.unit_price
-          ? `1 ${esc(v.base_unit)} = ${money(v.unit_price)} ₼`
-          : "—";
-
-        // Cari məhsul öz sətrində link olmur - istifadəçi elə oradadır.
-        const name = v.is_current
-          ? `<strong>${esc(v.size)}</strong> <span class="cell-sub">bu səhifə</span>`
-          : `<a class="link" href="/product/${v.product_id}">${esc(v.size)}</a>`;
-
-        return (
-          `<tr><td>${name}</td>` +
-          `<td>${badges.join(" ") || "&nbsp;"}</td>` +
-          `<td class="num">${price(v.price)}</td>` +
-          `<td class="num txt">${unit}</td></tr>`
-        );
-      })
-      .join("");
-
     el("variantsBox").innerHTML =
-      `<div class="table-scroll"><table class="lines">` +
-      `<thead><tr><th>Ölçü</th><th>Nişan</th><th class="num">Ən ucuz qiymət</th>` +
-      `<th class="num">Vahid qiyməti</th></tr></thead>` +
-      `<tbody>${rows}</tbody></table></div>`;
+      `<div class="size-grid">` +
+      variants
+        .map((v) => {
+          const tag = v.is_cheapest
+            ? `<span class="tag-best">Ən ucuz</span>`
+            : v.is_best_value
+              ? `<span class="tag-value">Ən sərfəli</span>`
+              : "";
+          const unit = v.unit_price
+            ? `<span class="size-unit">1 ${esc(v.base_unit)} = ${money(v.unit_price)} ₼</span>`
+            : "";
+          const inner =
+            `<span class="size-head"><span class="size-label">${esc(v.size)}</span>${tag}</span>` +
+            `<span class="size-price">${price(v.price)}</span>${unit}`;
+
+          // Cari məhsul link olmur - istifadəçi elə oradadır.
+          return v.is_current
+            ? `<span class="size-card is-current">${inner}</span>`
+            : `<a class="size-card" href="/product/${v.product_id}">${inner}</a>`;
+        })
+        .join("") +
+      `</div>`;
     el("variantsCard").classList.remove("hidden");
   }
 
-  // -------------------------------------------------------- oxşar / brend
+  // ------------------------------------------------------ oxşar / brend
 
-  function productCard(item) {
-    const size = item.size ? `<span class="deal-size">${esc(item.size)}</span>` : "";
+  function card(item) {
+    const size = item.size ? `<span class="size-pill">${esc(item.size)}</span>` : "";
     return (
-      `<a class="deal card-lift" href="/product/${item.product_id}">` +
-      `<div class="deal-top">` +
-      `<span class="avatar is-sm">${icon(categoryIcon(item.category))}</span>` +
-      `</div>` +
-      `<div class="deal-name">${esc(item.label)}</div>` +
-      size +
-      `<div class="deal-price"><span class="deal-now">${price(item.price)}</span></div>` +
-      `<div class="deal-single">${storeCountText(item.store_count)}</div>` +
-      `</a>`
+      `<a class="pcard" href="/product/${item.product_id}">` +
+      `<span class="pcard-photo"><img src="${esc(item.image)}" alt="" loading="lazy"></span>` +
+      `<span class="pcard-body">` +
+      (item.brand ? `<span class="pcard-brand">${esc(item.brand)}</span>` : "") +
+      `<span class="pcard-name">${esc(item.label)}</span>` +
+      `<span class="pcard-meta">${size}</span>` +
+      `<span class="pcard-price">${price(item.price)}</span>` +
+      `</span></a>`
     );
   }
 
   function renderGrid(items, boxId, cardId) {
     if (!items.length) return;
-    el(boxId).innerHTML = items.map(productCard).join("");
+    el(boxId).innerHTML = items.map(card).join("");
     el(cardId).classList.remove("hidden");
   }
 
-  // ---------------------------------------------------------------- AI qeydi
+  // ------------------------------------------------------------ AI qeydi
 
   async function loadNote() {
     try {
-      const data = await (
-        await fetch(`/api/catalog/product/${productId}/note`)
-      ).json();
-
-      // `available: false` - model əlçatmazdır, boş cavab verdi, uydurma rəqəm
-      // yazdı və ya rəy ifadəsi işlətdi. Hər halda bölmə GÖSTƏRİLMİR.
+      const data = await (await fetch(`/api/catalog/product/${productId}/note`)).json();
       if (!data.available || !data.text) return;
-
-      // Model mətni ETİBARSIZDIR: `textContent` ilə yazılır, yəni içindəki
-      // hər hansı HTML sadəcə mətn kimi qalır.
+      // Model mətni ETİBARSIZDIR: `textContent` ilə yazılır, HTML kimi yox.
       el("noteText").textContent = data.text;
       el("noteFacts").textContent = data.facts || "";
       el("noteCard").classList.remove("hidden");
@@ -211,48 +193,43 @@
   }
 
   el("noteFactsBtn").addEventListener("click", () => {
-    const box = el("noteFacts");
-    box.classList.toggle("hidden");
+    el("noteFacts").classList.toggle("hidden");
   });
 
   // ------------------------------------------------------------------ start
 
   async function load() {
-    // İkonlar gəlməmiş render etsək, `<use>` istinadları boş qalardı.
     await window.IconsReady;
 
     let data;
     try {
       const res = await fetch(`/api/catalog/product/${productId}`);
       if (res.status === 404) {
-        el("productHead").innerHTML =
-          `<h1 class="page-title">Məhsul tapılmadı</h1>` +
-          `<p class="page-sub">Link köhnəlmiş ola bilər. ` +
-          `<a class="link" href="/">Ana səhifəyə qayıt</a>.</p>`;
+        el("productAside").innerHTML =
+          `<h1 class="product-name">Məhsul tapılmadı</h1>` +
+          `<p class="block-sub"><a class="link" href="/">Ana səhifəyə qayıt</a></p>`;
         el("offersBox").innerHTML = "";
         return;
       }
       data = await res.json();
     } catch (e) {
       console.error("[product]", e);
-      el("offersBox").innerHTML =
-        `<div class="notice error">Məhsul datası yüklənmədi.</div>`;
+      el("offersBox").innerHTML = `<div class="notice error">Məhsul datası yüklənmədi.</div>`;
       return;
     }
 
     const offers = data.offers || [];
-    // Market rəngləri render başlamazdan ƏVVƏL elan olunur (bax store-colors.js).
-    StoreColors.note([
-      ...(data.markets || []).map((m) => m.name),
-      ...offers.map((o) => o.store),
-    ]);
+    const markets = data.markets || [];
+    logos = new Map(markets.filter((m) => m.logo).map((m) => [m.slug, m.logo]));
+    StoreColors.note(markets.map((m) => m.name));
 
-    renderHead(data.product, offers);
+    renderAside(data.product, offers);
     renderOffers(offers, data.compare);
-    renderMarketNote(data.markets || [], offers);
+    renderMarketNote(markets, offers);
+    renderPriceBar(data.price_summary);
     renderVariants(data.variants || []);
-    renderGrid(data.similar || [], "similarBox", "similarCard");
     renderGrid(data.same_brand || [], "brandBox", "brandCard");
+    renderGrid(data.similar || [], "similarBox", "similarCard");
 
     loadNote();
   }

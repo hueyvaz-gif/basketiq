@@ -40,7 +40,7 @@ REAL_STORES = [
     "Test Market",
     "Bravo",
     "Araz",
-    "OBA",
+    "Kənar Market",
     "Araz Market",
     "Test Scrape Market",
 ]

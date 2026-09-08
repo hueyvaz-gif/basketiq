@@ -27,10 +27,12 @@ yerinə işlətmək istifadəçini yanıldar.
 """
 
 from sqlite3 import Connection
+from statistics import median
 
 from app.analytics import IMPLAUSIBLE_DEPTH
 from app.db import get_connection
 from app.stores import Market, market_for, market_status, store_map
+from ingestion.images import image_url
 from ingestion.normalize import display_label, display_size, unit_price
 
 # Endirim bu dərinlikdən keçirsə, siyahıya BURAXILMIR.
@@ -226,6 +228,7 @@ def todays_deals(limit: int = 12) -> dict:
                    p.size_value   AS size_value,
                    p.size_unit    AS size_unit,
                    p.category     AS category,
+                   p.image_path   AS image_path,
                    pr.store_id    AS store_id,
                    pr.price       AS price,
                    pr.old_price   AS old_price,
@@ -264,6 +267,7 @@ def todays_deals(limit: int = 12) -> dict:
                 "brand": row["brand"],
                 "size": display_size(row["size_value"], row["size_unit"]),
                 "category": row["category"],
+                "image": image_url(row["image_path"]),
                 "store": market.name,
                 "store_short": market.short,
                 "store_slug": market.slug,
@@ -283,6 +287,138 @@ def todays_deals(limit: int = 12) -> dict:
             deal["compare"] = _compare_note(deal["offers"])
 
         return {"items": ranked, "total_found": len(best)}
+    finally:
+        conn.close()
+
+
+# ------------------------------------------------------------ axtarış / filtr
+
+
+def search(
+    q: str = "",
+    market: str | None = None,
+    category: str | None = None,
+    min_price: float | None = None,
+    max_price: float | None = None,
+    limit: int = 48,
+) -> dict:
+    """
+    Kateqoriya / axtarış nəticələri səhifəsinin datası.
+
+    FİLTRLƏR SÜZGƏCDİR, AXTARIŞ DEYİL: hər biri müstəqil işləyir və boş
+    buraxıla bilər. Nəticə həmişə QRUP üzrədir - eyni məhsul iki marketdə
+    iki sətir kimi görünməməlidir.
+
+    `facets` sahəsi filtr menyusunu doldurur: hansı kateqoriyalar həqiqətən
+    mövcuddur və qiymət aralığı nədir. Sabit siyahı yazsaq, istifadəçi
+    nəticəsi olmayan kateqoriyanı seçib boş səhifə alardı.
+    """
+    conn = get_connection()
+    try:
+        markets = store_map(conn)
+        if not markets:
+            return {"items": [], "total": 0, "facets": {"categories": [], "price": None}}
+
+        store_ids = list(markets)
+        if market:
+            wanted = market_for(market)
+            if wanted is None:
+                return {"items": [], "total": 0, "facets": {"categories": [], "price": None}}
+            store_ids = [sid for sid, m in markets.items() if m.slug == wanted.slug]
+            if not store_ids:
+                return {"items": [], "total": 0, "facets": {"categories": [], "price": None}}
+
+        where = [f"pr.store_id IN ({','.join('?' * len(store_ids))})"]
+        params: list = list(store_ids)
+
+        if q.strip():
+            where.append("(p.name LIKE ? OR COALESCE(p.brand,'') LIKE ?)")
+            params += [f"%{q.strip()}%", f"%{q.strip()}%"]
+        if category:
+            where.append("p.category = ?")
+            params.append(category)
+
+        # Qiymət filtri QRUPUN ƏN UCUZ qiymətinə görədir (HAVING), çünki
+        # istifadəçi «5 manatdan ucuz» deyəndə ödəyəcəyi ən aşağı qiyməti
+        # nəzərdə tutur - bahalı marketin qiyməti onu siyahıdan çıxarmamalıdır.
+        having = []
+        if min_price is not None:
+            having.append("MIN(pr.price) >= ?")
+        if max_price is not None:
+            having.append("MIN(pr.price) <= ?")
+
+        sql = (
+            "SELECT p.id AS product_id, p.group_key AS group_key, p.name AS name, "
+            "       p.brand AS brand, p.size_value AS size_value, p.size_unit AS size_unit, "
+            "       p.category AS category, p.image_path AS image_path, "
+            "       MIN(pr.price) AS price, MAX(pr.old_price) AS old_price, "
+            "       COUNT(DISTINCT pr.store_id) AS store_count "
+            "FROM products p JOIN prices pr ON pr.product_id = p.id "
+            f"WHERE {' AND '.join(where)} "
+            "GROUP BY p.group_key "
+        )
+        tail_params = list(params)
+        if having:
+            sql += f"HAVING {' AND '.join(having)} "
+            tail_params += [v for v in (min_price, max_price) if v is not None]
+        sql += "ORDER BY store_count DESC, price LIMIT ?"
+        tail_params.append(limit)
+
+        rows = conn.execute(sql, tail_params).fetchall()
+
+        items = []
+        for row in rows:
+            price = round(float(row["price"]), 2)
+            old = row["old_price"]
+            pct = None
+            if old and float(old) > price:
+                depth = (float(old) - price) / float(old)
+                if MIN_DISCOUNT_PCT <= depth * 100 and depth <= MAX_DEPTH:
+                    pct = round(depth * 100, 1)
+            items.append(
+                {
+                    "product_id": row["product_id"],
+                    "group_key": row["group_key"],
+                    "label": display_label(row["name"], row["brand"]),
+                    "brand": row["brand"],
+                    "size": display_size(row["size_value"], row["size_unit"]),
+                    "category": row["category"],
+                    "image": image_url(row["image_path"]),
+                    "price": price,
+                    "discount_pct": pct,
+                    "store_count": row["store_count"],
+                }
+            )
+
+        # Facet-lər BÜTÜN kataloq üzrədir (cari filtrdən asılı deyil), yəni
+        # istifadəçi bir filtri dəyişəndə menyu boşalmır.
+        all_marks = ",".join("?" * len(markets))
+        cats = conn.execute(
+            "SELECT p.category AS category, COUNT(DISTINCT p.group_key) AS n "
+            "FROM products p JOIN prices pr ON pr.product_id = p.id "
+            f"WHERE pr.store_id IN ({all_marks}) "
+            "GROUP BY p.category ORDER BY n DESC",
+            tuple(markets),
+        ).fetchall()
+        bounds = conn.execute(
+            "SELECT MIN(pr.price) AS lo, MAX(pr.price) AS hi FROM prices pr "
+            f"WHERE pr.store_id IN ({all_marks})",
+            tuple(markets),
+        ).fetchone()
+
+        return {
+            "items": items,
+            "total": len(items),
+            "facets": {
+                "categories": [
+                    {"name": r["category"], "count": r["n"]} for r in cats if r["category"]
+                ],
+                "price": {
+                    "min": round(float(bounds["lo"]), 2) if bounds["lo"] is not None else None,
+                    "max": round(float(bounds["hi"]), 2) if bounds["hi"] is not None else None,
+                },
+            },
+        }
     finally:
         conn.close()
 
@@ -329,6 +465,7 @@ def store_page(slug: str, limit: int = 40) -> dict | None:
                    p.size_value  AS size_value,
                    p.size_unit   AS size_unit,
                    p.category    AS category,
+                   p.image_path  AS image_path,
                    pr.price      AS price,
                    pr.old_price  AS old_price,
                    pr.seen_at    AS seen_at
@@ -359,6 +496,7 @@ def store_page(slug: str, limit: int = 40) -> dict | None:
                 "brand": row["brand"],
                 "size": display_size(row["size_value"], row["size_unit"]),
                 "category": row["category"],
+                "image": image_url(row["image_path"]),
                 "price": round(price, 2),
                 "old_price": round(old, 2) if pct else None,
                 "discount_pct": pct,
@@ -416,6 +554,7 @@ def _card_rows(
                p.size_value  AS size_value,
                p.size_unit   AS size_unit,
                p.category    AS category,
+               p.image_path  AS image_path,
                MIN(pr.price) AS price,
                COUNT(DISTINCT pr.store_id) AS store_count
         FROM products p
@@ -436,6 +575,7 @@ def _card_rows(
             "brand": row["brand"],
             "size": display_size(row["size_value"], row["size_unit"]),
             "category": row["category"],
+            "image": image_url(row["image_path"]),
             "price": round(float(row["price"]), 2),
             "store_count": row["store_count"],
         }
@@ -511,6 +651,54 @@ def _variants(
     return variants
 
 
+def price_summary(conn: Connection, group_key: str, markets: dict[int, Market]) -> dict | None:
+    """
+    «Bugünkü qiymət» zolağının datası: ən aşağı ↔ adətən.
+
+    Trolley-də məhsul səhifəsində rəngli zolaq var: solda «Lowest», sağda
+    «Usually», üstündə isə cari qiymətin nişanı. Sual sadədir - «bu qiymət
+    yaxşıdır, yoxsa adi?».
+
+    ADƏTƏN = MEDİAN, orta yox. Bir dəfəlik dərin endirim ortanı aşağı çəkir
+    və nəticədə hər qiymət «adi» görünür; median isə tək müşahidədən
+    təsirlənmir.
+
+    İKİ MÜŞAHİDƏDƏN AZ OLANDA None QAYTARILIR: bir dəfə görülmüş qiymətin
+    «adətən nə qədər olduğunu» bilmirik və uydurmuruq.
+    """
+    if not markets:
+        return None
+
+    marks = ",".join("?" * len(markets))
+    rows = conn.execute(
+        f"SELECT pr.price AS price FROM prices pr "
+        f"JOIN products p ON p.id = pr.product_id "
+        f"WHERE p.group_key = ? AND pr.store_id IN ({marks})",
+        (group_key, *markets),
+    ).fetchall()
+
+    values = sorted(float(r["price"]) for r in rows)
+    if len(values) < 2:
+        return None
+
+    lowest = values[0]
+    usual = median(values)
+    if usual <= lowest:
+        # Bütün müşahidələr eynidirsə zolağın iki ucu üst-üstə düşür və
+        # nişanın yeri mənasız olur.
+        return None
+
+    current = values[0]
+    return {
+        "lowest": round(lowest, 2),
+        "usually": round(usual, 2),
+        "current": round(current, 2),
+        # Nişanın zolaq üzərindəki mövqeyi (0 = ən ucuz, 100 = adi qiymət).
+        "position": round((current - lowest) / (usual - lowest) * 100, 1),
+        "observations": len(values),
+    }
+
+
 def product_detail(product_id: int) -> dict | None:
     """
     Məhsul səhifəsinin bütün datası. Məhsul tapılmasa None.
@@ -527,7 +715,7 @@ def product_detail(product_id: int) -> dict | None:
     try:
         row = conn.execute(
             "SELECT id, group_key, name, brand, size_value, size_unit, category, "
-            "       barcode, product_url "
+            "       barcode, product_url, image_path "
             "FROM products WHERE id = ?",
             (product_id,),
         ).fetchone()
@@ -536,6 +724,7 @@ def product_detail(product_id: int) -> dict | None:
 
         product = {
             "id": row["id"],
+            "image": image_url(row["image_path"]),
             "group_key": row["group_key"],
             "name": row["name"],
             "brand": row["brand"],
@@ -583,6 +772,7 @@ def product_detail(product_id: int) -> dict | None:
             "product": product,
             "offers": offers,
             "compare": _compare_note(offers),
+            "price_summary": price_summary(conn, product["group_key"], markets),
             "variants": _variants(conn, product, markets),
             "similar": similar,
             "same_brand": same_brand,

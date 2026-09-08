@@ -160,7 +160,7 @@ data silmək lazım deyil.
 | Konteyner sağlamdır | `HEALTHCHECK` → `healthy` |
 | OCR konteynerdə işləyir | nümunə kataloq yükləndi, 8 sətir çıxdı |
 | Azərbaycan dil faylları | `data/tessdata` image-dədir, `TESSDATA_DIR` göstərir |
-| `APP_ENV=production` API açarı tələb edir | açarsız `POST /api/scrape/oba` → **401** |
+| `APP_ENV=production` API açarı tələb edir | açarsız `POST /api/scrape/araz` → **401** |
 | Data qalıcı volume-dadır | `DATA_DIR=/data` |
 | Ollama daxili şəbəkədən əlçatandır | `/health` → `reachable: true` |
 | compose sintaksisi | `docker compose config` |

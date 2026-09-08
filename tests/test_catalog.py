@@ -4,7 +4,7 @@ Kataloq qatının testləri: bugünün endirimləri, «harada al», nişanlar, A
 BU TESTLƏRİN TUTDUĞU SƏHV NÖVÜ HƏMİŞƏ EYNİDİR: heç bir xəta atmayan, amma
 istifadəçiyə YANLIŞ mənzərə göstərən hallar.
 
-    - reyestrdən kənar market (OBA, test marketləri) qiymət cədvəlinə düşür;
+    - reyestrdən kənar market (test marketləri) qiymət cədvəlinə düşür;
     - məhsulu satmayan market üçün boş sətir yaranır və «0.00» kimi oxunur;
     - «ən ucuz» nişanı ən ucuz olmayan sətirdə qalır;
     - model qiymət uydurur və qeyd inandırıcı görünür.
@@ -92,7 +92,7 @@ def markets() -> dict[str, int]:
     return {
         "araz": _store("araz", "Araz"),
         "bravo": _store("bravo", "Bravo"),
-        "oba": _store("oba", "OBA"),
+        "kenar": _store("kenar-market", "Kənar Market"),
     }
 
 
@@ -125,14 +125,14 @@ def test_datası_olmayan_market_siyahıda_qalır(markets):
 
 def test_reyestrdən_kənar_market_təkliflərə_düşmür(markets):
     """
-    OBA bazadadır (köhnə mənbə), amma bizim dörd marketimizdən deyil.
+    Kənar market bazadadır, amma bizim dörd marketimizdən deyil.
 
     Bu, ən səssiz səhvdir: cədvəl doludur, rəqəmlər düzgündür, sadəcə
     istifadəçiyə vəd olunmayan market göstərilir.
     """
     pid = _product("kenar|test|1l", "kənar süd", size=1, unit="l")
     _price(pid, markets["araz"], 2.50)
-    _price(pid, markets["oba"], 1.90)  # daha ucuz - «ən ucuz» olmağa çalışır
+    _price(pid, markets["kenar"], 1.90)  # daha ucuz - «ən ucuz» olmağa çalışır
 
     detail = product_detail(pid)
     stores = {o["store"] for o in detail["offers"]}
@@ -464,13 +464,13 @@ def test_datası_olmayan_market_səhifəsi_açılır():
 
 
 def test_reyestrdə_olmayan_market_səhifəsi_yoxdur():
-    """OBA bazadadır, amma bizim marketimiz deyil - səhifəsi də olmamalıdır."""
-    assert store_page("oba") is None
+    """Kənar market bazadadır, amma bizim deyil - səhifəsi də olmamalıdır."""
+    assert store_page("kenar-market") is None
     assert store_page("uydurma-market") is None
 
 
 def test_api_market_səhifəsi(markets):
-    assert client.get("/api/catalog/store/oba").status_code == 404
+    assert client.get("/api/catalog/store/kenar-market").status_code == 404
 
     res = client.get("/api/catalog/store/araz")
     assert res.status_code == 200
@@ -492,7 +492,7 @@ def test_market_səhifəsi_html_qaytarır():
 # ------------------------------------------- kenar market bütün ekranlardan
 #
 # BU BÖLMƏ REAL SƏHVDƏN ÇIXIB. Trolley ekranları dörd marketlə qurulandan
-# sonra da səbət cavabı «ən çox əhatə: OBA» yazırdı: köhnə hesablamalar
+# sonra da səbət cavabı kənar marketi «ən çox əhatə» kimi göstərirdi: köhnə
 # bazadakı BÜTÜN marketləri götürürdü. Yəni istifadəçi ana səhifədə dörd
 # market görür, cavabda isə beşinci markete yönləndirilirdi — və heç bir
 # test bunu tutmurdu, çünki hər iki tərəf ayrılıqda «işləyirdi».
@@ -513,15 +513,15 @@ def _basket_with(product_id: int) -> int:
 def test_kənar_market_səbət_müqayisəsində_görünmür(markets):
     """Səbət cavabı yalnız dörd marketi tanımalıdır."""
     pid_araz = _product("sebet|kenar|test", "səbət kənar məhsulu")
-    pid_oba = _product("sebet|kenar|test", "səbət kənar məhsulu")
+    pid_kenar = _product("sebet|kenar|test", "səbət kənar məhsulu")
     _price(pid_araz, markets["araz"], 5.00)
-    _price(pid_oba, markets["oba"], 1.00)  # ən ucuz - qalib olmağa çalışır
+    _price(pid_kenar, markets["kenar"], 1.00)  # ən ucuz - qalib olmağa çalışır
 
     basket_id = _basket_with(pid_araz)
     data = client.get(f"/api/basket/compare?basket_id={basket_id}").json()
 
     stores = {s["store"] for s in data["stores"]}
-    assert "OBA" not in stores, f"kənar market müqayisəyə düşdü: {stores}"
+    assert "Kənar Market" not in stores, f"kənar market müqayisəyə düşdü: {stores}"
     assert stores <= {m.name for m in MARKETS}
 
     # Məhsulun qiymətləri də yalnız reyestr marketlərindən gəlir.
@@ -550,25 +550,25 @@ def test_müqayisədə_market_adı_reyestrdən_gəlir(markets):
 def test_kənar_market_endirim_yoxlamasında_görünmür(markets):
     """«Şübhəli endirim» siyahısı da yalnız bizim marketlərə baxır."""
     pid = _product("endirim|kenar|test", "endirim kənar məhsulu")
-    _price(pid, markets["oba"], 4.00, old=8.00)
+    _price(pid, markets["kenar"], 4.00, old=8.00)
 
     from app.analytics import discount_summary
 
     stores = {row["store"] for row in discount_summary(limit=200)["items"]}
-    assert "OBA" not in stores, f"kənar market endirim siyahısına düşdü: {stores}"
+    assert "Kənar Market" not in stores, f"kənar market endirim siyahısına düşdü: {stores}"
 
 
 def test_kənar_market_qiymət_tarixçəsində_görünmür(markets):
     """Qrafik dörd marketin xəttini çəkir — beşincisini yox."""
     pid_araz = _product("tarixce|kenar|test", "tarixçə kənar məhsulu")
-    pid_oba = _product("tarixce|kenar|test", "tarixçə kənar məhsulu")
+    pid_kenar = _product("tarixce|kenar|test", "tarixçə kənar məhsulu")
     _price(pid_araz, markets["araz"], 3.00)
-    _price(pid_oba, markets["oba"], 2.00)
+    _price(pid_kenar, markets["kenar"], 2.00)
 
     from app.analytics import price_history
 
     history = price_history("tarixce|kenar|test")
-    assert "OBA" not in set(history["stores"])
+    assert "Kənar Market" not in set(history["stores"])
     assert "Araz Market" in set(history["stores"])
 
 

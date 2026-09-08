@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Axtarış — BasketIQ</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300a300' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8h18l-1.6 10.2a2 2 0 0 1-2 1.8H6.6a2 2 0 0 1-2-1.8L3 8Z'/%3E%3Cpath d='M8.5 8 10 4m5.5 4L14 4'/%3E%3C/svg%3E">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<script src="/static/icons.js"></script>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true"><svg><use href="#icon-basket"></use></svg></span>
+      <span class="brand-name">BasketIQ</span>
+    </a>
+
+    <form class="searchbar is-compact" id="topSearchForm" action="/search" method="get" role="search">
+      <svg class="searchbar-icon" aria-hidden="true"><use href="#icon-search"></use></svg>
+      <input type="search" id="topSearchInput" name="q"
+             placeholder="Məhsul və ya brend axtarın" autocomplete="off">
+    </form>
+
+    <a class="icon-btn is-quiet" href="/" aria-label="Ana səhifə">
+      <svg aria-hidden="true"><use href="#icon-basket"></use></svg>
+    </a>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- İKİ SÜTUN: solda filtrlər, sağda nəticələr.
+       Filtrlər YALNIZ mövcud datadan qurulur (`facets`) - sabit siyahı
+       yazsaq, istifadəçi nəticəsi olmayan kateqoriyanı seçib boş səhifə
+       alardı və səbəbini bilməzdi. -->
+  <main class="search-page">
+
+    <aside class="filters" id="filters" aria-label="Filtrlər">
+      <div class="skeleton" style="height:220px"></div>
+    </aside>
+
+    <div class="results">
+      <div class="results-head">
+        <h1 class="page-title" id="resultsTitle">Məhsullar</h1>
+        <p class="page-sub" id="resultsCount"></p>
+      </div>
+
+      <div id="resultsGrid" class="product-grid">
+        <div class="row"><span class="row-label skeleton">Yüklənir</span></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/static/store-colors.js"></script>
+<script src="/static/ui.js"></script>
+<script src="/static/search.js"></script>
+</body>
+</html>

@@ -1524,3 +1524,549 @@ code {
   .deal-grid,
   .deal-grid.is-compact { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 }
+
+
+/* ============================================================================
+   AXTARIŞ PANELİ (trolley: səhifənin ən üst elementi)
+   ============================================================================ */
+
+.searchbar {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 6px 6px 6px var(--s3);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+}
+
+.searchbar:focus-within { border-color: var(--accent); background: var(--bg); }
+
+.searchbar-icon { width: 19px; height: 19px; color: var(--text-3); flex: none; }
+
+.searchbar input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  color: var(--text);
+  padding: var(--s2) 0;
+}
+
+/* Brauzerin öz fokus çərçivəsi pill formanı pozur - fokus konteynerdədir. */
+.searchbar input:focus { outline: none; }
+.searchbar input::placeholder { color: var(--text-2); }
+.searchbar .btn { flex: none; border-radius: var(--r-pill); }
+
+
+/* ============================================================================
+   ENDİRİM SİYAHISI (trolley: Today's Top Deals)
+
+   Sətir quruluşu: nömrə -> şəkil -> mətn -> market qiymət sütunları.
+   Kart şəbəkəsindən fərqi budur ki, sətir ENLİDİR və üç marketin qiyməti
+   yan-yana sığır. Müqayisə məhz enə ehtiyac duyur.
+   ============================================================================ */
+
+.deal-list { display: flex; flex-direction: column; }
+
+.deal-row {
+  display: grid;
+  grid-template-columns: 28px 132px minmax(0, 1fr);
+  gap: var(--s3);
+  align-items: start;
+  padding: var(--s3) 0;
+  border-top: 1px solid var(--hairline);
+  color: inherit;
+  text-decoration: none;
+}
+
+.deal-row:first-child { border-top: 0; }
+.deal-row:hover .deal-title { color: var(--accent-ink); }
+.deal-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* Sıra nömrəsi: siyahı ən böyük endirimdən başlayır, nömrə bunu təsdiqləyir. */
+.deal-rank {
+  display: grid;
+  place-items: center;
+  width: 26px; height: 26px;
+  border-radius: var(--r-xs);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.deal-photo {
+  position: relative;
+  display: block;
+  width: 132px; height: 132px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+/* `contain`: kataloqdan kəsilmiş şəkillərin nisbəti müxtəlifdir, `cover`
+   məhsulun kənarını kəsərdi. */
+.deal-photo img { width: 100%; height: 100%; object-fit: contain; }
+
+/* Faiz nişanı şəklin üstündədir (trolley də belədir) - göz əvvəlcə şəklə
+   düşür, rəqəm isə orada onu qarşılayır. */
+.deal-flag {
+  position: absolute;
+  top: 6px; left: 6px;
+  padding: 3px var(--s2);
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.deal-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+
+.deal-brand {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+
+.deal-title { font-size: 14px; color: var(--text-2); line-height: 1.35; }
+
+.deal-meta { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; margin-top: 3px; }
+
+/* Ölçü nişanı: trolley-də ad altında tünd pill kimi durur. */
+.size-pill {
+  display: inline-block;
+  padding: 2px var(--s2);
+  border-radius: var(--r-pill);
+  background: var(--text);
+  color: var(--bg);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+
+.deal-save { font-size: 12px; font-weight: 700; color: var(--accent-ink); }
+
+.deal-avail {
+  margin-top: var(--s2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* Market qiymət sütunları: loqo üstdə, qiymət altda - yan-yana. */
+.pricecols { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: 5px; }
+
+.pricecol { display: flex; flex-direction: column; gap: 3px; min-width: 62px; }
+
+.pricecol-logo { width: 62px; height: 18px; object-fit: contain; object-position: left center; }
+
+.pricecol-name { font-size: 12px; font-weight: 700; color: var(--text-2); }
+
+.pricecol-price {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ən ucuz sütun: RƏNG YOX, altdan xətt - eyni qayda `.price-pill.is-best`. */
+.pricecol.is-best .pricecol-price {
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+
+
+@media (max-width: 600px) {
+  .deal-row { grid-template-columns: 22px 88px minmax(0, 1fr); gap: var(--s2); }
+  .deal-photo { width: 88px; height: 88px; }
+  .pricecols { gap: var(--s2); }
+  .pricecol { min-width: 54px; }
+  .pricecol-logo { width: 54px; }
+}
+
+
+/* ============================================================================
+   MƏHSUL SƏHİFƏSİ (trolley quruluşu)
+
+   İKİ SÜTUN: solda məhsulun KİMLİYİ (brend, ad, ölçü, şəkil), sağda bütün
+   QİYMƏT məlumatı. Solda rəqəm yoxdur - göz əvvəlcə məhsulu tanıyır.
+   Sol sütun yapışqandır (`sticky`): sağda uzun siyahını gəzərkən istifadəçi
+   hansı məhsula baxdığını unutmur.
+   ============================================================================ */
+
+.product-page {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: var(--s6);
+  align-items: start;
+  padding: var(--s4) 0 var(--s6);
+}
+
+.product-aside { position: sticky; top: var(--s4); }
+
+.product-brand { font-size: 21px; font-weight: 700; letter-spacing: -.03em; }
+
+.product-name {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--text-2);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+.product-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--s2); }
+
+.cat-pill {
+  display: inline-block;
+  padding: 2px var(--s2);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.product-photo {
+  margin-top: var(--s3);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  aspect-ratio: 1 / 1;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.product-photo img { width: 100%; height: 100%; object-fit: contain; }
+
+.product-best { margin-top: var(--s3); display: flex; flex-direction: column; gap: 2px; }
+
+.product-best-price {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -.035em;
+  font-variant-numeric: tabular-nums;
+}
+
+.product-best-store { font-size: 13px; color: var(--text-2); }
+
+.product-main { display: flex; flex-direction: column; gap: var(--s5); min-width: 0; }
+
+/* Bölmə KART DEYİL: trolley-də məhsul səhifəsində çərçivə yoxdur, bölmələr
+   yalnız başlıq və boşluqla ayrılır. Kart üstündən kart qoymaq səhifəni
+   "qutular yığını"na çevirirdi. */
+.block { min-width: 0; }
+
+.block-title {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -.025em;
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-bottom: var(--s2);
+}
+
+.block-sub { font-size: 14px; color: var(--text-2); margin-bottom: var(--s3); max-width: var(--measure); }
+
+.ai-block {
+  background: var(--ai-soft);
+  border-radius: var(--r-card);
+  padding: var(--s4);
+}
+
+
+/* ---------- «Harada al» ---------- */
+
+.wtb { display: flex; flex-direction: column; }
+
+.wtb-row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) auto;
+  gap: var(--s3);
+  align-items: center;
+  padding: var(--s3) 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.wtb-row:first-child { border-top: 0; }
+
+.wtb-logo { width: 100px; height: 26px; object-fit: contain; object-position: left center; }
+.wtb-name { font-size: 15px; font-weight: 700; }
+
+.wtb-now {
+  font-size: 19px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+}
+
+.wtb-old { font-size: 13px; font-weight: 500; color: var(--text-3); text-decoration: line-through; }
+.wtb-unit { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+.wtb-tags { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* «Ən ucuz» sətir: sol kənarda brend rəngli zolaq. Dolu fon işlətmirik -
+   brend rəngi də yaşıldır və iki məna bir rəngə düşərdi. */
+.wtb-row.is-best { box-shadow: inset 3px 0 0 var(--accent); padding-left: var(--s3); }
+
+.tag-best,
+.tag-value {
+  display: inline-block;
+  padding: 2px var(--s2);
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tag-best { background: var(--accent-soft); color: var(--accent-ink); }
+.tag-value { background: var(--ok-soft); color: var(--ok-ink); }
+
+
+/* ---------- «Bugünkü qiymət» zolağı ---------- */
+
+.pricebar { position: relative; padding-top: 34px; }
+
+/* Zolağın rəngi MƏNA daşıyır: sol uc (ən ucuz) yaşıl, sağ uc (adi qiymət)
+   neytral. Ortada keçid var, yəni nişanın yeri "nə qədər yaxşıdır" sualına
+   rəngsiz də cavab verir - mövqe özü siqnaldır. */
+.pricebar-track {
+  display: block;
+  height: 10px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--ok) 0%, var(--info) 100%);
+}
+
+.pricebar-marker {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  padding: 3px var(--s2);
+  border-radius: var(--r-pill);
+  background: var(--text);
+  color: var(--bg);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Nişanın altındakı kiçik ox - hansı nöqtəni göstərdiyi dəqiq görünsün. */
+.pricebar-marker::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--text);
+}
+
+.pricebar-ends {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.pricebar-ends b { color: var(--text); font-weight: 700; }
+
+
+/* ---------- Ölçü variantları ---------- */
+
+.size-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: var(--s2);
+}
+
+.size-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg);
+  color: inherit;
+  text-decoration: none;
+}
+
+.size-card:hover { border-color: var(--accent); }
+
+/* Baxılan ölçü: brend rəngli çərçivə - trolley-də də seçili ölçü belədir. */
+.size-card.is-current { border-color: var(--accent); border-width: 2px; padding: 14px; }
+
+.size-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); }
+.size-label { font-size: 14px; font-weight: 700; }
+.size-price { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.size-unit { font-size: 12px; color: var(--text-2); }
+
+
+/* ---------- Məhsul kartı (oxşar / brend / axtarış) ---------- */
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--s3);
+}
+
+.pcard {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg);
+  color: inherit;
+  text-decoration: none;
+  overflow: hidden;
+}
+
+.pcard:hover { border-color: var(--accent); }
+.pcard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.pcard-photo {
+  display: block;
+  aspect-ratio: 1 / 1;
+  background: var(--surface);
+}
+
+.pcard-photo img { width: 100%; height: 100%; object-fit: contain; }
+
+.pcard-body { display: flex; flex-direction: column; gap: 3px; padding: var(--s2) var(--s3) var(--s3); }
+.pcard-brand { font-size: 13px; font-weight: 700; }
+
+.pcard-name {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pcard-meta { display: flex; gap: 5px; flex-wrap: wrap; }
+.pcard-price { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+
+
+/* ---------- Üst paneldəki kiçik axtarış ---------- */
+
+.searchbar.is-compact { flex: 1 1 320px; max-width: 460px; padding: 2px 2px 2px var(--s3); }
+.searchbar.is-compact input { font-size: 14px; padding: 7px 0; }
+
+
+@media (max-width: 900px) {
+  .product-page { grid-template-columns: minmax(0, 1fr); gap: var(--s4); }
+  .product-aside { position: static; }
+  .product-photo { max-width: 320px; }
+}
+
+@media (max-width: 600px) {
+  .wtb-row { grid-template-columns: 84px minmax(0, 1fr); grid-template-areas: "store price" "tags tags"; }
+  .wtb-store { grid-area: store; }
+  .wtb-price { grid-area: price; }
+  .wtb-tags { grid-area: tags; justify-content: flex-start; }
+  .wtb-logo { width: 76px; }
+  .searchbar.is-compact { display: none; }
+}
+
+
+/* ============================================================================
+   AXTARIŞ / KATEQORİYA SƏHİFƏSİ
+
+   İki sütun: solda filtrlər (yapışqan), sağda şəkilli kart şəbəkəsi.
+   Mobil ekranda filtrlər nəticələrin ÜSTÜNƏ keçir - dar ekranda yan sütun
+   nəticələri 120px enə sıxardı.
+   ============================================================================ */
+
+.search-page {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: var(--s5);
+  align-items: start;
+  padding: var(--s4) 0 var(--s6);
+}
+
+.filters { position: sticky; top: var(--s4); }
+
+.filter-head { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s3); }
+.filter-head svg { width: 17px; height: 17px; color: var(--text-3); }
+.filter-title { font-size: 17px; font-weight: 700; }
+
+.btn-link {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-ink);
+  cursor: pointer;
+}
+
+.filter-group { margin-bottom: var(--s4); }
+
+.filter-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  margin-bottom: var(--s2);
+}
+
+.filter-opt {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 5px 0;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.filter-opt input { accent-color: var(--accent); flex: none; }
+.filter-opt span { flex: 1 1 auto; min-width: 0; }
+.filter-opt small { color: var(--text-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+.filter-group input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+.filter-price { font-size: 13px; font-weight: 700; margin-top: 5px; font-variant-numeric: tabular-nums; }
+
+.results { min-width: 0; }
+.results-head { margin-bottom: var(--s3); }
+.results-head .page-title { font-size: 25px; }
+
+/* Kartın üstündəki endirim nişanı - şəbəkədə gözə ilk dəyən siqnal. */
+.pcard-photo { position: relative; }
+
+.pcard-flag {
+  position: absolute;
+  top: 6px; left: 6px;
+  z-index: 1;
+  padding: 2px var(--s2);
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pcard-stores { font-size: 11px; color: var(--text-2); align-self: center; }
+
+
+@media (max-width: 800px) {
+  .search-page { grid-template-columns: minmax(0, 1fr); gap: var(--s4); }
+  .filters { position: static; }
+  .filter-group { margin-bottom: var(--s3); }
+}

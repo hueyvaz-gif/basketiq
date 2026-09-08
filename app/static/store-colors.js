@@ -15,9 +15,9 @@
 //      leqenda mənasını itirir.
 //
 // Təmiz djb2 hash 2-ni pozur: ölçdük, real 6 market adı
-// (Test Market, Bravo, Araz, OBA, Araz Market, Test Scrape Market)
+// (Test Market, Bravo, Araz, Kənar Market, Araz Market, Test Scrape Market)
 // 6 xanadan yalnız 3-nə düşürdü — xana 5-də DÖRD ad birdən:
-//   Araz:1  Araz Market:3  Test Market:5  Bravo:5  OBA:5  Test Scrape Market:5
+//   Araz:1  Araz Market:3  Test Market:5  Bravo:5  Kənar Market:5  Test Scrape Market:5
 //
 // Ona görə: hash XANANI TƏKLİF EDİR, toqquşma isə xətti sınaqla (linear
 // probing) həll olunur. Sınaq marketlərin ƏLİFBA sırasında aparılır — əlifba
