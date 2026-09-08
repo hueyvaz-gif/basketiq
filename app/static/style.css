@@ -1306,18 +1306,34 @@ code {
 .store-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Loqo qutusu: hündürlüyü SABİTDİR ki, fərqli ölçülü loqolar şəbəkəni
-   sındırmasın. `object-fit: contain` loqonu əzmir, sadəcə sığdırır. */
+   sındırmasın. Real loqoların nisbəti 1.69-dan 5.68-ə qədər dəyişir. */
 .store-logo-box {
   display: grid;
   place-items: center;
   width: 100%;
   height: 72px;
   margin-bottom: var(--s2);
+  overflow: hidden;
 }
 
 .store-logo-box.is-lg { width: 120px; height: 90px; margin-bottom: 0; }
 
-.store-logo { max-width: 100%; max-height: 100%; object-fit: contain; }
+/* `max-width/max-height: 100%` BURADA KİFAYƏT ETMİR — real səhvdən çıxıb.
+   Şəkil grid elementidir, grid elementinin isə `min-height` defoltu `auto`-dur:
+   yəni o, öz təbii ölçüsündən kiçilə bilmir və `max-height` sükutla nəzərə
+   alınmır. Geniş ekranda gözə dəymirdi (eni onsuz da hündürlüyü saxlayırdı),
+   390px-lik mobil ekranda isə kart enlənir və loqo 60px-lik qutudan daşıb
+   marketin adının ÜSTÜNƏ düşürdü.
+
+   `width/height: 100%` + `object-fit: contain` bu zənciri qırır: element
+   qutunu tam doldurur, şəkil isə onun içində nisbətini saxlayıb sığır. */
+.store-logo {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  object-fit: contain;
+}
 
 /* Loqo faylı yoxdursa marketin adı qalır - saxta loqo çəkmirik.
    `has-logo` sinfini JS qoyur və şəkil yüklənməyəndə geri götürür. */
@@ -1336,11 +1352,15 @@ code {
 
 /* Hazır olmayan market: fərqli, amma OXUNAQLI.
    `opacity` işlətmirik - o, mətnin kontrastını WCAG həddindən aşağı salır.
-   Kəsik xətli çərçivə «hələ tamamlanmayıb» mənasını rəngsiz də çatdırır. */
-.store-card.is-soon {
-  border-style: dashed;
-  background: var(--surface);
-}
+   Kəsik xətli çərçivə «hələ tamamlanmayıb» mənasını rəngsiz də çatdırır.
+
+   FON AĞ QALIR - əvvəl boz (`--surface`) idi, dəyişdirildi. Səbəb ölçüldü:
+   `rahat.png` loqosunun fonu ŞƏFFAF DEYİL, ağdır (qalan üçü şəffafdır).
+   Boz kartın üstündə həmin loqo ağ düzbucaq kimi görünürdü. Fonu ağ
+   saxlamaq həm bu artefaktı aradan qaldırır, həm də «ağ fonlu kart»
+   tələbinə uyğundur - siqnal onsuz da kəsik çərçivə və «Tezliklə»
+   yazısındadır, fonda deyil. */
+.store-card.is-soon { border-style: dashed; }
 
 .store-card-meta.is-soon-text { font-style: italic; }
 
