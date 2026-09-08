@@ -554,8 +554,41 @@ Marketlərin **yeganə reyestri** `app/stores.py`-dır:
 | Rahat Market | `rahat` | **hələ yox** → «Tezliklə» |
 
 Bazadakı `stores` cədvəli bundan genişdir: orada test marketləri və köhnə
-mənbə (`oba`) da qalıb. Reyestrdən kənar market yeni ekranlarda **görünmür** —
-istifadəçiyə vəd olunmayan market göstərmək məlumat deyil, səs-küydür.
+mənbə (`oba`) da qalıb. Reyestrdən kənar market **istifadəçi panelinin heç bir
+yerində görünmür** — istifadəçiyə vəd olunmayan market göstərmək məlumat
+deyil, səs-küydür.
+
+### Süzgəc bütün istifadəçi ekranlarına şamildir
+
+Əvvəlcə süzgəc yalnız yeni ekranlara qoyulmuşdu və nəticə ekranda göründü:
+market şəbəkəsi dörd market göstərirdi, **səbət cavabı isə «ən çox əhatə:
+OBA» yazırdı**. İstifadəçi ana səhifədə olmayan, ona vəd edilməyən markete
+yönləndirilirdi — və heç bir test bunu tutmurdu, çünki hər iki tərəf
+ayrılıqda «işləyirdi».
+
+Ona görə süzgəc bir yerdən — `app/stores.py`-dəki `store_filter()` və
+`display_names()` funksiyalarından — gəlir və bu hesablamaların hamısına
+tətbiq olunur:
+
+| Modul | Nə süzülür |
+|---|---|
+| `app/api/basket.py` | səbət müqayisəsi, market cəmləri, «ən ucuz» |
+| `app/analytics.py` | qiymət tarixçəsi, qrafik siyahısı, endirim yoxlaması, «qonşuda ucuzdur» |
+| `app/recommend.py` | alternativ qablaşdırma təklifi |
+| `app/catalog.py` | endirimlər, «harada al», variantlar |
+
+**Admin panelinə toxunulmur:** kataloq siyahısı, mənbə çəkmə və baza
+sayğacları bazanın bütün tarixçəsini göstərməkdə haqlıdır — onlar məhsulun
+içidir, cavabı deyil.
+
+**Ad da reyestrdən gəlir.** Bazada market «Araz» yazılıb, məhsul isə «Araz
+Market» adlanır. İki ad iki problem yaradır: istifadəçi eyni marketi iki cür
+görür, üstəlik market rəngi ADDAN hesablandığı üçün (`store-colors.js`) eyni
+market cədvəldə bir, qrafikdə başqa rəngə düşür.
+
+Süzgəcin görünən nəticəsi: səbətdəki iki məhsul yalnız OBA-da satıldığı üçün
+artıq «heç bir marketdə tapılmadı» kimi göstərilir. Bu, itki deyil —
+**dürüstlükdür**: həmin qiymətlər bizim dörd marketimizdən gəlmirdi.
 
 ### 1. Market şəbəkəsi (`store-grid.js`)
 

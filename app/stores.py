@@ -120,6 +120,44 @@ def store_map(conn: Connection) -> dict[int, Market]:
     return out
 
 
+def store_filter(conn: Connection, column: str = "pr.store_id") -> tuple[str, tuple]:
+    """
+    SQL şərti + parametrləri: sorğunu YALNIZ dörd marketlə məhdudlaşdırır.
+
+        clause, params = store_filter(conn)
+        conn.execute(f"... WHERE p.group_key = ? AND {clause}", (key, *params))
+
+    NİYƏ HAZIR ŞƏRT QAYTARIRIQ?
+    Filtri hər sorğuda əl ilə yazmaq üç ayrı modulda üç ayrı həqiqət
+    yaradardı: biri yenilənib digəri köhnə qalar, istifadəçi isə eyni
+    səhifədə bir yerdə «Araz Market», başqa yerdə «OBA» görərdi. Məhz bu
+    baş vermişdi - səbət cavabı OBA-nı tövsiyə edirdi, halbuki market
+    şəbəkəsində belə market yox idi.
+
+    BOŞ HAL QƏSDƏN «HEÇ NƏ» QAYTARIR. Reyestrdəki marketlərin heç birinin
+    datası yoxdursa, şərt `0 = 1` olur - yəni cavab boş gəlir. `IN ()` SQL-də
+    sintaksis səhvidir, «filtri ümumiyyətlə tətbiq etməmək» isə daha pisdir:
+    o zaman istifadəçiyə bizim olmayan marketlərin qiymətləri göstərilərdi.
+    """
+    ids = sorted(store_map(conn))
+    if not ids:
+        return "0 = 1", ()
+    return f"{column} IN ({','.join('?' * len(ids))})", tuple(ids)
+
+
+def display_names(conn: Connection) -> dict[int, str]:
+    """
+    `stores.id` -> REYESTRDƏKİ ad.
+
+    Bazadakı ad ilə reyestrdəki ad üst-üstə düşmür: kataloq yüklənəndə market
+    «Araz» kimi yazılıb, məhsul isə «Araz Market» adlanır. İki ad iki problem
+    yaradır: (1) istifadəçi eyni marketi iki cür görür, (2) market rəngi
+    ADDAN hesablandığı üçün (`store-colors.js`) eyni market cədvəldə bir,
+    qrafikdə başqa rəngə düşür.
+    """
+    return {store_id: market.name for store_id, market in store_map(conn).items()}
+
+
 def market_status(conn: Connection | None = None) -> list[dict]:
     """
     Dörd marketin hamısı + hər birinin datası varmı.

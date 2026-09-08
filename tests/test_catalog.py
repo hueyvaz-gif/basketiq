@@ -489,6 +489,89 @@ def test_market_səhifəsi_html_qaytarır():
     assert "text/html" in res.headers["content-type"]
 
 
+# ------------------------------------------- kenar market bütün ekranlardan
+#
+# BU BÖLMƏ REAL SƏHVDƏN ÇIXIB. Trolley ekranları dörd marketlə qurulandan
+# sonra da səbət cavabı «ən çox əhatə: OBA» yazırdı: köhnə hesablamalar
+# bazadakı BÜTÜN marketləri götürürdü. Yəni istifadəçi ana səhifədə dörd
+# market görür, cavabda isə beşinci markete yönləndirilirdi — və heç bir
+# test bunu tutmurdu, çünki hər iki tərəf ayrılıqda «işləyirdi».
+
+
+def _basket_with(product_id: int) -> int:
+    """Müvəqqəti səbət yaradır və məhsulu ora salır."""
+    with db_cursor() as cur:
+        cur.execute("INSERT INTO baskets (name) VALUES ('kenar-market-test')")
+        basket_id = cur.lastrowid
+        cur.execute(
+            "INSERT INTO basket_items (basket_id, product_id, qty) VALUES (?, ?, 1)",
+            (basket_id, product_id),
+        )
+    return basket_id
+
+
+def test_kənar_market_səbət_müqayisəsində_görünmür(markets):
+    """Səbət cavabı yalnız dörd marketi tanımalıdır."""
+    pid_araz = _product("sebet|kenar|test", "səbət kənar məhsulu")
+    pid_oba = _product("sebet|kenar|test", "səbət kənar məhsulu")
+    _price(pid_araz, markets["araz"], 5.00)
+    _price(pid_oba, markets["oba"], 1.00)  # ən ucuz - qalib olmağa çalışır
+
+    basket_id = _basket_with(pid_araz)
+    data = client.get(f"/api/basket/compare?basket_id={basket_id}").json()
+
+    stores = {s["store"] for s in data["stores"]}
+    assert "OBA" not in stores, f"kənar market müqayisəyə düşdü: {stores}"
+    assert stores <= {m.name for m in MARKETS}
+
+    # Məhsulun qiymətləri də yalnız reyestr marketlərindən gəlir.
+    item = next(i for i in data["items"] if i["product_id"] == pid_araz)
+    assert item["available_in"] == 1
+
+
+def test_müqayisədə_market_adı_reyestrdən_gəlir(markets):
+    """
+    Bazada market «Araz» yazılıb, məhsul isə «Araz Market» adlanır.
+
+    İki ad iki problem yaradır: istifadəçi eyni marketi iki cür görür və
+    market rəngi (o, ADDAN hesablanır) səhifədən səhifəyə dəyişir.
+    """
+    pid = _product("sebet|ad|test", "ad testi məhsulu")
+    _price(pid, markets["araz"], 2.00)
+
+    basket_id = _basket_with(pid)
+    data = client.get(f"/api/basket/compare?basket_id={basket_id}").json()
+
+    names = {s["store"] for s in data["stores"]}
+    assert "Araz Market" in names
+    assert "Araz" not in names, "bazadakı xam ad cavaba düşür"
+
+
+def test_kənar_market_endirim_yoxlamasında_görünmür(markets):
+    """«Şübhəli endirim» siyahısı da yalnız bizim marketlərə baxır."""
+    pid = _product("endirim|kenar|test", "endirim kənar məhsulu")
+    _price(pid, markets["oba"], 4.00, old=8.00)
+
+    from app.analytics import discount_summary
+
+    stores = {row["store"] for row in discount_summary(limit=200)["items"]}
+    assert "OBA" not in stores, f"kənar market endirim siyahısına düşdü: {stores}"
+
+
+def test_kənar_market_qiymət_tarixçəsində_görünmür(markets):
+    """Qrafik dörd marketin xəttini çəkir — beşincisini yox."""
+    pid_araz = _product("tarixce|kenar|test", "tarixçə kənar məhsulu")
+    pid_oba = _product("tarixce|kenar|test", "tarixçə kənar məhsulu")
+    _price(pid_araz, markets["araz"], 3.00)
+    _price(pid_oba, markets["oba"], 2.00)
+
+    from app.analytics import price_history
+
+    history = price_history("tarixce|kenar|test")
+    assert "OBA" not in set(history["stores"])
+    assert "Araz Market" in set(history["stores"])
+
+
 # ------------------------------------------------------------------- API
 
 

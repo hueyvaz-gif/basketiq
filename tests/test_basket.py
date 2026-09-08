@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from app.db import db_cursor
 from app.main import app
+from tests.conftest import make_store
 
 @pytest.fixture
 def empty_basket():
@@ -35,11 +36,14 @@ def sample_data():
     """
     created = {"stores": [], "products": [], "catalogs": []}
 
-    with db_cursor() as cur:
-        for slug, name in [("t-bravo", "TestBravo"), ("t-araz", "TestAraz")]:
-            cur.execute("INSERT INTO stores (slug, name) VALUES (?, ?)", (slug, name))
-            created["stores"].append(cur.lastrowid)
+    # REAL market slug-ları işlədilir. Müqayisə yalnız `app/stores.py`
+    # reyestrindəki dörd marketi götürdüyü üçün uydurma slug ilə yaradılmış
+    # market cavaba ÜMUMİYYƏTLƏ düşmür - test isə səbəbi görünməyən şəkildə
+    # sınardı. Təfərrüat: `conftest.make_store`.
+    for slug, name in [("bravo", "Bravo"), ("araz", "Araz")]:
+        created["stores"].append(make_store(slug, name))
 
+    with db_cursor() as cur:
         for i, store_id in enumerate(created["stores"]):
             cur.execute(
                 "INSERT INTO catalogs (store_id, file_hash, file_path, source_type) "
@@ -93,7 +97,9 @@ def sample_data():
         cur.execute("DELETE FROM catalogs WHERE id IN "
                     f"({','.join('?' * len(created['catalogs']))})", created["catalogs"])
         cur.execute("DELETE FROM products WHERE canonical_key LIKE 't|%'")
-        cur.execute("DELETE FROM stores WHERE slug LIKE 't-%'")
+        # MARKET SƏTRİ SİLİNMİR: `araz`/`bravo` reyestr marketləridir və digər
+        # test modulları da onları işlədir. Silsək, testlərin SIRASI nəticəyə
+        # təsir edərdi. Baza onsuz da müvəqqətidir (bax `conftest.py`).
 
 
 def add(client, basket_id, product_id, qty=1):
@@ -151,9 +157,9 @@ class TestMuqayise:
             try:
                 data = compare(client, basket_id)
                 totals = {s["store"]: s["total"] for s in data["stores"]}
-                assert totals["TestBravo"] == 5.29
-                assert totals["TestAraz"] == 5.20
-                assert data["best"]["store"] == "TestAraz"
+                assert totals["Bravo Market"] == 5.29
+                assert totals["Araz Market"] == 5.20
+                assert data["best"]["store"] == "Araz Market"
                 assert data["savings"] == 0.09
             finally:
                 for pid in (sample_data["sud"], sample_data["duyu"]):
@@ -172,10 +178,10 @@ class TestMuqayise:
                 data = compare(client, basket_id)
                 by_store = {s["store"]: s for s in data["stores"]}
 
-                assert by_store["TestBravo"]["complete"] is False
-                assert by_store["TestBravo"]["missing"] == ["çay"]
-                assert by_store["TestAraz"]["complete"] is True
-                assert data["best"]["store"] == "TestAraz"
+                assert by_store["Bravo Market"]["complete"] is False
+                assert by_store["Bravo Market"]["missing"] == ["çay"]
+                assert by_store["Araz Market"]["complete"] is True
+                assert data["best"]["store"] == "Araz Market"
             finally:
                 for pid in (sample_data["sud"], sample_data["cay"]):
                     client.delete(f"/api/basket/items/{pid}?basket_id={basket_id}")
@@ -187,7 +193,7 @@ class TestMuqayise:
             try:
                 data = compare(client, basket_id)
                 totals = {s["store"]: s["total"] for s in data["stores"]}
-                assert totals["TestAraz"] == 9.45
+                assert totals["Araz Market"] == 9.45
             finally:
                 client.delete(f"/api/basket/items/{sample_data['duyu']}?basket_id={basket_id}")
 

@@ -202,11 +202,14 @@ def boyuk_qablasdirma():
     """Eyni məhsulun 1 L və 2 L variantı - 2 L-in litri ucuzdur."""
     created = {"products": [], "catalog": None, "store": None}
     with db_cursor() as cur:
+        # REAL market slug-u: alternativ qablaşdırma təklifi yalnız reyestrdəki
+        # dörd marketdən gəlir (bax `conftest.make_store`), uydurma slug ilə
+        # yaradılan market cavabda ümumiyyətlə görünmür.
         cur.execute(
-            "INSERT INTO stores (slug, name) VALUES ('bulk-test', 'Bulk Test') "
+            "INSERT INTO stores (slug, name) VALUES ('araz', 'Araz') "
             "ON CONFLICT(slug) DO NOTHING"
         )
-        cur.execute("SELECT id FROM stores WHERE slug = 'bulk-test'")
+        cur.execute("SELECT id FROM stores WHERE slug = 'araz'")
         store_id = cur.fetchone()[0]
         created["store"] = store_id
 
@@ -240,7 +243,8 @@ def boyuk_qablasdirma():
         cur.execute("DELETE FROM catalogs WHERE id = ?", (created["catalog"],))
         for product_id, _ in created["products"]:
             cur.execute("DELETE FROM products WHERE id = ?", (product_id,))
-        cur.execute("DELETE FROM stores WHERE id = ?", (created["store"],))
+        # MARKET SƏTRİ SİLİNMİR: `araz` reyestr marketidir və digər test
+        # modulları da onu işlədir - silmək nəticəni test SIRASINDAN asılı edər.
 
 
 def test_boyuk_aile_ucun_boyuk_qablasdirma_teklif_olunur(boyuk_qablasdirma):

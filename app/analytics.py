@@ -29,6 +29,7 @@ marketdə endirimsiz qiymət daha aşağıdır".
 from dataclasses import dataclass, field
 
 from app.db import get_connection
+from app.stores import display_names, store_filter
 from ingestion.normalize import display_label, display_size
 
 # Elan olunan köhnə qiymət indiyədək gördüyümüz maksimumdan bu qədər dəfə
@@ -97,16 +98,21 @@ def price_history(group_key: str, limit: int = 100) -> dict:
     """
     conn = get_connection()
     try:
+        # Qrafik də yalnız DÖRD marketi göstərir. Əks halda eyni səhifədə
+        # market şəbəkəsi dörd market, qrafik isə beşinci marketin xəttini
+        # göstərərdi - istifadəçi üçün bu, izahsız ziddiyyətdir.
+        store_clause, store_params = store_filter(conn)
+        names = display_names(conn)
         rows = conn.execute(
-            "SELECT pr.price, pr.old_price, pr.unit_price, pr.seen_at, "
-            "       s.name AS store, p.name, p.brand, p.size_value, p.size_unit "
+            "SELECT pr.price, pr.old_price, pr.unit_price, pr.seen_at, pr.store_id, "
+            "       p.name, p.brand, p.size_value, p.size_unit "
             "FROM prices pr "
             "JOIN products p ON p.id = pr.product_id "
-            "JOIN stores s ON s.id = pr.store_id "
-            "WHERE p.group_key = ? "
+            f"WHERE p.group_key = ? AND {store_clause} "
             "ORDER BY pr.seen_at, pr.id LIMIT ?",
-            (group_key, limit),
+            (group_key, *store_params, limit),
         ).fetchall()
+        rows = [dict(r) | {"store": names[r["store_id"]]} for r in rows]
     finally:
         conn.close()
 
@@ -145,14 +151,19 @@ def tracked_groups(limit: int = 30) -> list[dict]:
     """
     conn = get_connection()
     try:
+        # Süzgəc olmasaydı, siyahıya yalnız kənar marketdə olan məhsul da
+        # düşərdi - istifadəçi onu seçəndə qrafik BOŞ açılardı, çünki
+        # `price_history()` həmin marketin sətirlərini onsuz da göstərmir.
+        store_clause, store_params = store_filter(conn)
         rows = conn.execute(
             "SELECT p.group_key, COUNT(pr.id) AS observations, "
             "       COUNT(DISTINCT pr.store_id) AS stores, "
             "       MIN(p.name) AS name, MIN(p.brand) AS brand "
             "FROM products p JOIN prices pr ON pr.product_id = p.id "
+            f"WHERE {store_clause} "
             "GROUP BY p.group_key "
             "ORDER BY observations DESC, stores DESC LIMIT ?",
-            (limit,),
+            (*store_params, limit),
         ).fetchall()
     finally:
         conn.close()
@@ -181,17 +192,24 @@ def _history_before(conn, group_key: str, seen_at: str, exclude_id: int) -> list
 
 
 def _cheaper_elsewhere(conn, group_key: str, price: float, store_id: int) -> dict | None:
-    """Başqa marketdə həmin qrup daha ucuzdurmu? (ən son qiymətlərlə)"""
+    """
+    Başqa marketdə həmin qrup daha ucuzdurmu? (ən son qiymətlərlə)
+
+    «Başqa market» yalnız BİZİM dörd marketimizdən biri ola bilər: istifadəçini
+    gedə bilməyəcəyi (və səhifədə göstərilməyən) markete yönləndirmək
+    məsləhət deyil, yanıltmadır.
+    """
+    store_clause, store_params = store_filter(conn)
+    names = display_names(conn)
     row = conn.execute(
-        "SELECT s.name AS store, pr.price FROM prices pr "
+        "SELECT pr.store_id, pr.price FROM prices pr "
         "JOIN products p ON p.id = pr.product_id "
-        "JOIN stores s ON s.id = pr.store_id "
-        "WHERE p.group_key = ? AND pr.store_id != ? "
+        f"WHERE p.group_key = ? AND pr.store_id != ? AND {store_clause} "
         "ORDER BY pr.price ASC LIMIT 1",
-        (group_key, store_id),
+        (group_key, store_id, *store_params),
     ).fetchone()
     if row and row["price"] < price:
-        return {"store": row["store"], "price": round(row["price"], 2)}
+        return {"store": names[row["store_id"]], "price": round(row["price"], 2)}
     return None
 
 
@@ -199,15 +217,21 @@ def check_discounts(limit: int = 50) -> list[DiscountCheck]:
     """Ən son qiymət sətirlərini bir-bir yoxlayır."""
     conn = get_connection()
     try:
+        # Endirim yoxlaması da yalnız dörd marketin iddialarına baxır:
+        # bizim satmadığımız marketin kataloqunu yoxlamaq istifadəçiyə
+        # heç bir qərar vermir.
+        store_clause, store_params = store_filter(conn)
+        names = display_names(conn)
         rows = conn.execute(
             "SELECT pr.id, pr.product_id, pr.store_id, pr.price, pr.old_price, "
-            "       pr.seen_at, p.group_key, p.name, p.brand, s.name AS store "
+            "       pr.seen_at, p.group_key, p.name, p.brand "
             "FROM prices pr "
             "JOIN products p ON p.id = pr.product_id "
-            "JOIN stores s ON s.id = pr.store_id "
+            f"WHERE {store_clause} "
             "ORDER BY pr.id DESC LIMIT ?",
-            (limit,),
+            (*store_params, limit),
         ).fetchall()
+        rows = [dict(r) | {"store": names[r["store_id"]]} for r in rows]
 
         checks: list[DiscountCheck] = []
         for row in rows:

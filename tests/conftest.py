@@ -49,3 +49,38 @@ def _test_database():
     import shutil
 
     shutil.rmtree(_TMP_DIR, ignore_errors=True)
+
+
+# --------------------------------------------------------------- test marketi
+
+
+def make_store(slug: str, name: str) -> int:
+    """
+    Test üçün market yaradır (və ya mövcudunun id-sini qaytarır).
+
+    NİYƏ ORTAQ KÖMƏKÇİ LAZIM OLDU?
+    İstifadəçiyə görünən bütün hesablamalar artıq YALNIZ `app/stores.py`-dəki
+    dörd marketi götürür (`store_filter`). Yəni test uydurma slug ilə market
+    yaratsa - «t-bravo», «Analitika Test A» - həmin market cavaba ÜMUMİYYƏTLƏ
+    düşmür və test səbəbi görünməyən şəkildə sınır.
+
+    Ona görə testlər də REAL slug-larla işləməlidir: `araz`, `bravo`,
+    `bazar-store`, `rahat`. Bu, testi məhsulun həqiqi qaydasına bağlayır.
+
+    İKİ QAYDA:
+      1. YARATMA İDEMPOTENTDİR - baza sessiyada bir dəfə qurulur və bir neçə
+         test modulu eyni marketi yaratmaq istəyir; `slug` isə UNIQUE-dir.
+      2. MARKET SƏTRİ TEARDOWN-DA SİLİNMİR - onu silsək, eyni marketi
+         işlədən digər modul test SIRASINDAN asılı olaraq sınardı. Testlər
+         öz qiymətlərini və məhsullarını silir, market sətri isə qalır
+         (müvəqqəti bazadır, sessiya sonunda onsuz da yox olur).
+    """
+    from app.db import db_cursor
+
+    with db_cursor() as cur:
+        cur.execute(
+            "INSERT INTO stores (slug, name) VALUES (?, ?) ON CONFLICT(slug) DO NOTHING",
+            (slug, name),
+        )
+        cur.execute("SELECT id FROM stores WHERE slug = ?", (slug,))
+        return cur.fetchone()["id"]

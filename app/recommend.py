@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 
 from app.db import get_connection
 from app.profile import Profile, get_profile
+from app.stores import display_names, store_filter
 from ingestion.normalize import display_label
 
 # canonical_key-in sonundakı ölçü hissəsi: "1l", "0.5kg", "12pcs"
@@ -94,14 +95,19 @@ def _bulk_alternatives(labels: dict[str, str]) -> list[dict]:
 
     conn = get_connection()
     try:
+        # Alternativ qablaşdırma yalnız BİZİM dörd marketimizdən təklif olunur:
+        # istifadəçiyə gedə bilməyəcəyi marketdəki 5 litrlik qabı məsləhət
+        # görmək faydasızdır.
+        store_clause, store_params = store_filter(conn)
+        names = display_names(conn)
         rows = conn.execute(
             "SELECT p.canonical_key, p.name, p.brand, p.size_value, p.size_unit, "
-            "       MIN(pr.unit_price) AS unit_price, s.name AS store "
+            "       MIN(pr.unit_price) AS unit_price, pr.store_id AS store_id "
             "FROM products p "
             "JOIN prices pr ON pr.product_id = p.id "
-            "JOIN stores s ON s.id = pr.store_id "
-            "WHERE pr.unit_price IS NOT NULL "
-            "GROUP BY p.canonical_key"
+            f"WHERE pr.unit_price IS NOT NULL AND {store_clause} "
+            "GROUP BY p.canonical_key",
+            store_params,
         ).fetchall()
     finally:
         conn.close()
@@ -116,7 +122,7 @@ def _bulk_alternatives(labels: dict[str, str]) -> list[dict]:
                 "size_value": row["size_value"],
                 "size_unit": row["size_unit"],
                 "unit_price": row["unit_price"],
-                "store": row["store"],
+                "store": names[row["store_id"]],
             }
         )
 

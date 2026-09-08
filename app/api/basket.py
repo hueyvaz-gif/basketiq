@@ -22,6 +22,7 @@ from ai.sanitize import strip_reasoning
 
 from app.db import db_cursor, get_connection
 from app.profile import get_profile
+from app.stores import MARKETS, display_names
 from ingestion.normalize import display_label, display_size
 
 router = APIRouter(prefix="/api/basket", tags=["basket"])
@@ -134,13 +135,40 @@ def _latest_prices_by_group(group_keys: list[str]) -> dict:
 
 
 def _all_stores() -> list[dict]:
+    """
+    Müqayisədə iştirak edən marketlər — YALNIZ bizim dördümüz.
+
+    ƏVVƏL BÜTÜN BAZA GƏLİRDİ və bu, ekranda görünürdü: səbət cavabı
+    «ən çox əhatə: OBA» yazırdı, halbuki OBA bizim marketimiz deyil və ana
+    səhifədəki market şəbəkəsində ümumiyyətlə yoxdur. İstifadəçi ona vəd
+    edilməyən, üstəlik başqa yerdə göstərilməyən marketə yönləndirilirdi.
+
+    Ad da reyestrdən götürülür (`Araz` yox, `Araz Market`): bazadakı sərbəst
+    yazılmış ad ilə məhsulun adı fərqli olsa, eyni market iki cür görünür və
+    market rəngi də (`store-colors.js` onu ADDAN hesablayır) səhifədən
+    səhifəyə dəyişir.
+
+    Admin panelinə TOXUNULMUR: orada kataloq və mənbə siyahısı bazanın bütün
+    tarixçəsini göstərməkdə haqlıdır - o, məhsulun içidir, cavabı deyil.
+    """
     conn = get_connection()
     try:
+        names = display_names(conn)
+        if not names:
+            return []
         rows = conn.execute(
-            "SELECT DISTINCT s.id, s.name FROM stores s "
-            "JOIN prices pr ON pr.store_id = s.id ORDER BY s.name"
+            "SELECT DISTINCT s.id FROM stores s JOIN prices pr ON pr.store_id = s.id"
         ).fetchall()
-        return [dict(r) for r in rows]
+        stores = [
+            {"id": row["id"], "name": names[row["id"]]}
+            for row in rows
+            if row["id"] in names
+        ]
+        # Sıra REYESTRDƏKİ sıradır, əlifba deyil: marketlər hər səhifədə eyni
+        # ardıcıllıqla görünsün.
+        order = {market.name: i for i, market in enumerate(MARKETS)}
+        stores.sort(key=lambda s: order.get(s["name"], len(order)))
+        return stores
     finally:
         conn.close()
 

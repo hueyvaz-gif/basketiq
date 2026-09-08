@@ -17,8 +17,14 @@ from app.analytics import check_discounts, price_history, tracked_groups
 from app.db import db_cursor
 from app.main import app
 
-STORE_A = "Analitika Test A"
-STORE_B = "Analitika Test B"
+# REAL marketlər. Tarixçə və endirim yoxlaması yalnız `app/stores.py`
+# reyestrindəki dörd marketi götürür - uydurma slug ilə yaradılmış market
+# cavaba ümumiyyətlə düşmür (bax `conftest.make_store`).
+#
+# Adlar da REYESTRDƏN gəlir: cavabda bazadakı sərbəst ad yox, marketin
+# kanonik adı qayıdır.
+STORE_A = "Araz Market"
+STORE_B = "Bravo Market"
 
 
 def _store(cur, name: str, slug: str) -> int:
@@ -42,8 +48,8 @@ def senaryo():
 
     def qur(group_key: str, name: str, rows: list[dict]) -> None:
         with db_cursor() as cur:
-            store_a = _store(cur, STORE_A, "analitika-test-a")
-            store_b = _store(cur, STORE_B, "analitika-test-b")
+            store_a = _store(cur, "Araz", "araz")
+            store_b = _store(cur, "Bravo", "bravo")
             created["stores"] = [store_a, store_b]
 
             cur.execute(
@@ -87,8 +93,9 @@ def senaryo():
             cur.execute("DELETE FROM catalogs WHERE id = ?", (created["catalog"],))
         for product_id in created["products"]:
             cur.execute("DELETE FROM products WHERE id = ?", (product_id,))
-        for store_id in created["stores"]:
-            cur.execute("DELETE FROM stores WHERE id = ?", (store_id,))
+        # MARKET SƏTRİ SİLİNMİR: indi bunlar reyestr marketləridir (`araz`,
+        # `bravo`) və digər test modulları da onları işlədir. Silsək, nəticə
+        # testlərin SIRASINDAN asılı olardı.
 
 
 def _find(group_key: str):
