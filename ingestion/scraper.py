@@ -1,28 +1,39 @@
 """
 Kataloq scraper-i: market saytından endirim jurnalını avtomatik çəkir.
 
-Ölçülmüş qərar (tools/check_source.py ilə yoxlanıb, 2026-09-07):
+BU MODUL YALNIZ KATALOQ (İDDİA) QATIDIR. Məhsulun adi qiyməti onlayn mağaza
+qatından gəlir - bax `logs/sources.md`. İki mənbə qarışdırılmır: kataloq
+"9.99 -> 5.99" İDDİASINI verir, mağaza isə həmin iddianı yoxlamağa imkan verən
+GÜNDƏLİK qiyməti. Kataloq iddiasını yenə kataloqla təsdiqləmək dairəvi
+məntiqdir, ona görə iki qat ayrı saxlanılır.
 
-    | Market      | robots.txt | Səhifə       | Kataloq        |
-    |-------------|------------|--------------|----------------|
-    | OBA         | icazə ✓    | statik HTML  | 3 PDF, 4-44 səh|
-    | Araz Market | icazə ✓    | statik HTML  | 1 PDF × 54 səh.|
-    | Bravo       | QADAĞA ✗   | JS (ng-app)  | -              |
-    | Bazarstore  | icazə ✓    | JS render    | link tapılmadı |
+Ölçülmüş qərar (tools/check_source.py ilə yoxlanıb, 2026-09-08):
 
-Niyə Selenium defolt deyil? Hər iki seçilmiş mənbənin kataloq linkləri adi
-HTML-də görünür - `requests` + BeautifulSoup kifayətdir. Selenium hər çağırışda
-brauzer qaldırır (~3-5 san) və serverdə ayrıca Chrome binary tələb edir.
-Ondan yalnız statik yol BOŞ qayıdanda istifadə edirik (`use_selenium=True`) -
-"əvvəlcə ucuz yolu sına" prinsipi, eynilə OCR-dakı kimi.
+    | Market     | robots.txt | Kataloq səhifəsi      | Kataloq qatı      |
+    |------------|------------|-----------------------|-------------------|
+    | Araz       | icazə ✓    | statik HTML           | 1 PDF × 54 səh.   |
+    | Bravo      | icazə ✓    | JS (ng-app), PDF yox  | YOX - link tapılmadı |
+    | Bazarstore | icazə ✓    | sayt baxımdadır       | YOX               |
 
-Niyə Bravo yoxdur? `robots.txt` qadağan edir. Texniki olaraq mümkün olsa da,
-etik və hüquqi olaraq etmirik - README-dəki qaydaya sadiqik.
+NİYƏ OBA YOXDUR? Layihə qərarı ilə çıxarıldı (BasketIQ v2, addım 3.1).
+Bazadakı köhnə OBA sətirləri SİLİNMİR - tarixçə üçün faydalıdır; sadəcə yeni
+çəkiliş olmur.
+
+NİYƏ BRAVO KATALOQ MƏNBƏYİ DEYİL? `robots.txt` icazə verir (əvvəlki "qadağa"
+qeydi səhv idi - səbəb aşağıda, `robots_allows()`-da), amma `special-offers`
+səhifəsi Angular-dır və statik HTML-də bir dənə də PDF/şəkil linki yoxdur.
+Yəni məsələ icazə deyil, kataloq faylının ümumiyyətlə olmamasıdır. Bravo
+layihəyə MAĞAZA qatı ilə girir (Umico üzərindən).
+
+Niyə Selenium defolt deyil? Araz-ın kataloq linkləri adi HTML-də görünür -
+`requests` + BeautifulSoup kifayətdir. Selenium hər çağırışda brauzer qaldırır
+(~3-5 san) və serverdə ayrıca Chrome binary tələb edir. Ondan yalnız statik yol
+BOŞ qayıdanda istifadə edirik (`use_selenium=True`) - "əvvəlcə ucuz yolu sına"
+prinsipi, eynilə OCR-dakı kimi.
 """
 
 import time
 import urllib.parse as urlparse
-import urllib.robotparser as robotparser
 from dataclasses import dataclass, field
 
 import requests
@@ -30,6 +41,7 @@ from bs4 import BeautifulSoup
 
 from app.config import settings
 from ingestion.ingest import IngestError, find_by_source_url, ingest_bytes
+from ingestion.robots import RobotsRules, robots_url_for
 
 PDF_EXT = (".pdf",)
 IMG_EXT = (".jpg", ".jpeg", ".png", ".webp")
@@ -56,15 +68,13 @@ class Source:
 
 
 SOURCES: dict[str, Source] = {
-    "oba": Source(
-        key="oba",
-        store="OBA",
-        page_url="https://oba.az/endirim-jurnali/",
-        note="Statik HTML, 3 PDF (4-44 səhifə) - sınaq üçün ən rahat mənbə",
-    ),
     "araz": Source(
         key="araz",
-        store="Araz Market",
+        # Ad "Araz Market" idi - `get_or_create_store()` SLUG üzrə axtardığı üçün
+        # bu, əl ilə yaradılmış "Araz" (slug `araz`) marketindən AYRI sətir
+        # yaradırdı. İki sətir `app/db.py:STORE_MERGES` ilə birləşdirildi; adı
+        # burada da düzəltmirik, növbəti çəkiliş dublikatı yenidən yaradar.
+        store="Araz",
         page_url="https://arazmarket.az/az/discount-magazine",
         note="Statik HTML, 1 PDF, 54 səhifə (~9 MB) - mütləq max_pages ilə çağır",
     ),
@@ -98,7 +108,7 @@ class ScrapeReport:
 
 # ---------------------------------------------------------------- nəzakət qaydaları
 
-_robots_cache: dict[str, robotparser.RobotFileParser | None] = {}
+_robots_cache: dict[str, RobotsRules | None] = {}
 _last_request_at: float = 0.0
 
 
@@ -106,25 +116,50 @@ def robots_allows(url: str) -> bool:
     """
     robots.txt icazə verirmi? Host üzrə bir dəfə oxunub yadda saxlanılır.
 
-    robots.txt oxunmasa (404, timeout) icazə verilmiş sayırıq - standart
-    davranış budur. Qadağa yalnız AÇIQ yazılıbsa tətbiq olunur.
+    ƏVVƏL `urllib.robotparser.read()` ÇAĞIRILIRDI - İKİ SƏHVLƏ (2026-09-08
+    ölçülüb, təfərrüat `ingestion/robots.py`-ın başında):
+
+      1. urllib özünü `Python-urllib/3.x` kimi təqdim edir; umico.az və
+         bravosupermarket.az bu ada 403 qaytarır, kitabxana isə 403-ü
+         "bütün sayt qadağandır" kimi oxuyur. `Allow: /` yazan sayt bizdə
+         QADAĞA görünürdü - README-dəki "Bravo qadağalıdır" qeydi belə yaranıb.
+      2. urllib birinci uyğun qaydanı götürür, ən uzununu yox. Araz-da
+         `Allow: /` sətri `Disallow: /api/`-dən əvvəl gəldiyi üçün `/api/`
+         icazəli görünürdü - yəni REAL QADAĞA görünməz idi.
+
+    İndi fayl öz dürüst User-Agent-imizlə çəkilir (sorğularımızı da elə həmin
+    ad ilə göndəririk - gizlətmə yoxdur) və RFC 9309 semantikası ilə oxunur.
+
+    Status kodları: 401/403 → hamısı qadağan, 404/410 → icazə,
+    5xx/şəbəkə xətası → naməlum, icazə verilmiş sayılır (standart davranış).
     """
     parts = urlparse.urlparse(url)
     host = f"{parts.scheme}://{parts.netloc}"
 
     if host not in _robots_cache:
-        rp = robotparser.RobotFileParser()
-        rp.set_url(f"{host}/robots.txt")
         try:
-            rp.read()
+            _polite_wait()
+            res = requests.get(
+                robots_url_for(url),
+                headers=_headers(),
+                timeout=settings.request_timeout_seconds,
+            )
+            if res.status_code in (401, 403):
+                rules = RobotsRules(disallow_all=True)
+            elif res.status_code >= 400:
+                rules = RobotsRules(allow_all=True)
+            else:
+                if "charset" not in res.headers.get("Content-Type", "").lower():
+                    res.encoding = res.apparent_encoding or "utf-8"
+                rules = RobotsRules.parse(res.text, settings.user_agent)
         except Exception:
-            rp = None
-        _robots_cache[host] = rp
+            rules = None
+        _robots_cache[host] = rules
 
-    rp = _robots_cache[host]
-    if rp is None:
+    rules = _robots_cache[host]
+    if rules is None:
         return True
-    return rp.can_fetch(settings.user_agent, url)
+    return rules.allows(url)
 
 
 def _polite_wait() -> None:

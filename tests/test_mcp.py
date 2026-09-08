@@ -81,8 +81,8 @@ async def test_health_bazani_ve_modeli_bildirir():
 
 async def test_menbe_siyahisi():
     text = await _call("list_sources")
-    assert "oba" in text
     assert "araz" in text
+    assert "oba" not in text
 
 
 async def test_tapilmayan_mehsul_aydin_cavab_verir():
@@ -98,7 +98,7 @@ async def test_nameluм_menbe_xeta_atmir_izah_edir():
     """
     text = await _call("scrape_catalog", {"source": "yoxdur", "pages": 1})
     assert "Naməlum mənbə" in text
-    assert "oba" in text
+    assert "araz" in text
 
 
 async def test_olmayan_kataloq_xetani_metne_cevirir():

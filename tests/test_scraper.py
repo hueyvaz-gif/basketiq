@@ -182,7 +182,10 @@ def test_menbe_siyahisi_endpointi():
         res = client.get("/api/scrape/sources")
         assert res.status_code == 200
         keys = {item["key"] for item in res.json()}
-        assert {"oba", "araz"} <= keys
+        assert "araz" in keys
+        # OBA BasketIQ v2-də mənbə siyahısından çıxarıldı (bazadakı köhnə
+        # sətirləri qalır, amma yeni çəkiliş olmur) - siyahıya qayıtmamalıdır.
+        assert "oba" not in keys
 
 
 def test_nameluм_menbe_400_qaytarir():

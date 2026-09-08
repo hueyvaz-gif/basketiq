@@ -40,7 +40,12 @@ Araz Market (fərqli dizayn, 8 məhsul): 5 kart, qiymətlərin 4-ü düzgün.
 Niyə daha aşağı? Araz-da qiymət 2 ölçülü yazılır (böyük "1", sağ yuxarısında
 kiçik "99", altında "₼") - Tesseract-ın sətir modeli bunu çətin tutur. Üstəlik
 səhifənin sağ sütununda qiymət ümumiyyətlə qutusuzdur, sadəcə qırmızı mətndir,
-yəni lövbər yoxdur. Bu, bilinən məhdudiyyətdir; OBA əsas avtomatik mənbədir.
+yəni lövbər yoxdur. Bu, bilinən məhdudiyyətdir.
+
+QEYD (BasketIQ v2): aşağıdakı ölçmələr OBA kataloqları üzərində aparılıb və
+metodun özü dəyişmir. Amma OBA artıq mənbə deyil - indi yeganə kataloq mənbəyi
+Araz-dır, yəni real işdə bu metod məhz yuxarıdakı DAHA ZƏİF halda işləyir
+(5 kartdan 4 qiymət). Bunu "10/10" kimi oxumaq səhv olar.
 
 NİYƏ numpy/OpenCV yoxdur? Layihənin asılılıqlarını böyütməmək üçün. Maskalar
 PIL-in band əməliyyatları ilə qurulur (C sürəti), komponent axtarışı isə 8 dəfə

@@ -3,10 +3,10 @@ Scraper-i konsoldan işə salır.
 
 İstifadə:
     python tools/scrape.py                      # mənbə siyahısı + robots yoxlaması
-    python tools/scrape.py oba                  # OBA-dan 1 kataloq, ilk 3 səhifə
+    python tools/scrape.py araz                 # Araz-dan 1 kataloq, ilk 3 səhifə
     python tools/scrape.py araz --pages 2
-    python tools/scrape.py oba --files 3 --pages 4
-    python tools/scrape.py oba --dry-run        # yalnız linkləri göstər, endirmə
+    python tools/scrape.py araz --files 3 --pages 4
+    python tools/scrape.py araz --dry-run       # yalnız linkləri göstər, endirmə
 
 Niyə ayrıca CLI? Serveri qaldırmadan mənbəni yoxlamaq üçün. Sayt quruluşunu
 dəyişəndə ilk çağıracağın alət budur - `--dry-run` bir neçə saniyəyə deyir ki,
