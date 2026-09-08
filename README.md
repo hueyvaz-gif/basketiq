@@ -19,7 +19,7 @@ kataloq (PDF/JPG)
    → pypdf / pytesseract      mətn çıxarma
    → layout analizi           qlyanslı kataloqda "kart" tapma
    → cleaning                 zibil sətirlərin atılması
-   → LangChain LCEL .batch()  → Qwen (Ollama)  struktur JSON
+   → LangChain LCEL .batch()  → Claude (ehtiyat: Ollama)  struktur JSON
    → hibrid matching          eyni məhsul, fərqli market
    → SQLite                   unit_price (1 kq / 1 L)
    → FastAPI + Dashboard      müqayisə, trend, AI tövsiyəsi
@@ -83,28 +83,106 @@ prompt | ChatOllama(format="json") | qısa açarların açılması | PydanticOut
 ## Mənbələr (ölçülüb, fərz edilməyib)
 
 `tools/check_source.py` hər namizəd saytı yoxlayır: robots.txt, statik/dinamik,
-kataloq linki, PDF-də text layer.
+kataloq linki, PDF-də text layer. Mağaza qatı üçün `--all` rejimi çəkmə
+pilləsini də ölçür (JSON/XHR → BeautifulSoup → Selenium).
 
-| Market | robots.txt | Səhifə | Kataloq | Qərar |
+**İki fərqli qat var və onlar qarışdırılmır:**
+
+| Qat | Mənbə | Tezlik | Nə verir |
+|---|---|---|---|
+| Baza qiymət | onlayn mağazanın kateqoriya səhifələri | gündəlik | məhsulun adi qiyməti |
+| Endirim iddiası | həftəlik kataloq (PDF/şəkil, OCR yolu) | həftəlik | «9.99 → 5.99» iddiası |
+
+Kataloqun «köhnə qiymət» iddiasını yenə kataloqla təsdiqləmək dairəvi
+məntiqdir — ona görə iddia ilk qatdakı öz müşahidələrimizlə yoxlanılır.
+
+### Ölçmə nəticəsi (2026-09-08)
+
+| Market | robots.txt | Kataloq qatı | Mağaza qatı | Qərar |
 |---|---|---|---|---|
-| **OBA** | icazə ✓ | statik HTML | 3 PDF, 4-44 səh. | əsas mənbə |
-| **Araz** | icazə ✓ | statik HTML | 1 PDF × 54 səh. | ikinci mənbə |
-| Bravo | **qadağa ✗** | JS (ng-app) | — | istifadə etmirik |
-| Bazarstore | icazə ✓ | JS render | link tapılmadı | istifadə etmirik |
+| **Araz** | icazə ✓ | 1 PDF × 54 səh. (statik HTML) | **yox** — data ünvanı qadağan | **yalnız kataloq mənbəyi** |
+| **Bravo** | icazə ✓ | yox — PDF linki tapılmadı | Umico üzərindən (Selenium) | **yalnız mağaza mənbəyi** |
+| Bazarstore | icazə ✓ | yox | yox — sayt baxımdadır | gözləyir |
+| OBA | icazə ✓ | 3 PDF, 4-44 səh. | — | **çıxarıldı** (v2 qərarı) |
 
-Hər ikisi statik HTML olduğu üçün **Selenium defolt işlədilmir** — `requests` +
-BeautifulSoup kifayətdir. Selenium yalnız statik yol boş qayıdanda işə düşür
-(`--selenium`): brauzer qaldırmaq ~3-5 saniyədir və serverdə ayrıca Chrome
-tələb edir. Eyni "əvvəlcə ucuz yolu sına" prinsipi OCR-da da var.
+**Araz-ın mağaza qatı niyə yoxdur?** `arazmarket.az/robots.txt` `Disallow: /api/`
+və `Disallow: /_next/` yazır — yəni səhifənin data ünvanları qadağandır.
+Qiymət ilk HTML-də görünmür (1.46 MB fayl, 634 simvol mətn, məzmun yerinə
+`Loading...`), ona görə BeautifulSoup da işləmir. Selenium **qəsdən**
+işlədilmir: brauzer səhifəni render edəndə həmin qadağan ünvanları özü çağırır,
+yəni «yalnız səhifəni açdım» deyib qadağanı dolayı yolla keçmək olardı.
+
+**OBA niyə çıxarıldı?** Texniki səbəb yox, layihə qərarı (BasketIQ v2).
+Bazadakı 352 OBA qiyməti **silinmir** — tarixçə üçün faydalıdır; sadəcə yeni
+çəkiliş olmur.
+
+**«Bravo qadağalıdır» qeydi səhv idi.** Əvvəlki cədvəldə Bravo `qadağa ✗` kimi
+yazılmışdı. Yoxlanıldı: `bravosupermarket.az/robots.txt` faktiki olaraq
+`Allow: /` deyir və yalnız bir alt-yolu (`/bravo.jis.az/`) bağlayır. Səhvin
+mənbəyi `urllib.robotparser` idi — təfərrüat `ingestion/robots.py`-ın başında.
+Bravo kataloq mənbəyi olmamasının səbəbi icazə deyil: `special-offers` səhifəsi
+Angular-dır və statik HTML-də bir dənə də PDF/şəkil linki yoxdur.
+
+Araz-ın kataloq səhifəsi statik HTML olduğu üçün **Selenium defolt
+işlədilmir** — `requests` + BeautifulSoup kifayətdir. Selenium yalnız statik
+yol boş qayıdanda işə düşür (`--selenium`): brauzer qaldırmaq ~3-5 saniyədir və
+serverdə ayrıca Chrome tələb edir. Eyni "əvvəlcə ucuz yolu sına" prinsipi
+OCR-da da var.
 
 ```bash
-python tools/scrape.py                    # mənbə siyahısı + robots yoxlaması
-python tools/scrape.py oba --dry-run      # yalnız linkləri göstər
-python tools/scrape.py oba --pages 2      # endir + OCR + DB
+python tools/check_source.py --all         # mağaza qatı: pillə ölçmə cədvəli
+python tools/scrape.py                     # kataloq mənbələri + robots yoxlaması
+python tools/scrape.py araz --dry-run      # yalnız linkləri göstər
+python tools/scrape.py araz --pages 2      # endir + OCR + DB
 ```
 
 Təkrar yoxlaması iki pillədədir: əvvəlcə **URL** (9 MB-lıq PDF-i boş yerə
 endirməmək üçün), sonra fayl **hash**-i.
+
+## robots.txt oxuyucusu — `urllib`-dəki iki səhv
+
+Layihənin ən sərt qaydası budur: **`robots.txt` qadağan edirsə, çəkmirik.**
+Ona görə həmin faylı DÜZGÜN oxumaq funksional tələbdir, detal deyil.
+
+`urllib.robotparser` bu iş üçün yararsız çıxdı. Hər iki səhv 2026-09-08-də
+ölçülüb və hər ikisi eyni qaydaya toxunur:
+
+**1. Kitabxana öz adı ilə gedir və 403 alır.** `RobotFileParser.read()` faylı
+urllib ilə çəkir, urllib isə özünü `Python-urllib/3.x` kimi təqdim edir.
+`umico.az` və `bravosupermarket.az` bu ada **403** qaytarır — kitabxana isə
+403-ü «bütün sayt qadağandır» kimi qeyd edir (`disallow_all = True`).
+
+Nəticə: `Allow: /` yazan sayt bizim kodda QADAĞA görünürdü.
+**README-nin əvvəlki versiyasında «Bravo — qadağa ✗» qeydi məhz bu səhvin
+nəticəsi idi** və «ölçülmüş fakt» kimi saxlanılırdı.
+
+**2. Kitabxana birinci uyğunluğu götürür, ən uzununu yox.**
+`arazmarket.az/robots.txt`:
+
+```
+Allow: /
+Disallow: /api/
+```
+
+`urllib` sətirləri sıra ilə yoxlayır, `Allow: /` hər şeyə uyğun gəlir və dərhal
+«icazə var» deyir — yəni `Disallow: /api/` **heç vaxt işə düşmür**. RFC 9309
+isə açıq deyir: **ən spesifik (ən uzun) qayda qalib gəlir**.
+
+Ölçmə: köhnə kodla `https://www.arazmarket.az/api/` → `icazə=True` (yanlış),
+yeni kodla → `icazə=False` (düzgün).
+
+İkinci səhv daha təhlükəlidir: birincisi bizi lazımsız yerə məhdudlaşdırırdı,
+ikincisi isə **real qadağanı görünməz edirdi**.
+
+**Həll:** `ingestion/robots.py` — RFC 9309 semantikası (ulduz, `$` lövbəri, ən
+uzun uyğunluq, `Allow` bərabərlikdə üstün). Fayl öz dürüst User-Agent-imizlə
+çəkilir; sorğularımızı da elə həmin ad ilə göndəririk, gizlətmə yoxdur.
+Status kodları standart üzrə oxunur: 401/403 → hamısı qadağan, 404/410 →
+icazə, 5xx → naməlum.
+
+Modul **şəbəkəyə çıxmır** — `parse()` mətn qəbul edir, ona görə 12 test real
+saytdan asılı deyil. Mutasiya ilə yoxlanılıb: «ən uzun uyğunluq» məntiqi
+birinci-uyğunluğa çevriləndə 3 test, `$` lövbəri söndürüləndə 1 test düşür.
 
 ## Layout analizi — qlyanslı kataloqu oxumaq
 
@@ -297,7 +375,7 @@ istifadəçi panelidir:
 
 | İstifadəçi paneli | Admin / Developer paneli |
 |---|---|
-| statistika, səbət müqayisəsi (hero), AI tövsiyəsi, qiymət tarixçəsi, endirim yoxlaması, profil | sistem statusu, mənbədən çəkmə, kataloq yükləmə, OCR/PSM ayarları, çıxarış və uyğunlaşdırma, kataloq siyahısı |
+| səbət, cavab (hero), məhsul müqayisəsi; **açılan panellər:** AI tövsiyəsi, qiymət tarixçəsi, endirim yoxlaması, profil | **baza sayğacları**, sistem statusu, mənbədən çəkmə, kataloq yükləmə, OCR/PSM ayarları, çıxarış və uyğunlaşdırma, kataloq siyahısı |
 
 Səbəb: `robots.txt`, PSM rejimi, Ollama base URL və model adı **məhsulun içidir,
 cavabı deyil**. Alış-veriş edən adam onları görməməlidir — amma developer üçün
@@ -307,38 +385,89 @@ onlar bir klik uzaqdadır (`#admin`).
 olmasaydı, digər skriptlərin `getElementById(...).addEventListener(...)`
 sətirləri `null`-a düşüb faylı qırardı.
 
-### Dizayn dili: Wise + Trolley + fintech dashboard
+### Dizayn dili: trolley.co.uk dizayn sistemi
 
-Vizual istiqamət üç mənbədən götürülüb: **Wise** (cəsarətli tipoqrafiya, pill
-formalar, kölgəli ağ kartlar), **Trolley** (market çipləri, guşə lenti) və
-fintech dashboard təcrübəsi (**verdict → qrafik → cədvəl → istisnalar** axını).
+Vizual sistem **trolley.co.uk**-dan çıxarılıb (`skills/trolley-design-design`)
+və olduğu kimi tətbiq edilib: **Poppins** şrifti, **5px** boşluq şəbəkəsi,
+**10px** radius, 1px sərhədli kartlar, 1024px konteyner. Yalnız işıqlı rejim.
 
-**Rəng məna daşıyır, bəzək deyil.** Beş rəngin hər biri bir siqnaldır:
+**Rəng məna daşıyır, bəzək deyil.** Hər hex trolley palitrasındandır —
+palitradan kənar rəng uydurulmur:
 
 | Rəng | Məna | Harada |
 |---|---|---|
-| mavi `#0071E3` | brend, naviqasiya, əsas hərəkət | logo, tab, primary düymə |
-| yaşıl `#16A34A` | **qənaət / ən ucuz / təsdiqlənib** | hero lenti, qiymət pill-i, status |
-| kəhrəba `#F59E0B` | diqqət / təsdiqlənməyib | natamam market zolağı, status |
-| qırmızı `#EF4444` | bahalı / şübhəli / xəta | sil düyməsi, status |
-| bənövşəyi `#7C3AED` | **yalnız AI** | AI kartı və nişanı |
+| yaşıl `#00a300` | brend, naviqasiya, əsas hərəkət | logo, tab, primary düymə |
+| yaşıl `#4caf50` | təsdiqlənib / uğurlu | status nöqtəsi, hökm nişanı |
+| mavi `#0066b7` | **təsdiqlənməyib / yoxlaya bilmirik** | natamam market zolağı, şərtli cavab fonu |
+| qırmızı `#cc3327` | bahalı / şübhəli / xəta | sil düyməsi, status |
+| moruğu `#8a005d` | **yalnız AI** | AI kartı və nişanı |
 
-Accent qəsdən **mavi qalıb**, yaşıla keçməyib: yaşıl bu layihədə artıq
-«qənaət» deməkdir. İkisi eyni rəng olsaydı, «bu yaşıl brenddir, yoxsa ucuzluq
-siqnalıdır?» sualı yaranardı və məhsulun ən vacib siqnalı zəifləyərdi.
+**Brend rəngi v2-də mavidən yaşıla keçdi** — istifadəçinin açıq qərarı.
+Bu, bir problem yaradırdı: yaşıl əvvəl «qənaət» demək idi, yəni eyni rəng iki
+məna daşıyacaqdı. Həll: **«ən ucuz» siqnalı rəngdən çıxarıldı** və formaya
+verildi — neytral fon + brend rəngli çərçivə + ✓ nişanı.
+`test_ən_ucuz_siqnalı_rənglə_verilmir` bunu kilidləyir: kimsə dolu yaşıl fonu
+geri qaytarsa, qapı sınır.
+
+**Kəhrəba token-i silindi**, çünki trolley palitrasında turuncu/kəhrəba yoxdur.
+«Təsdiqlənməyib» xəbərdarlıq deyil, **məlumatdır** («yoxlaya bilmirik») — ona
+görə info mavisinə keçdi. Üç pilləli siqnal qalır.
+
+**Kontrast ölçüldü, gözlə qiymətləndirilmədi.** Trolley palitrasının üç yeri
+WCAG AA-dan (4.5:1) keçmirdi:
+
+| Cüt | Ölçmə | Həll |
+|---|---|---|
+| `text-muted #a9a9a9` kart fonunda | **2.11:1** | kiçik etiketlər `#525252`-yə (7.02:1) |
+| `#4caf50` mətn kimi ağ fonda | **2.78:1** | mətn üçün `--ok-ink: #008000` (5.14:1) |
+| **ağ** mətn yaşıl düymədə | **3.37:1** | qara mətn (6.24:1) — trolley-in öz komponent spesifikasiyası da belədir |
+
+Yəni palitra marketinq saytı üçün qurulub; məlumat panelindəki 11–13px
+etiketlərdə oxunmurdu. Palitradan kənara çıxmadan daha tünd tonları götürüldü.
 
 **Market rəng nöqtələri** kimlik bildirir, status yox — ona görə palitrada
-yaşıl və qırmızı **yoxdur**. Rəng market ADINDAN hesablanır (`app/static/store-colors.js` —
-hash xananı təklif edir, toqquşma əlifba sırasında xətti sınaqla həll olunur);
-sıra indeksinə bağlasaydıq, marketlərin sırası dəyişəndə rənglər də dəyişərdi.
+brend yaşılı, `#4caf50` və `#cc3327` **yoxdur**. Rəng market ADINDAN hesablanır
+(`app/static/store-colors.js` — hash xananı təklif edir, toqquşma əlifba
+sırasında xətti sınaqla həll olunur); sıra indeksinə bağlasaydıq, marketlərin
+sırası dəyişəndə rənglər də dəyişərdi.
 
-**Ən böyük element səhifədə təkdir:** səbətin ən ucuz cəmi (56px/800). Stat
-rəqəmləri 36px, səhifə başlığı 30px — yəni istifadəçi ilk baxışda cavabı
-görür. Bu iyerarxiyanı `test_verdict_səhifənin_ən_böyük_elementidir` qoruyur.
+**Ən böyük element səhifədə təkdir:** səbətin cavabı (`.hero-price`, 56px).
+Market adı 24px, səhifə başlığı 30px, admin panelindəki stat rəqəmləri 36px —
+yəni istifadəçi ilk baxışda cavabı görür. Bu iyerarxiyanı
+`test_verdict_səhifənin_ən_böyük_elementidir` qoruyur.
 
 **Hər ekranda bir primary düymə:** istifadəçi panelində «Tövsiyə al», admin
-panelində «Mənbədən çək». İki doldurulmuş düymə yan-yana duranda göz hansının
-əsas olduğunu seçə bilmir və «primary» anlayışı mənasını itirir.
+panelində «Mənbədən çək».
+
+### İlk ekran: bir sual, bir cavab
+
+v2-yə qədər səhifə **4918px** uzunluğunda idi və yuxarıda dörd stat kartı
+(MARKET / KATALOQ / MƏHSUL / QİYMƏT) dururdu. Onlar istifadəçinin sualına
+(«səbətim harada ucuzdur?») cavab vermirdi, sadəcə datanın nə qədər kiçik
+olduğunu reklam edirdi — ona görə **admin panelinə köçürüldü**.
+
+İndi skroll etmədən görünən hissədə **üç element** var:
+
+1. **Səbət** — ad + miqdar + sil çipləri (cədvəl aşağıda qalır).
+2. **Cavab** — səhifənin ən böyük rəqəmi.
+3. **Bir sətir izah** — «Araz ilə müqayisədə 2.40 ₼ ucuz».
+
+Bölünmüş alış (bir neçə marketi gəzmək) **böyük rəqəm kimi göstərilmir** —
+cavabın altında ayrıca sətir kimi təklif olunur. Səbəb: ən böyük rəqəm
+şərtsiz cavab olmalıdır; əvvəl o, dərhal iki şərtlə məhdudlaşdırılırdı
+(«3 marketi gəzsəniz», «tək marketlə olmur»).
+
+**Hazırkı data ilə şərtsiz cavab yoxdur.** Heç bir market səbətin hamısını
+satmır, ona görə ekranda yenə şərtli rəqəm görünür — «natamam market qalib
+elan edilmir» qaydası dəyişmir. Kod hər iki halı dəstəkləyir: tam səbəti satan
+market yarananda ilk ekran avtomatik «market adı + cəm» formasına keçir.
+
+Tarixçə, endirim yoxlaması, AI tövsiyəsi və profil **defolt bağlıdır**
+(`<details>`, JS akkordeon yox — klaviatura, ekran oxuyucusu və `Ctrl+F`
+onsuz da işləyir). Nəticə: səhifə **4918px → 1831px** (−63%).
+
+Alt hissədə görünən dürüstlük qeydi var: qiymətlərin **həftəlik kataloqdan**
+gəldiyi və filialda fərqlənə biləcəyi yazılır.
 
 ### Endirim yoxlaması: exception-first
 
@@ -366,7 +495,7 @@ fərqlidir.
 
 | Nə | İkon haradan gəlir |
 |---|---|
-| Market | **Vahid** mağaza ikonu. `stores` cədvəlində yalnız `slug`/`name`/`website` var — **real loqo yoxdur**, ona görə saxta loqo çəkilmir |
+| Market | **Rəngli dairə + adın ilk hərfi.** `stores` cədvəlində yalnız `slug`/`name`/`website` var — **real loqo yoxdur**, ona görə saxta loqo çəkilmir. Əvvəl hamısına eyni boz mağaza ikonu verilirdi, yəni nişan heç nə ayırd etmirdi |
 | Məhsul | `products.category` sahəsindən: «süd məhsulları» → şüşə, «yağ və souslar» → yağ qabı, «içkilər» → butulka… |
 
 Məhsul **şəkli** də yoxdur: nə DB-də sütun var, nə kataloqdan çıxarılır.
@@ -402,11 +531,11 @@ kimi qalır.
 
 | Qərar | Səbəb |
 |---|---|
-| Bütün rənglər `:root` token-lərindən və `color-mix()` törəmələrindən | brend mavisini dəyişmək bir sətirdir; qrafik sütunları da ardınca gəlir |
+| Bütün rənglər `:root` token-lərindən və `color-mix()` törəmələrindən | brend rəngini dəyişmək bir sətirdir; qrafik sütunları da ardınca gəlir |
 | Qrafik rəngləri CSS-dən **oxunur** (`getComputedStyle`) | canvas CSS dəyişənlərini bilmir; hardcode etsək səhifə bir rəngdə, qrafik başqa rəngdə qalardı |
-| Dark mode **yoxdur** (`color-scheme: light`) | qiymət siqnalları (yaşıl/kəhrəba/qırmızı) iki fonda eyni oxunmur |
+| Dark mode **yoxdur** (`color-scheme: light`) | qiymət siqnalları iki fonda eyni oxunmur; trolley sistemi də yalnız işıqlıdır |
 | Hover-də yalnız **interaktiv** kartlar qalxır | əvvəl hər kart qalxırdı — kursor gəzdikcə səhifə "titrəyirdi" |
-| Ən ucuz xana: yaşıl fon **+ ✓ + `sr-only` mətn** | rəng tək siqnal olsa, rəng görməyən istifadəçi məlumatı itirir |
+| Ən ucuz xana: **çərçivə + ✓ + `sr-only` mətn** (dolu fon YOX) | brend rəngi yaşıl olduğu üçün dolu yaşıl fon «brend» ilə «ucuz» siqnalını qarışdırardı; rəng onsuz da tək siqnal olmamalıdır |
 | Natamam marketin sütunu **zolaqlıdır** | onun cəmi kiçikdir (çatışmayan məhsul 0 sayılır), yəni sütunu qısa — "ucuz" görünür; zolaq və "6/7 məhsul" yazısı bu tələni gözlə görünən edir |
 | Qənaət yoxdursa **uydurulmur** | backend `savings`-i yalnız iki TAM səbət olanda hesablayır; əks halda səbəb yazılır |
 
@@ -535,6 +664,59 @@ HTTPS, ehtiyat nüsxə, nə sınanıb / nə sınanmayıb.
 olunanda 8 GB lazımdır (~$48/ay). Kod dəyişmədən LLM-i kənarda saxlamaq olar —
 yalnız `OLLAMA_BASE_URL` fərqlidir.
 
+## Baza sxemi: `price_snapshots` və market birləşdirmə (v2)
+
+### `price_snapshots` — gündəlik qiymət qatı
+
+`prices` cədvəli bir KATALOQ sətrinə bağlıdır (`catalog_id NOT NULL`), yəni
+yalnız həftəlik jurnaldan gələn qiyməti saxlaya bilir. Onlayn mağazadan
+gündəlik çəkilən qiymətin kataloqu yoxdur — ona görə ayrıca cədvəl:
+
+```sql
+CREATE TABLE price_snapshots (
+    id, product_id, store_id, price, unit_price,
+    is_promo, source, observed_at
+);
+CREATE UNIQUE INDEX ux_snapshot_daily
+    ON price_snapshots(product_id, store_id, source, date(observed_at));
+```
+
+`source` (`'site' | 'catalog'`) **həlledicidir**: sayt qiyməti ilə kataloq
+iddiası eyni cədvəldədir, amma qarışmır. Endirim yoxlaması yalnız
+`source='site'` sətirlərini oxuyacaq — kataloqun iddiasını yenə kataloqla
+təsdiqləmək dairəvi məntiqdir. Sahə `CHECK` ilə qorunur: şərh heç nə
+qorumur, üçüncü dəyər səssizcə yazılsaydı həmin sətirlər süzgəcdən kənarda
+qalardı və bunu heç kim görməzdi.
+
+**Unikal indeks ifadə üzərindədir (`date(observed_at)`), sütun üzərində yox.**
+Sütun variantı heç nə tutmurdu: `observed_at` tam vaxt möhürü olduğu üçün eyni
+məhsul saat 09:00 və 18:30-da çəkiləndə iki sətir yaranırdı və «hər gün bir
+sətir» qaydası kağız üzərində qalırdı. Ölçüldü: ifadəli indekslə ikinci yazı
+`IntegrityError` verir, ertəsi gün isə keçir.
+
+**Cədvəl hazırda BOŞDUR** — onu dolduracaq mənbə yoxdur (bax «Mənbələr»).
+
+### Dublikat market sətirlərinin birləşdirilməsi
+
+Kataloq yüklənəndə market adı sərbəst mətndir və `get_or_create_store()` onu
+SLUG üzrə axtarır. «Araz» əl ilə, «Araz Market» isə scraper tərəfindən
+yaradılmışdı — **eyni şirkət, iki market**. Nəticə istifadəçi panelində
+görünürdü: müqayisə cədvəlində iki ayrı sütun və «Araz Market səbətdəki
+məhsulları satmır» yazısı.
+
+`app/db.py:STORE_MERGES` siyahısı bunu həll edir (hər `init_db()`-də işləyən,
+təkrar çağırıla bilən miqrasiya). Real bazada nəticə:
+
+| | əvvəl | sonra |
+|---|---|---|
+| Araz | 8 qiymət, 1 kataloq | **191 qiymət, 2 kataloq** |
+| Araz Market | 183 qiymət, 1 kataloq | **silindi** |
+| cəmi qiymət | 551 | **551** |
+
+Data itkisi **sıfır**. Siyahı ƏL İLƏ doldurulur: adları avtomatik oxşarlığa
+görə birləşdirmək təhlükəlidir — «Bravo» ilə «Bravo Express» fərqli şəbəkə
+ola bilər.
+
 ## Matching (hibrid, 3 pillə)
 
 | Pillə | Xərc | Nə edir |
@@ -585,8 +767,12 @@ python tools/inspect_catalog.py kataloq.pdf --psm 4 --raw
 # Scraping mənbəyini qiymətləndirir (robots.txt, statik/dinamik, text layer)
 python tools/check_source.py https://example.az/kataloq
 
+# Onlayn mağaza qatı: hansı çəkmə pilləsi işləyir (JSON/XHR -> BS4 -> Selenium)
+python tools/check_source.py --all
+python tools/check_source.py --store bravo --selenium
+
 # Mənbədən kataloq çəkir
-python tools/scrape.py oba --pages 2
+python tools/scrape.py araz --pages 2
 
 # Matching süzgəcinin statistikası (--reset ilkin vəziyyəti ölçür)
 python tools/match_stats.py --reset
@@ -627,14 +813,14 @@ səssiz idi: testlər yaşıl keçirdi, sadəcə səhifədə tanımadığın mə
 görünürdü. Tapılma yolu da təsadüfi oldu — səbətdə iki naməlum məhsul
 göründü və `basket_items`-ə yazan bütün kod axtarıldı.
 
-**Nəticə:** 282 test keçir, 8-i atlanır (boş test bazasında məntiqli olaraq),
+**Nəticə:** 321 test keçir, 5-i atlanır (boş test bazasında məntiqli olaraq),
 istifadəçinin datası toxunulmur.
 
 ## Status
 
 - [x] Həftə 1 — skelet, konfiqurasiya, DB sxemi, mənbə yoxlayıcı
 - [x] Həftə 1 — manual upload + OCR + cleaner + upload UI
-- [x] Həftə 1 — scraping (OBA + Araz) + kart-əsaslı layout analizi ¹
+- [x] Həftə 1 — scraping (OBA + Araz) + kart-əsaslı layout analizi ¹ ³
 - [x] Həftə 2 — LangChain LCEL extraction zənciri + keş + normalizasiya
 - [x] Həftə 2 — hibrid matching + səbət müqayisəsi
 - [x] Həftə 3 — MCP serveri (10 alət) + n8n workflow
@@ -646,8 +832,14 @@ istifadəçinin datası toxunulmur.
 - [x] Bonus — chain-of-thought filtri (xam model mətni brauzerə çatmır)
 - [x] Bonus — UI redizayn: istifadəçi/admin ayrılığı, market və məhsul ikonları,
       exception-first endirim siyahısı
+- [x] v2 — `robots.txt` oxuyucusu (RFC 9309) + `urllib`-dəki iki səhvin düzəlişi
+- [x] v2 — OBA çıxarıldı, dublikat market sətirləri birləşdirildi
+- [x] v2 — `price_snapshots` cədvəli (gündəlik qiymət qatı üçün hazır, **boş**)
+- [x] v2 — trolley dizayn sistemi + interfeysin sadələşdirilməsi (4918px → 1831px)
+- [ ] v2 — baza qiymət (mağaza) qatı: **mənbə tapılmadı**, bax «Mənbələr» bölməsi
 
 ¹ Mənbə seçimi ölçmə tələb etdiyi üçün Həftə 2-dən sonra tamamlandı.
 ² Real droplet-də yox, lokal Docker-də sınanıb — təfərrüat `deploy/README.md`-də.
+³ OBA v2-də mənbə siyahısından çıxarıldı; bazadakı köhnə sətirləri qalır.
 
-**Testlər:** 290 — 282 keçir, 8 atlanır (`pytest -q`)
+**Testlər:** 326 — 321 keçir, 5 atlanır (`pytest -q`)
