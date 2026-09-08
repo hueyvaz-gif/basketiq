@@ -30,13 +30,19 @@
 
   // color-mix() dəyərləri getComputedStyle-dan həmişə hesablanmış gəlmir,
   // ona görə YALNIZ sadə token-lər oxunur, çalarlar isə burada qurulur.
+  //
+  // TOKEN ADLARI v2-də DƏYİŞDİ. Əvvəl burada `--green` və `--amber` oxunurdu;
+  // trolley palitrasına keçəndə onlar `--ok` və `--info` oldu. Bu sətirlər
+  // yenilənməsəydi, `cssVar()` boş qaytarıb SƏSSİZCƏ köhnə hardcode rəngə
+  // düşərdi - qrafik yenə çəkilər, sadəcə səhifə ilə fərqli rəngdə olardı.
+  // Ehtiyat dəyərlər də palitranın özündən götürülüb.
   const TOKENS = {
-    accent: cssVar("--accent", "#0071E3"),
-    green: cssVar("--green", "#34C759"),
-    amber: cssVar("--amber", "#FF9F0A"),
-    text2: cssVar("--text-2", "#6E6E73"),
-    text: cssVar("--text", "#1D1D1F"),
-    surface: cssVar("--surface", "#FFFFFF"),
+    accent: cssVar("--accent", "#00a300"),
+    green: cssVar("--ok", "#4caf50"),
+    amber: cssVar("--info", "#0066b7"),
+    text2: cssVar("--text-2", "#525252"),
+    text: cssVar("--text", "#000000"),
+    surface: cssVar("--surface", "#f1f3f4"),
   };
 
   /** #RRGGBB -> rgba(...) — şəffaflıq üçün. */

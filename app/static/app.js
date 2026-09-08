@@ -53,8 +53,23 @@ const categoryIcon = (category) => CATEGORY_ICON[category] || "package";
  */
 const storeChip = (name, best = false) =>
   `<span class="store-chip${best ? " is-best" : ""}">` +
-  `<span class="store-mark" style="color:${StoreColors.cssVar(name)}">${icon("store")}</span>` +
+  storeAvatar(name, "is-xs") +
   `${esc(name)}</span>`;
+
+/**
+ * Marketin görsəl nişanı: RƏNGLİ DAİRƏ + adın ilk hərfi.
+ *
+ * Əvvəl hamısına eyni boz mağaza ikonu verilirdi - yəni nişan heç nə
+ * ayırd etmirdi, sadəcə yer tuturdu. İndi hərf marketi, rəng isə sabit
+ * kimliyi bildirir (rəngi `store-colors.js` ADDAN hesablayır, sıradan yox).
+ *
+ * Real loqo YENƏ ÇƏKİLMİR: `stores` cədvəlində loqo yoxdur, uydurmuruq.
+ */
+const storeInitial = (name) => (String(name).trim()[0] || "?").toLocaleUpperCase("az");
+
+const storeAvatar = (name, cls = "") =>
+  `<span class="avatar is-store ${cls}" style="color:${StoreColors.cssVar(name)}" ` +
+  `aria-hidden="true">${esc(storeInitial(name))}</span>`;
 
 /**
  * Marketə SABİT rəng nöqtəsi.
@@ -492,6 +507,57 @@ function resetAdvisor(enabled) {
  *   2. heç bir market tam satmır     -> qalib elan edilmir, səbəb izah olunur
  *   3. qalib var                     -> market, cəm, (varsa) qənaət
  */
+/**
+ * Səbətin yığcam siyahısı - ilk ekranın birinci elementi (v2, bölmə 8.2).
+ *
+ * Cədvəl aşağıda qalır; burada yalnız «nə almışam» sualının cavabı var:
+ * ad + miqdar + sil. Cədvəl ekranın yarısını tutduğu üçün istifadəçi
+ * səbətinə baxmaq üçün skroll etməli olurdu.
+ */
+function renderBasket(data) {
+  const box = $("#basketList");
+  if (!data.items.length) {
+    box.innerHTML = "";
+    return;
+  }
+
+  box.innerHTML =
+    `<span class="basket-mini-label">Səbətiniz (${data.items.length})</span>` +
+    data.items
+      .map(
+        (item) => `<span class="basket-chip">
+          <span class="basket-chip-name">${esc(item.label)}</span>
+          ${item.qty && item.qty !== 1 ? `<span class="basket-chip-qty">×${esc(String(item.qty))}</span>` : ""}
+          <button class="basket-chip-del" data-del-item="${item.product_id}" type="button"
+                  aria-label="${esc(item.label)} məhsulunu səbətdən sil">${icon("trash")}</button>
+        </span>`
+      )
+      .join("");
+
+  box.querySelectorAll("[data-del-item]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      await fetch(`/api/basket/items/${b.dataset.delItem}`, { method: "DELETE" });
+      await loadCompare();
+    })
+  );
+}
+
+/**
+ * İLK EKRAN: bir sual, bir cavab (v2, bölmə 8.2).
+ *
+ * Ən böyük rəqəm ŞƏRTSİZ cavab olmalıdır. Əvvəl burada bölünmüş alış cəmi
+ * dururdu və dərhal iki şərtlə məhdudlaşdırılırdı («3 marketi gəzsəniz»,
+ * «tək marketlə olmur») - yəni ekranın ən böyük elementi əslində cavab
+ * deyil, şərtli təklif idi.
+ *
+ * İNDİ: tam səbəti satan market varsa, cavab ODUR. Bölünmüş plan aşağıda,
+ * ayrıca bir sətir kimi TƏKLİF olunur.
+ *
+ * Tam səbəti satan market YOXDURSA cavab uydurulmur - bu halda ən ucuz
+ * əldə edilə bilən cəm göstərilir və şərti elə həmin yerdə deyilir.
+ * «Natamam market qalib elan edilmir» qaydası dəyişmir.
+ */
 function renderHero(data) {
   const box = $("#compareResult");
 
@@ -499,101 +565,73 @@ function renderHero(data) {
     box.innerHTML = `
       <div class="hero-empty">
         <div class="hero-empty-title">Səbət boşdur</div>
-        <div>Aşağıdakı axtarışdan məhsul əlavə edin — müqayisə dərhal görünəcək.</div>
-      </div>`;
-    return;
-  }
-
-  // QALİB YOXDUR — amma bu, "cavab yoxdur" demək deyil.
-  //
-  // Marketlərin assortimenti fərqli olanda heç biri səbətin hamısını satmır.
-  // Köhnə versiyada burada ölü boz qutu vardı və istifadəçi ekranda BİR
-  // rəqəm də görmürdü. Halbuki onun sualının cavabı var: "bu səbət ən azı
-  // neçəyə başa gəlir?" Backend `cheapest` sahəsində məhz onu verir.
-  if (!data.best) {
-    const c = data.cheapest;
-    const most = [...data.stores].sort((a, b) => b.covered - a.covered)[0];
-
-    // `cheapest` və ya market siyahısı yoxdursa, sadə izahla kifayətlənirik.
-    //
-    // Bu yoxlama BOŞ YERƏ deyil: onsuz `c.total` oxunanda funksiya çöküb
-    // BÜTÜN müqayisəni (cədvəl, sütunlar, AI düyməsi) render etməmiş qoyurdu -
-    // yəni bir sahənin olmaması səhifənin yarısını aparırdı.
-    if (!c || !most) {
-      box.innerHTML = `
-        <div class="hero-empty">
-          <div class="hero-empty-title">Qalib elan edilmir</div>
-          <div>${esc(data.note || "Heç bir market səbətin hamısını satmır.")}</div>
-        </div>`;
-      return;
-    }
-
-    box.innerHTML = `
-      <div class="hero-body">
-        <div class="hero-winner is-split">
-          <div class="ribbon is-amber">Bölünmüş alış</div>
-          <span class="eyebrow">Əldə edilə bilən ən ucuz cəm</span>
-          <div class="hero-price">${price(c.total)}</div>
-          <div class="hero-price-note">
-            ${c.store_count} marketi gəzsəniz — hər məhsulu ən ucuz satandan
-            ${c.unavailable ? ` · ${c.unavailable} məhsul heç bir marketdə tapılmadı` : ""}
-          </div>
-        </div>
-        <div class="hero-aside">
-          <div class="eyebrow">Tək marketlə olmur</div>
-          <div class="hero-aside-note">
-            ${esc(data.note || "Heç bir market səbətin hamısını satmır.")}
-          </div>
-          <div class="hero-aside-note">
-            Ən çox əhatə: <strong>${esc(most.store)}</strong> —
-            ${most.covered}/${data.items.length} məhsul.
-          </div>
-        </div>
+        <div>Aşağıdakı axtarışdan məhsul əlavə edin — cavab dərhal görünəcək.</div>
       </div>`;
     return;
   }
 
   const best = data.best;
-  // Rəqəm suffiksindən (6-sı / 6-ində) qaçırıq: say dəyişəndə şəkilçi də
-  // dəyişir və şablon sətrində bunu düzgün etmək mümkün deyil.
-  const leadNote =
-    `Ən ucuz qiymət: ${best.cheapest_count} / ${data.items.length} məhsulda`;
+  const c = data.cheapest;
 
-  // Qənaət YALNIZ ən azı iki TAM səbət olanda hesablanır (backend belə verir).
-  // Yoxdursa uydurmuruq - istifadəçiyə səbəbi deyirik.
-  const savingBlock = data.savings
-    ? `<div class="eyebrow">Qənaət</div>
-       <div class="hero-saving">${price(data.savings)}</div>
-       <div class="hero-aside-note">
-         ən bahalı tam səbətlə müqayisədə
-       </div>`
-    : `<div class="eyebrow">Qənaət</div>
-       <div class="hero-aside-note">
-         Qənaəti hesablamaq üçün səbətin hamısını satan ən azı iki market lazımdır.
-       </div>`;
+  // --- Bölünmüş alış TƏKLİFİ: yalnız real qənaət varsa göstərilir ----------
+  const splitSaving = best && c ? best.total - c.total : 0;
+  const splitLine =
+    best && c && splitSaving > 0.005
+      ? `<p class="answer-alt">
+           ${c.store_count} marketi gəzsəniz daha
+           <strong>${price(splitSaving)}</strong> qənaət edərsiniz
+         </p>`
+      : "";
 
-  // GUŞƏ LENTİ. Faiz REAL datadan hesablanır, uydurulmur:
-  //   ən bahalı tam səbət = best.total + savings
-  //   qənaət faizi        = savings / ən bahalı × 100
-  // `savings` yalnız ən azı İKİ tam səbət olanda gəlir (backend belə verir);
-  // olmayanda faiz də yazılmır - lent neytral mətnə düşür.
-  const ribbonText = data.savings
-    ? `${Math.round((data.savings / (best.total + data.savings)) * 100)}% ucuz`
-    : "Ən sərfəli";
+  // --- HAL 1: səbətin hamısını satan market var -> ŞƏRTSİZ CAVAB -----------
+  if (best) {
+    // «X ilə müqayisədə» üçün ikinci TAM səbət lazımdır. Yoxdursa fərq
+    // yazılmır - iki natamam cəmi müqayisə etmək yanlış rəqəm verərdi.
+    const complete = data.stores
+      .filter((s) => s.complete)
+      .sort((a, b) => a.total - b.total);
+    const second = complete[1];
 
-  box.innerHTML = `
-    <div class="hero-body">
-      <div class="hero-winner">
-        <div class="ribbon">${esc(ribbonText)}</div>
-        <span class="eyebrow">Ən sərfəli seçim</span>
-        <div class="hero-winner-id gap-sm">
-          <span class="avatar is-lg" aria-hidden="true">${icon("store")}</span>
-          <div class="hero-store">${esc(best.store)}</div>
+    const line = second
+      ? `${esc(second.store)} ilə müqayisədə ${price(second.total - best.total)} ucuz`
+      : `Ən ucuz qiymət: ${best.cheapest_count} / ${data.items.length} məhsulda`;
+
+    box.innerHTML = `
+      <div class="answer">
+        <div class="answer-store">
+          ${storeAvatar(best.store, "is-lg")}
+          <span class="hero-store">${esc(best.store)}</span>
         </div>
         <div class="hero-price">${price(best.total)}</div>
-        <div class="hero-price-note">${esc(leadNote)}</div>
+        <p class="answer-line">${line}</p>
       </div>
-      <div class="hero-aside">${savingBlock}</div>
+      ${splitLine}`;
+    return;
+  }
+
+  // --- HAL 2: heç bir market səbətin hamısını satmır -----------------------
+  const most = [...data.stores].sort((a, b) => b.covered - a.covered)[0];
+
+  if (!c || !most) {
+    box.innerHTML = `
+      <div class="hero-empty">
+        <div class="hero-empty-title">Qalib elan edilmir</div>
+        <div>${esc(data.note || "Heç bir market səbətin hamısını satmır.")}</div>
+      </div>`;
+    return;
+  }
+
+  box.innerHTML = `
+    <div class="answer is-split">
+      <span class="eyebrow">Əldə edilə bilən ən ucuz cəm</span>
+      <div class="hero-price">${price(c.total)}</div>
+      <p class="answer-line">
+        ${c.store_count} marketi gəzsəniz — hər məhsulu ən ucuz satandan.
+        Tək market kifayət etmir; ən çox əhatə:
+        <strong>${esc(most.store)}</strong> — ${most.covered}/${data.items.length} məhsul.${
+          c.unavailable ? ` ${c.unavailable} məhsul heç bir marketdə tapılmadı.` : ""
+        }
+      </p>
     </div>`;
 }
 
@@ -625,8 +663,7 @@ function renderBars(data) {
     .map(
       (s) => `<div class="bar-row is-empty">
         <div class="bar-name">
-          <span class="avatar is-sm" style="color:${StoreColors.cssVar(s.store)}"
-                aria-hidden="true">${icon("store")}</span>
+          ${storeAvatar(s.store, "is-sm")}
           <span>${esc(s.store)}<small>səbətdəki məhsulları satmır</small></span>
         </div>
         <div class="bar-empty">Müqayisədə iştirak etmir</div>
@@ -645,8 +682,7 @@ function renderBars(data) {
       const width = Math.max(22, (s.total / max) * 100);
       return `<div class="${cls}">
         <div class="bar-name">
-          <span class="avatar is-sm" style="color:${StoreColors.cssVar(s.store)}"
-                aria-hidden="true">${icon("store")}</span>
+          ${storeAvatar(s.store, "is-sm")}
           <span>${esc(s.store)}<small>${esc(sub)}</small></span>
         </div>
         <div class="bar-track">
@@ -659,7 +695,7 @@ function renderBars(data) {
     ${data.note ? `<div class="notice warn">${esc(data.note)}</div>` : ""}`;
 }
 
-/** Məhsul × market cədvəli. Ən ucuz xana yaşıl fon + işarə ilə vurğulanır. */
+/** Məhsul × market cədvəli. Ən ucuz xana ÇƏRÇİVƏ + ✓ ilə vurğulanır (dolu fon yox). */
 function renderCompareTable(data) {
   const stores = data.stores;
 
@@ -738,6 +774,7 @@ async function loadCompare() {
     // cədvəldə bir, barlarda başqa rəngdə görünərdi.
     StoreColors.note(data.stores.map((s) => s.store));
 
+    renderBasket(data);
     renderHero(data);
 
     if (!data.items.length) {

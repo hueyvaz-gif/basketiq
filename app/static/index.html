@@ -8,14 +8,14 @@
   <!-- Inline SVG favicon: ayrıca fayl yaratmır və brauzerin 404 sorğusunu
        aradan qaldırır. Emoji DEYİL - dizayn sistemi emoji ikonu qadağan edir,
        üstelik emoji hər əməliyyat sistemində fərqli çəkilir. -->
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230071E3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8h18l-1.6 10.2a2 2 0 0 1-2 1.8H6.6a2 2 0 0 1-2-1.8L3 8Z'/%3E%3Cpath d='M8.5 8 10 4m5.5 4L14 4'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300a300' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8h18l-1.6 10.2a2 2 0 0 1-2 1.8H6.6a2 2 0 0 1-2-1.8L3 8Z'/%3E%3Cpath d='M8.5 8 10 4m5.5 4L14 4'/%3E%3C/svg%3E">
 
-  <!-- Inter: dizayn sisteminin şrifti. Şəbəkə yoxdursa `--font` stack-i
-       sistem şriftinə düşür və səhifə sınmır. -->
+  <!-- Poppins: trolley dizayn sisteminin YEGANƏ şrifti (font qarışdırılmır).
+       Şəbəkə yoxdursa `--font` stack-i sistem şriftinə düşür və səhifə sınmır. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap">
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
 
   <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -276,52 +276,28 @@
       </p>
     </div>
 
-    <!-- --- Statistika --- -->
-    <div class="stat-grid" id="stats">
-      <div class="stat is-accent">
-        <div class="stat-icon"><svg><use href="#icon-store"></use></svg></div>
-        <div class="stat-label">Market</div>
-        <div class="stat-value skeleton">00</div>
-        <div class="stat-note">Yüklənir</div>
-      </div>
-      <div class="stat is-accent">
-        <div class="stat-icon"><svg><use href="#icon-layers"></use></svg></div>
-        <div class="stat-label">Kataloq</div>
-        <div class="stat-value skeleton">00</div>
-        <div class="stat-note">Yüklənir</div>
-      </div>
-      <div class="stat is-accent">
-        <div class="stat-icon"><svg><use href="#icon-package"></use></svg></div>
-        <div class="stat-label">Məhsul</div>
-        <div class="stat-value skeleton">00</div>
-        <div class="stat-note">Yüklənir</div>
-      </div>
-      <div class="stat is-accent">
-        <div class="stat-icon"><svg><use href="#icon-tag"></use></svg></div>
-        <div class="stat-label">Qiymət</div>
-        <div class="stat-value skeleton">00</div>
-        <div class="stat-note">Yüklənir</div>
-      </div>
-    </div>
+    <!-- --- HERO: BİR SUAL, BİR CAVAB (v2, bölmə 8.2) ---
 
-    <!-- --- HERO: əsas nəticə --- -->
+         İlk ekranda cəmi üç şey var: səbət, cavab, bir sətir izah.
+         Market sütunları və şərtlər aşağı - "ətraflı" bölməsinə keçdi,
+         çünki ən böyük rəqəm dərhal iki şərtlə məhdudlaşdırılanda
+         cavab olmaqdan çıxır. -->
     <section class="hero" aria-labelledby="heroTitle">
-      <div>
-        <h2 class="hero-title" id="heroTitle">Səbətiniz harada ucuzdur?</h2>
-        <p class="hero-lead">
-          Seçdiyiniz məhsullar üzrə ən sərfəli marketi müqayisə edin.
-          Səbətin hamısını satmayan market qalib elan edilmir.
-        </p>
-      </div>
+      <h2 class="sr-only" id="heroTitle">Səbətiniz harada ucuzdur?</h2>
+
+      <div class="basket-mini" id="basketList"></div>
 
       <div id="compareResult">
         <div class="hero-empty">
           <div class="hero-empty-title">Səbət boşdur</div>
-          <div>Aşağıdakı axtarışdan məhsul əlavə edin — müqayisə dərhal görünəcək.</div>
+          <div>Aşağıdakı axtarışdan məhsul əlavə edin — cavab dərhal görünəcək.</div>
         </div>
       </div>
 
-      <div id="storeBars"></div>
+      <details class="fold fold-inline" id="storeDetails">
+        <summary class="fold-head"><span>Market üzrə ətraflı</span></summary>
+        <div id="storeBars"></div>
+      </details>
     </section>
 
     <!-- --- Məhsul üzrə müqayisə + axtarış --- -->
@@ -331,7 +307,7 @@
           <svg aria-hidden="true"><use href="#icon-package"></use></svg>
           <h2 class="section-heading">Məhsul üzrə müqayisə</h2>
         </div>
-        <p class="section-sub">Hər sətirdə ən ucuz qiymət yaşıl işarələnib.</p>
+        <p class="section-sub">Hər sətirdə ən ucuz qiymət ✓ nişanı və çərçivə ilə işarələnib.</p>
       </div>
 
       <div id="compareTableWrap"></div>
@@ -347,13 +323,13 @@
 
     <!-- --- AI tövsiyəsi + qiymət tarixçəsi yan-yana (geniş ekranda) --- -->
     <div class="duo">
-    <section class="card ai-card" aria-labelledby="aiTitle">
+    <details class="card ai-card fold">
+      <summary class="fold-head">
+        <svg aria-hidden="true"><use href="#icon-sparkle"></use></svg>
+        <h2 class="section-heading" id="aiTitle">AI tövsiyəsi</h2>
+        <span class="pill is-ai">AI</span>
+      </summary>
       <div class="ai-head">
-        <div class="ai-title">
-          <svg aria-hidden="true"><use href="#icon-sparkle"></use></svg>
-          <h2 class="section-heading" id="aiTitle">AI tövsiyəsi</h2>
-          <span class="pill is-ai">AI</span>
-        </div>
         <div class="actions flush">
           <button class="btn btn-ghost" id="factsBtn" type="button">
             Faktlara bax
@@ -377,15 +353,15 @@
         <div id="advisorCheck"></div>
         <pre class="facts hidden" id="factsBox"></pre>
       </div>
-    </section>
+    </details>
 
     <!-- --- Qiymət tarixçəsi --- -->
-    <section class="card" aria-labelledby="historyTitle">
+    <details class="card fold">
+      <summary class="fold-head">
+        <svg aria-hidden="true"><use href="#icon-chart"></use></svg>
+        <h2 class="section-heading" id="historyTitle">Qiymət tarixçəsi</h2>
+      </summary>
       <div class="card-head">
-        <div class="head-row">
-          <svg aria-hidden="true"><use href="#icon-chart"></use></svg>
-          <h2 class="section-heading" id="historyTitle">Qiymət tarixçəsi</h2>
-        </div>
         <p class="section-sub">
           Eyni marketdən 2 müşahidə olmayanda trend yox, market müqayisəsi göstərilir.
         </p>
@@ -411,16 +387,16 @@
       <div class="table-scroll gap-md">
         <table class="lines" id="historyTable"></table>
       </div>
-    </section>
+    </details>
     </div>
 
     <!-- --- Endirim yoxlaması --- -->
-    <section class="card" aria-labelledby="discountTitle">
+    <details class="card fold">
+      <summary class="fold-head">
+        <svg aria-hidden="true"><use href="#icon-shield"></use></svg>
+        <h2 class="section-heading" id="discountTitle">Endirim yoxlaması</h2>
+      </summary>
       <div class="card-head">
-        <div class="head-row">
-          <svg aria-hidden="true"><use href="#icon-shield"></use></svg>
-          <h2 class="section-heading" id="discountTitle">Endirim yoxlaması</h2>
-        </div>
         <p class="section-sub">
           Kataloqdakı «köhnə qiymət» iddiasını öz müşahidələrimizlə tutuşdururuq.
           Diqqət tələb edənlər yuxarıdadır. «Təsdiqlənməyib» hökmü «saxta» demək
@@ -433,15 +409,15 @@
       <div class="actions">
         <button class="btn btn-secondary" id="discountRefresh" type="button">Yenilə</button>
       </div>
-    </section>
+    </details>
 
     <!-- --- Profil --- -->
-    <section class="card" aria-labelledby="profileTitle">
+    <details class="card fold">
+      <summary class="fold-head">
+        <svg aria-hidden="true"><use href="#icon-gear"></use></svg>
+        <h2 class="section-heading" id="profileTitle">Profil və parametrlər</h2>
+      </summary>
       <div class="card-head">
-        <div class="head-row">
-          <svg aria-hidden="true"><use href="#icon-gear"></use></svg>
-          <h2 class="section-heading" id="profileTitle">Profil və parametrlər</h2>
-        </div>
         <p class="section-sub">
           Bu ayarlar bəzək deyil: tövsiyə məntiqi onlara görə dəyişir. Tək markete
           gedirsinizsə, 0.20 AZN üçün ikinci market təklif olunmayacaq.
@@ -493,7 +469,18 @@
         <h3 class="section-heading subheading">Sizə tövsiyə olunan plan</h3>
       </div>
       <div id="planBox"><div class="row"><span class="row-label skeleton">Yüklənir</span></div></div>
-    </section>
+    </details>
+
+    <!-- DÜRÜSTLÜK QEYDİ (v2, bölmə 8.5).
+         Mətn tapşırıqdakından FƏRQLİDİR: orada «onlayn mağazasından
+         götürülüb» yazılmışdı, amma addım 4-də ölçüldü ki, üç marketin
+         heç birindən onlayn mağaza qatı çəkilə bilmir - qiymətlər HƏFTƏLİK
+         KATALOQDAN gəlir. Yanlış mənbə göstərmək dürüstlük qeydini
+         mənasız edərdi. -->
+    <p class="fineprint">
+      Qiymətlər marketlərin dərc etdiyi həftəlik kataloqlardan götürülüb və
+      filialda, eləcə də kataloqun qüvvədə olduğu müddətdən sonra fərqlənə bilər.
+    </p>
   </main>
 
 
@@ -516,6 +503,39 @@
       Yuxarıdakı istifadəçi paneli buradakı kataloqlardan qidalanır: mənbədən çək
       və ya əl ilə yüklə, sonra AI ilə emal et.
     </div>
+
+    <!-- --- Baza sayğacları ---
+         BURAYA KÖÇÜRÜLDÜ (v2, bölmə 8.1). Əvvəl istifadəçi panelinin
+         ən başında idi. Səbəb: bu dörd rəqəm istifadəçinin sualına
+         («səbətim harada ucuzdur?») cavab vermir, sadəcə datanın nə qədər
+         kiçik olduğunu reklam edir. Admin üçün isə həqiqətən faydalıdır. -->
+    <div class="stat-grid" id="stats">
+      <div class="stat is-accent">
+        <div class="stat-icon"><svg><use href="#icon-store"></use></svg></div>
+        <div class="stat-label">Market</div>
+        <div class="stat-value skeleton">00</div>
+        <div class="stat-note">Yüklənir</div>
+      </div>
+      <div class="stat is-accent">
+        <div class="stat-icon"><svg><use href="#icon-layers"></use></svg></div>
+        <div class="stat-label">Kataloq</div>
+        <div class="stat-value skeleton">00</div>
+        <div class="stat-note">Yüklənir</div>
+      </div>
+      <div class="stat is-accent">
+        <div class="stat-icon"><svg><use href="#icon-package"></use></svg></div>
+        <div class="stat-label">Məhsul</div>
+        <div class="stat-value skeleton">00</div>
+        <div class="stat-note">Yüklənir</div>
+      </div>
+      <div class="stat is-accent">
+        <div class="stat-icon"><svg><use href="#icon-tag"></use></svg></div>
+        <div class="stat-label">Qiymət</div>
+        <div class="stat-value skeleton">00</div>
+        <div class="stat-note">Yüklənir</div>
+      </div>
+    </div>
+
 
     <!-- --- Sistem statusu --- -->
     <section class="card" aria-labelledby="sysTitle">

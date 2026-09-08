@@ -180,30 +180,76 @@ def test_rənglər_yalnız_token_lərdən_gəlir():
 
 def test_semantik_rənglər_təyin_olunub():
     """
-    Rəng MƏNA daşıyır, bəzək deyil. Bu beş token hər biri bir siqnaldır;
-    biri dəyişsə, UI-da həmin məna itər.
+    Rəng MƏNA daşıyır, bəzək deyil. Hər token bir siqnaldır; biri dəyişsə,
+    UI-da həmin məna itər.
 
-    `--accent` MAVİ qalır (istifadəçinin açıq qərarı): yaşıl bu layihədə artıq
-    QƏNAƏT deməkdir. İkisi eyni rəng olsaydı, «bu yaşıl brenddir, yoxsa
-    ucuzluq siqnalıdır?» sualı yaranardı və əsas siqnal zəifləyərdi.
+    PALİTRA DƏYİŞDİ (trolley dizayn sistemi, istifadəçinin açıq qərarı).
+    Əvvəl brend MAVİ idi, çünki yaşıl «qənaət» mənasını daşıyırdı. İndi brend
+    trolley-in yaşılıdır, «ən ucuz» siqnalı isə rəngdən çıxarılıb ÇƏRÇİVƏYƏ
+    verilib — bax `test_ən_ucuz_siqnalı_rənglə_verilmir`. Beləliklə bir yaşıl
+    iki məna daşımır.
+
+    Kəhrəba token-i YOXDUR: trolley palitrasında turuncu/kəhrəba yoxdur.
+    «Təsdiqlənməyib» xəbərdarlıq deyil, məlumatdır — ona görə info mavisidir.
     """
     css = read_static("style.css")
     expected = {
-        "--accent": "#0071E3",   # brend, naviqasiya, əsas hərəkət
-        "--green": "#16A34A",    # qənaət / ən ucuz / təsdiqlənib
-        "--amber": "#F59E0B",    # diqqət / təsdiqlənməyib
-        "--red": "#EF4444",      # bahalı / şübhəli / xəta
-        "--ai": "#7C3AED",       # YALNIZ AI kartı
+        "--accent": "#00a300",   # brend, naviqasiya, əsas hərəkət
+        "--ok": "#4caf50",       # təsdiqlənib / uğurlu
+        "--info": "#0066b7",     # təsdiqlənməyib / yoxlaya bilmirik
+        "--danger": "#cc3327",   # bahalı / şübhəli / xəta
+        "--ai": "#8a005d",       # YALNIZ AI kartı
     }
     for token, value in expected.items():
         assert re.search(rf"{token}:\s*{value};", css, re.I), f"{token} != {value}"
 
 
+def test_ən_ucuz_siqnalı_rənglə_verilmir():
+    """
+    Brend rəngi yaşıl olduğu üçün «ən ucuz» DOLU YAŞIL FON işlədə bilməz —
+    əks halda eyni yaşıl həm brendi, həm ucuzluğu bildirərdi.
+
+    Siqnal forma ilə verilir: çərçivə + ✓ nişanı. Kimsə fonu geri qaytarsa,
+    bu test düşəcək.
+    """
+    css = read_static("style.css")
+    block = re.search(r"\.price-pill\.is-best\s*\{(.*?)\}", css, re.S)
+    assert block, ".price-pill.is-best qaydası tapılmadı"
+    rule = block.group(1)
+    assert "border:" in rule, "«ən ucuz» çərçivəsi yoxdur"
+    assert "var(--accent)" in rule, "çərçivə brend rəngindən gəlməlidir"
+    assert "background: var(--bg)" in rule, "fon neytral qalmalıdır"
+
+
+def test_js_in_oxuduğu_hər_token_root_da_var():
+    """
+    REAL SƏHVDƏN ÇIXIB.
+
+    `analytics.js` qrafik rənglərini CSS-dən oxuyur:
+    `cssVar("--green", "#34C759")`. v2-də token adı `--ok` oldu, amma JS
+    yenilənmədi — `getComputedStyle` boş sətir qaytardı və kod SƏSSİZCƏ
+    ehtiyat hardcode rəngə düşdü. Qrafik yenə çəkilirdi, sadəcə səhifə ilə
+    fərqli rəngdə: nə xəta, nə xəbərdarlıq.
+
+    Bu test JS-in soruşduğu hər token-in `:root`-da mövcudluğunu yoxlayır.
+    """
+    css = read_static("style.css")
+    root = re.search(r":root\s*\{.*?\n\}", css, re.S).group(0)
+    declared = set(re.findall(r"(--[a-z0-9-]+)\s*:", root))
+
+    for name in ["analytics.js", "app.js", "store-colors.js"]:
+        source = read_static(name)
+        wanted = set(re.findall(r'cssVar\(\s*"(--[a-z0-9-]+)"', source))
+        wanted |= set(re.findall(r'getPropertyValue\(\s*"(--[a-z0-9-]+)"', source))
+        missing = sorted(w for w in wanted if w not in declared)
+        assert not missing, f"{name} olmayan token oxuyur: {missing}"
+
+
 def test_səth_rəngləri_işıqlıdır():
     """Tünd fon heç vaxt yaranmamalıdır - layihə yalnız işıqlı rejimdədir."""
     css = read_static("style.css")
-    assert re.search(r"--bg:\s*#FAFAF7;", css, re.I), "səhifə fonu dəyişib"
-    assert re.search(r"--surface:\s*#FFFFFF;", css, re.I), "kart fonu dəyişib"
+    assert re.search(r"--bg:\s*#ffffff;", css, re.I), "səhifə fonu dəyişib"
+    assert re.search(r"--surface:\s*#f1f3f4;", css, re.I), "kart fonu dəyişib"
 
 
 def test_market_palitrasında_status_rəngi_yoxdur():
@@ -218,7 +264,9 @@ def test_market_palitrasında_status_rəngi_yoxdur():
     palette = re.findall(r"--store-\d:\s*(#[0-9A-Fa-f]{6});", css)
     assert len(palette) == 6, f"6 market rəngi gözlənilirdi, {len(palette)} var"
 
-    status = {"#16A34A", "#EF4444"}
+    # Brend rəngi də bura daxildir: market nöqtəsi brendlə eyni yaşıl olsa,
+    # «bu market seçilib?» sualı yaranar.
+    status = {"#4CAF50", "#CC3327", "#00A300"}
     clash = status & {c.upper() for c in palette}
     assert not clash, f"market palitrasında status rəngi var: {clash}"
 
@@ -238,8 +286,11 @@ def test_verdict_səhifənin_ən_böyük_elementidir():
         assert block, f".{selector} üçün font-size tapılmadı"
         return int(block.group(1))
 
+    # `.hero-saving` siyahıdan ÇIXARILDI: v2-də hero yenidən quruldu və
+    # «qənaət» bloku ümumiyyətlə yoxdur - qənaət indi cavabın altında bir
+    # sətir (`.answer-alt`) kimi verilir, böyük rəqəm kimi yox.
     verdict = size_of("hero-price")
-    for other in ["stat-value", "hero-store", "page-title", "chart-value", "hero-saving"]:
+    for other in ["stat-value", "hero-store", "page-title", "chart-value"]:
         assert verdict > size_of(other), f".hero-price .{other}-dən böyük deyil"
 
 

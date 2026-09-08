@@ -23,85 +23,108 @@
 :root {
   color-scheme: light;
 
+  /* ==========================================================================
+     TROLLEY DİZAYN SİSTEMİ (trolley.co.uk-dan çıxarılıb, 2026-09-08)
+     Yalnız İŞIQLI rejim. Tünd blok yoxdur - `test_dark_mode_bloku_yoxdur`.
+     Hər hex trolley palitrasındandır; palitradan kənar rəng uydurulmur.
+     ========================================================================== */
+
   /* --- Səth --- */
-  --bg: #FAFAF7;          /* xəfif isti ağ - tam ağ deyil, kart ondan ayrılsın */
-  --surface: #FFFFFF;
-  --surface-2: #F3F4F6;   /* input, zebra, bar yolu */
+  --bg: #ffffff;          /* trolley: background */
+  --surface: #f1f3f4;     /* trolley: surface - kart və panel fonu */
+  --surface-2: #ffffff;   /* input fonu (trolley Input: bg #ffffff) */
 
   /* --- Mətn --- */
-  --text: #111827;
-  --text-2: #4B5563;
-  --text-3: #9CA3AF;
+  --text: #000000;        /* trolley: text-primary */
+  --text-2: #525252;      /* trolley palitrası - kart fonunda 7.02:1 ✓ */
+  /* DİQQƏT: trolley-in `text-muted` rəngi #a9a9a9-dur, amma ölçüldü -
+     kart fonunda cəmi 2.11:1 verir, yəni WCAG AA-dan (4.5:1) KEÇMİR.
+     Marketinq saytında böyük mətn üçün işləyir, məlumat panelində 11-13px
+     etiketlər üçün yox. Palitranın növbəti tonu götürüldü: #7d7d7d (3.70:1) -
+     o da kiçik mətn üçün zəifdir, ona görə KİÇİK ETİKETLƏR `--text-2`
+     işlədir; `--text-3` yalnız ikon, tire və üstüxətli köhnə qiymət üçün
+     qalır (onlar məlumatın özü deyil). */
+  --text-3: #7d7d7d;
 
-  /* --- Brend --- */
-  --accent: #0071E3;
+  /* --- Brend ---
+     BREND ARTIQ YAŞILDIR. Əvvəl mavi idi, çünki yaşıl "qənaət" mənasını
+     daşıyırdı. İstifadəçi qərarı ilə trolley-in brend yaşılına keçildi;
+     "ən ucuz" siqnalı isə RƏNGDƏN çıxarılıb ÇƏRÇİVƏ + ✓ nişanına verildi
+     (bax `.price-pill.is-best`). Beləliklə bir yaşıl iki məna daşımır. */
+  --accent: #00a300;
+  --accent-ink: #008000;  /* ağ fonda yaşıl MƏTN üçün - #00a300 mətn kimi zəifdir */
 
-  /* --- Semantik status ---
-     Yaşıl BU LAYİHƏDƏ "qənaət" deməkdir və brend rəngi ilə qarışmır:
-     brend mavidir, ona görə yaşıl gördüyün hər yer pul deməkdir. */
-  --green: #16A34A;
-  --amber: #F59E0B;
-  --red: #EF4444;
-  --ai: #7C3AED;          /* yalnız AI kartı */
+  /* --- Semantik status (trolley status palitrası) ---
+     DİQQƏT: trolley palitrasında KƏHRƏBA YOXDUR. Əvvəlki `--amber`
+     ("təsdiqlənməyib") mənasını itirmədən trolley-in info mavisinə keçdi:
+     "təsdiqlənməyib" xəbərdarlıq deyil, MƏLUMATDIR - "yoxlaya bilmirik".
+     Beləliklə üç pilləli siqnal qalır: təsdiqlənib / yoxlaya bilmirik / şübhəli. */
+  --ok: #4caf50;          /* trolley: success - FON və nöqtə üçün */
+  --ok-ink: #008000;      /* yaşıl MƏTN üçün: #4caf50 ağ fonda 2.78:1 verir,
+                             #008000 isə 5.14:1 - AA-dan keçir */
+  --info: #0066b7;        /* trolley: info - təsdiqlənməyib, yoxlanılmayıb */
+  --danger: #cc3327;      /* trolley: danger - şübhəli / bahalı / xəta */
+  --ai: #8a005d;          /* trolley palitrası - YALNIZ AI kartı */
 
-  /* Rəngli fon üzərində oxunan mətn tonları. Statusun öz rəngi fon kimi
-     işlənəndə mətn üçün daha tünd variant lazımdır - kəhrəba/qırmızının
-     özü ağ fonda kifayət qədər kontrast vermir. */
-  --on-accent: #FFFFFF;
-  --amber-ink: #B45309;
-  --red-ink: #B91C1C;
+  /* Rəngli fon üzərində oxunan mətn tonları. */
+  --on-accent: #000000;   /* trolley btn-primary: yaşıl fonda QARA mətn.
+                             Ölçmə: #00a300 üzərində qara 6.3:1, ağ 3.4:1 -
+                             yəni ağ mətn AA-dan keçmir, qara keçir. */
+  --info-ink: #16369a;    /* info mavisinin daha tünd variantı - mətn üçün */
+  --danger-ink: #cc3327;  /* ağ fonda 5.2:1 - mətn kimi kifayətdir */
 
   /* Yüngül fonlar: ayrı hex yazmaq əvəzinə əsas token ağ səthlə qarışır,
      yəni token dəyişsə bunlar da ardınca dəyişir. */
-  --accent-soft: color-mix(in srgb, var(--accent) 8%, var(--surface));
-  --green-soft: color-mix(in srgb, var(--green) 12%, var(--surface));
-  --amber-soft: color-mix(in srgb, var(--amber) 14%, var(--surface));
-  --red-soft: color-mix(in srgb, var(--red) 10%, var(--surface));
-  --ai-soft: #F5F3FF;
+  --accent-soft: color-mix(in srgb, var(--accent) 10%, var(--bg));
+  --ok-soft: color-mix(in srgb, var(--ok) 14%, var(--bg));
+  --info-soft: color-mix(in srgb, var(--info) 10%, var(--bg));
+  --danger-soft: color-mix(in srgb, var(--danger) 10%, var(--bg));
+  --ai-soft: color-mix(in srgb, var(--ai) 8%, var(--bg));
 
   /* --- Market identikliyi ---
-     Hər marketə öz rəng nöqtəsi (Trolley-dəki loqo çipləri kimi). Real loqo
-     YOXDUR - `stores` cədvəlində yalnız slug/name/website var - ona görə
-     saxta brend çəkmirik, kiçik rəng nöqtəsi ilə kifayətlənirik.
-     Palitrada YAŞIL və QIRMIZI YOXDUR: onlar status rəngidir, market
-     kimliyi ilə qarışsalar "bu market yaşıldır, yoxsa ucuzdur?" sualı yaranır.
+     Hər marketə öz rəng nöqtəsi. Real loqo YOXDUR - `stores` cədvəlində
+     yalnız slug/name/website var - ona görə saxta brend çəkmirik.
+     Palitrada STATUS rəngi (yaşıl/qırmızı) və BREND rəngi OLA BİLMƏZ:
+     əks halda "bu market yaşıldır, yoxsa ucuzdur?" sualı yaranır.
+     Hamısı trolley genişləndirilmiş palitrasındandır. */
+  --store-1: #16369a;
+  --store-2: #1a73e8;
+  --store-3: #008a66;
+  --store-4: #780051;
+  --store-5: #525252;
+  --store-6: #7d7d7d;
 
-     Palitrada STATUS və BREND token-i ilə eyni hex OLA BİLMƏZ. Əvvəl üç
-     toqquşma vardı: --store-2 = --ai, --store-1 = --accent,
-     --store-4 = --amber-ink. Hər üçü həll olundu.
-     Ayrılıq Lab fəzasında ölçülüb - ən pis hal dE=19.3 (--store-2 <-> --ai),
-     marketlər arasında ən yaxın cüt dE=20.9 (--store-3 <-> --store-6). */
-  --store-1: #1E3A8A;   /* əvvəl #0071E3 = --accent */
-  --store-2: #4338CA;   /* əvvəl #7C3AED = --ai */
-  --store-3: #0E7490;
-  --store-4: #713F12;   /* əvvəl #B45309 = --amber-ink */
-  --store-5: #BE185D;
-  --store-6: #475569;
+  /* --- Sərhəd və kölgə ---
+     Trolley kartı 1px sərhəd + kölgə ilə qurulur (bizim əvvəlki "sərhədsiz,
+     yalnız kölgə" yanaşmamızdan fərqli). Nazik ayırıcılar üçün palitranın
+     açıq boz tonu, güclü sərhəd (input, ghost düymə) üçün #404040. */
+  --line: #dddddd;
+  --border: #404040;
 
-  /* --- Kölgə: yüksəklik burada verilir, border-lə deyil --- */
-  --shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 2px 8px rgba(16, 24, 40, .06);
-  --shadow-lift: 0 2px 4px rgba(16, 24, 40, .05), 0 8px 20px rgba(16, 24, 40, .10);
-  --hairline: rgba(16, 24, 40, .06);   /* yalnız cədvəl sətir ayırıcısı */
+  --shadow: 0 3px 4px rgba(0, 0, 0, .1);                                  /* trolley: raised */
+  --shadow-lift: 0 10px 20px rgba(0, 0, 0, .19), 0 6px 6px rgba(0, 0, 0, .23); /* trolley: floating */
+  --hairline: #dddddd;
 
-  /* --- Forma --- */
-  --r-card: 20px;
-  --r-md: 16px;
-  --r-sm: 12px;
-  --r-xs: 6px;
-  --r-pill: 999px;
+  /* --- Forma: trolley radius şkalası, defolt 10px --- */
+  --r-card: 10px;
+  --r-md: 10px;
+  --r-sm: 6px;
+  --r-xs: 3px;
+  --r-pill: 9999px;
 
-  /* --- Boşluq: 8px əsaslı --- */
-  --s1: 4px; --s2: 8px; --s3: 16px; --s4: 24px; --s5: 32px; --s6: 48px;
+  /* --- Boşluq: trolley 5px şəbəkəsi --- */
+  --s1: 5px; --s2: 10px; --s3: 15px; --s4: 20px; --s5: 30px; --s6: 40px;
 
-  --content: 1280px;
+  --content: 1024px;      /* trolley: max content width */
   --measure: 68ch;
 
-  --font: "Manrope", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+  --font: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI",
           system-ui, sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  --ease: .18s cubic-bezier(.4, 0, .2, 1);
-  --ease-slow: .32s cubic-bezier(.4, 0, .2, 1);
+  /* Trolley hərəkət şkalası: 125ms / 150ms, ease-in-out */
+  --ease: .125s ease-in-out;
+  --ease-slow: .15s ease-in-out;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -116,11 +139,11 @@ body {
   line-height: 1.55;
 }
 
-h1, h2, h3 { font-weight: 800; letter-spacing: -.025em; line-height: 1.15; }
+h1, h2, h3 { font-weight: 700; letter-spacing: -.025em; line-height: 1.15; }
 
 /* Bütün rəqəm sahələri bərabər enli olsun: sütunda rəqəmlər sürüşməsin və
    "19.65" ilə "8.10" eyni yerdə bitsin. */
-.num, .money, .stat-value, .hero-price, .hero-saving, .bar-value,
+.num, .money, .stat-value, .hero-price, .bar-value,
 table.lines .num, .row-value {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
@@ -167,13 +190,13 @@ table.lines .num, .row-value {
   display: grid; place-items: center;
   border-radius: var(--r-sm);
   background: var(--accent);
-  color: var(--surface);
+  color: var(--on-accent);
   flex: none;
 }
 
 .brand-mark svg { width: 21px; height: 21px; }
 
-.brand-name { font-size: 19px; font-weight: 800; letter-spacing: -.03em; }
+.brand-name { font-size: 19px; font-weight: 700; letter-spacing: -.03em; }
 
 /* --- Segmented control: "chunky" pill toggle (Wise tərzi) --- */
 .segmented {
@@ -220,7 +243,9 @@ table.lines .num, .row-value {
 .wrap { max-width: var(--content); margin: 0 auto; padding: var(--s4) var(--s4) var(--s6); }
 
 /* Bölmələr arasında SABİT məsafə - hər karta ayrıca margin yazılmır */
-.panel { display: flex; flex-direction: column; gap: var(--s4); }
+/* Bölmələr arası məsafə v2-də sıxıldı (8.4): 24px -> 15px.
+   Kart daxili boşluq trolley spesifikasiyasındakı 20px-də qalır. */
+.panel { display: flex; flex-direction: column; gap: var(--s3); }
 
 .page-title { font-size: 30px; }
 
@@ -234,7 +259,7 @@ table.lines .num, .row-value {
 /* Bölmə başlığı - NORMAL CASE, qalın.
    Köhnə dizaynda hər başlıq 12px boz UPPERCASE idi: səhifədə hər şey eyni
    çəkidə görünürdü və göz "əsas nədir?" sualına cavab tapmırdı. */
-.section-heading { font-size: 21px; font-weight: 800; letter-spacing: -.025em; color: var(--text); }
+.section-heading { font-size: 21px; font-weight: 700; letter-spacing: -.025em; color: var(--text); }
 .subheading { font-size: 17px; }
 
 .section-sub { color: var(--text-2); font-size: 14px; margin-top: 6px; max-width: var(--measure); }
@@ -247,8 +272,8 @@ table.lines .num, .row-value {
    məzmunla yarışmır. */
 .eyebrow {
   font-size: 11px;
-  font-weight: 800;
-  color: var(--text-3);
+  font-weight: 700;
+  color: var(--text-2);
   text-transform: uppercase;
   letter-spacing: .08em;
 }
@@ -261,12 +286,12 @@ table.lines .num, .row-value {
 
 
 /* ============================================================================
-   KARTLAR — kəskin border yoxdur, yüksəklik kölgə ilə verilir
+   KARTLAR — trolley: 1px sərhəd + kölgə (əvvəl sərhədsiz idi)
    ============================================================================ */
 
 .card {
   background: var(--surface);
-  border: none;
+  border: 1px solid var(--line);
   border-radius: var(--r-card);
   padding: var(--s4);
   box-shadow: var(--shadow);
@@ -286,6 +311,7 @@ table.lines .num, .row-value {
 .stat {
   position: relative;
   background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: var(--r-card);
   padding: var(--s4);
   box-shadow: var(--shadow);
@@ -310,22 +336,21 @@ table.lines .num, .row-value {
 .stat-icon svg { width: 19px; height: 19px; }
 
 /* Dörd stat kartının hamısı `is-accent`-dir (bax app.js renderStats).
-   `.stat.is-green` / `.stat.is-amber` qaydaları B4-dən sonra istifadəçisiz
-   qaldı və silindi. `.pill.is-green`, `.ribbon.is-amber` və `.avatar`
-   variantları BAŞQA qaydalardır — onlar işlənir, toxunulmayıb. */
+   Bu kartlar v2-də ADMİN panelinə köçürüldü - istifadəçi panelində artıq
+   yoxdur, amma qaydalar işlənir. */
 .stat.is-accent .stat-icon { color: var(--accent); }
 
 .stat-label {
   font-size: 11px;
-  font-weight: 800;
-  color: var(--text-3);
+  font-weight: 700;
+  color: var(--text-2);
   text-transform: uppercase;
   letter-spacing: .08em;
 }
 
 .stat-value {
   font-size: 36px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -.035em;
   line-height: 1.05;
   margin-top: 6px;
@@ -343,94 +368,110 @@ table.lines .num, .row-value {
 
 .hero {
   background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: var(--r-card);
   padding: var(--s4);
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
-  gap: var(--s4);
-}
-
-.hero-title { font-size: 26px; }
-.hero-lead { color: var(--text-2); font-size: 15px; margin-top: 6px; max-width: var(--measure); }
-
-.hero-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
   gap: var(--s3);
-  align-items: stretch;
 }
 
-/* --- Qalib kart: guşə lenti ilə --- */
-.hero-winner {
-  position: relative;
-  overflow: hidden;
-  background: var(--green-soft);
-  border-radius: var(--r-md);
-  padding: var(--s4);
+/* --- SƏBƏT: ilk ekranın birinci elementi --- */
+.basket-mini {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s1);
 }
 
-/* GUŞƏ LENTİ (Trolley-dəki "X% Cheaper" lenti).
-   45° döndərilib sağ üst küncə oturdulub. `overflow: hidden` valideyndədir -
-   lentin kənarları kartın xaricinə çıxmasın. */
-.ribbon {
-  position: absolute;
-  top: 18px;
-  right: -52px;
-  width: 200px;
-  padding: 6px 0;
-  transform: rotate(45deg);
-  background: var(--green);
-  color: var(--on-accent);
-  text-align: center;
+.basket-mini-label {
   font-size: 11px;
-  font-weight: 800;
-  letter-spacing: .1em;
+  font-weight: 700;
+  letter-spacing: .08em;
   text-transform: uppercase;
-  box-shadow: var(--shadow);
+  color: var(--text-2);
+  margin-right: var(--s1);
 }
 
-/* Bölünmüş alış halı: qalib yoxdur, amma rəqəm var.
-   Yaşıl DEYİL - yaşıl "ən ucuz tək market" deməkdir. Kəhrəba: "nəticə var,
-   amma bir neçə marketi gəzmək lazımdır". */
-.hero-winner.is-split { background: var(--amber-soft); }
-.ribbon.is-amber { background: var(--amber); }
-
-.hero-winner-id { display: flex; align-items: center; gap: var(--s3); }
-
-.hero-winner-id .avatar {
-  color: var(--green);
-  background: var(--surface);
-  box-shadow: var(--shadow);
+.basket-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+  padding: var(--s1) var(--s1) var(--s1) var(--s2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--bg);
+  font-size: 13px;
 }
 
-.hero-store { font-size: 30px; font-weight: 800; letter-spacing: -.03em; line-height: 1.1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.basket-chip-name { font-weight: 500; }
+.basket-chip-qty { color: var(--text-2); font-variant-numeric: tabular-nums; }
+
+.basket-chip-del {
+  display: grid; place-items: center;
+  width: 20px; height: 20px;
+  border: none; border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background var(--ease), color var(--ease);
+}
+
+.basket-chip-del svg { width: 13px; height: 13px; }
+.basket-chip-del:hover { background: var(--danger-soft); color: var(--danger-ink); }
+
+/* --- CAVAB: səhifənin yeganə böyük rəqəmi ---
+   Əvvəl burada iki sütunlu «qalib + yan panel» quruluşu vardı və guşədə
+   döndərilmiş lent dururdu. Lent silindi (v2, 8.1): mətni guşəyə sığmırdı
+   və heç bir məlumat daşımırdı. */
+.answer {
+  border-radius: var(--r-md);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  padding: var(--s4);
+}
+
+/* Tam səbəti satan market yoxdur: rəqəm var, amma şərtlidir.
+   Fon info tonundadır - «nəticə var, amma bir neçə marketi gəzmək lazımdır». */
+.answer.is-split { background: var(--info-soft); border-color: var(--info-soft); }
+
+.answer-store { display: flex; align-items: center; gap: var(--s2); }
+
+.hero-store {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -.03em;
+  line-height: 1.2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* SƏHİFƏNİN ƏN BÖYÜK ELEMENTİ */
 .hero-price {
   font-size: 56px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -.04em;
   line-height: 1;
-  margin-top: var(--s3);
+  margin-top: var(--s1);
 }
 
-.hero-price-note { font-size: 14px; color: var(--text-2); margin-top: var(--s2); }
-
-.hero-aside {
-  border-radius: var(--r-md);
-  padding: var(--s4);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-  background: var(--surface-2);
+.answer-line {
+  font-size: 14px;
+  color: var(--text-2);
+  margin-top: var(--s2);
+  max-width: var(--measure);
 }
 
-.hero-saving { font-size: 34px; font-weight: 800; letter-spacing: -.035em; color: var(--green); line-height: 1.1; }
-.hero-aside-note { font-size: 14px; color: var(--text-2); max-width: var(--measure); }
+/* Bölünmüş alış TƏKLİFİ - cavabın altında bir sətir, böyük rəqəm deyil. */
+.answer-alt {
+  margin-top: var(--s2);
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.answer-alt strong { color: var(--accent-ink); font-weight: 700; }
 
 /* Boş hallar. Mətn SOLA hizalanır: mərkəzləşdirilmiş uzun cümlə hər sətirdə
    fərqli yerdən başlayır və göz onu izləməkdə çətinlik çəkir. */
@@ -441,7 +482,7 @@ table.lines .num, .row-value {
   color: var(--text-2);
 }
 
-.hero-empty-title { font-size: 17px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+.hero-empty-title { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
 .hero-empty div { max-width: var(--measure); }
 
 
@@ -454,7 +495,7 @@ table.lines .num, .row-value {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   padding: 5px 12px;
   border-radius: var(--r-pill);
   background: var(--surface-2);
@@ -464,14 +505,14 @@ table.lines .num, .row-value {
 }
 
 .pill svg { width: 13px; height: 13px; }
-.pill.is-green { background: var(--green-soft); color: var(--green); }
-.pill.is-amber { background: var(--amber-soft); color: var(--amber-ink); }
-.pill.is-red   { background: var(--red-soft);   color: var(--red-ink); }
-.pill.is-accent{ background: var(--accent-soft); color: var(--accent); }
+.pill.is-green { background: var(--ok-soft); color: var(--ok-ink); }
+.pill.is-amber { background: var(--info-soft); color: var(--info-ink); }
+.pill.is-red   { background: var(--danger-soft);   color: var(--danger-ink); }
+.pill.is-accent{ background: var(--accent-soft); color: var(--accent-ink); }
 .pill.is-ai    { background: var(--ai-soft); color: var(--ai); }
 
 /* Solid variant - sayğac badge-ləri üçün */
-.pill.solid-green { background: var(--green); color: var(--on-accent); }
+.pill.solid-green { background: var(--ok); color: var(--on-accent); }
 
 
 /* ============================================================================
@@ -492,24 +533,10 @@ table.lines .num, .row-value {
   text-transform: none;
   letter-spacing: -.01em;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--text);
 }
 
-/* Cədvəl başlığındakı market ikonu.
-   İKİ siqnal birlikdə işləyir: ikon "bu, marketdir" deyir, rəng isə HANSI
-   market olduğunu. Rəng tək qalsaydı, rəng görməyən istifadəçi üçün başlıq
-   sadəcə mətn olardı. */
-.store-mark {
-  display: grid;
-  place-items: center;
-  width: 22px; height: 22px;
-  border-radius: var(--r-xs);
-  background: color-mix(in srgb, currentColor 12%, var(--surface));
-  flex: none;
-}
-
-.store-mark svg { width: 14px; height: 14px; }
 
 
 /* --- Market müqayisə sütunları: qalın, dəyər barın İÇİNDƏ --- */
@@ -519,7 +546,7 @@ table.lines .num, .row-value {
 
 .bar-name { display: flex; align-items: center; gap: var(--s2); font-size: 14px; font-weight: 700; min-width: 0; }
 .bar-name > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bar-name small { display: block; font-weight: 500; font-size: 12px; color: var(--text-3); }
+.bar-name small { display: block; font-weight: 500; font-size: 12px; color: var(--text-2); }
 
 .bar-track {
   position: relative;
@@ -536,7 +563,7 @@ table.lines .num, .row-value {
   transition: width var(--ease-slow);
 }
 
-.bar-row.is-best .bar-fill { background: var(--green); }
+.bar-row.is-best .bar-fill { background: var(--accent); }
 
 /* Rəqəm barın içindədir. Qalib barda ağ, digərlərində tünd - çünki onların
    dolğunluğu açıqdır və ağ mətn oxunmazdı. */
@@ -547,7 +574,7 @@ table.lines .num, .row-value {
   display: flex;
   align-items: center;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--text);
   white-space: nowrap;
 }
@@ -572,7 +599,7 @@ table.lines .num, .row-value {
 .bar-row.is-partial .bar-fill {
   background: repeating-linear-gradient(
     135deg,
-    color-mix(in srgb, var(--amber) 34%, var(--surface-2)) 0 8px,
+    color-mix(in srgb, var(--info) 34%, var(--surface-2)) 0 8px,
     var(--surface-2) 8px 16px
   );
 }
@@ -582,6 +609,14 @@ table.lines .num, .row-value {
    CƏDVƏL
    ============================================================================ */
 
+/* `overflow-x: auto` TƏK BAŞINA KİFAYƏT ETMİR.
+   `.panel` flex, `.duo` isə grid konteynerdir; onların uşaqlarında
+   `min-width: auto` defoltu var, yəni kart öz məzmununun ən dar ölçüsündən
+   kiçilə bilmir və 654px-lik cədvəl bütün SƏHİFƏNİ genişləndirir.
+   Ölçüldü: 380px ekranda sənəd eni 639px idi. `min-width: 0` bu zənciri
+   qırır - kart daralır, cədvəl isə öz içində sürüşür. */
+.panel > *, .duo > *, .card { min-width: 0; }
+
 .table-scroll { overflow-x: auto; border-radius: var(--r-md); }
 
 table.lines { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
@@ -589,7 +624,7 @@ table.lines { width: 100%; border-collapse: separate; border-spacing: 0; font-si
 table.lines th {
   text-align: left;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: .08em;
@@ -607,7 +642,7 @@ table.lines td {
   vertical-align: middle;
 }
 
-table.lines tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--surface-2) 45%, var(--surface)); }
+/* Zebra zolağı YOXDUR - trolley qaydası: sətirlər sərhədlə ayrılır, fonla yox. */
 table.lines tbody tr:hover td { background: var(--accent-soft); }
 table.lines tbody tr:last-child td { border-bottom: none; }
 
@@ -625,14 +660,24 @@ table.lines td.na { color: var(--text-3); }
   gap: 5px;
   padding: 5px 11px;
   border-radius: var(--r-pill);
-  font-weight: 800;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
-.price-pill.is-best { background: var(--green-soft); color: var(--green); }
+/* «Ən ucuz» siqnalı RƏNGLƏ VERİLMİR.
+   Səbəb: brend rəngi artıq yaşıldır (trolley). Yaşıl fon işlətsək, "ucuz"
+   ilə "brend" eyni siqnala düşərdi. Ona görə fərq FORMA ilə verilir:
+   çərçivə + ✓ nişanı. Rəng yenə tək siqnal deyil - ikon və ekran oxuyucusu
+   üçün gizli mətn qalır. */
+.price-pill.is-best {
+  background: var(--bg);
+  color: var(--text);
+  border: 2px solid var(--accent);
+  padding: 3px 10px;   /* 2px sərhəd əlavə olunduğu üçün daxili boşluq azalır */
+}
 .price-pill svg { width: 13px; height: 13px; }
 
-.cell-sub { display: block; font-size: 12px; color: var(--text-3); margin-top: 2px; }
+.cell-sub { display: block; font-size: 12px; color: var(--text-2); margin-top: 2px; }
 
 
 /* ============================================================================
@@ -657,16 +702,31 @@ table.lines td.na { color: var(--text-3); }
 .avatar.is-lg { width: 56px; height: 56px; border-radius: var(--r-md); }
 .avatar.is-lg svg { width: 28px; height: 28px; }
 
+/* MARKET NİŞANI: rəngli dairə + adın ilk hərfi (v2, 8.4).
+   Əvvəl hamısına eyni boz mağaza ikonu verilirdi - nişan heç nə ayırd
+   etmirdi. Loqo YENƏ uydurulmur: hərf adın özündən gəlir. */
+.avatar.is-store {
+  border-radius: var(--r-pill);
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1;
+  background: color-mix(in srgb, currentColor 14%, var(--bg));
+}
+
+.avatar.is-store.is-xs { width: 22px; height: 22px; font-size: 11px; }
+.avatar.is-store.is-sm { font-size: 13px; }
+.avatar.is-store.is-lg { font-size: 22px; }
+
 .avatar.is-accent { color: var(--accent); }
-.avatar.is-green  { color: var(--green); }
-.avatar.is-amber  { color: var(--amber); }
-.avatar.is-red    { color: var(--red); }
+.avatar.is-green  { color: var(--ok); }
+.avatar.is-amber  { color: var(--info); }
+.avatar.is-red    { color: var(--danger); }
 
 table.lines tbody tr:hover .avatar { background: color-mix(in srgb, currentColor 20%, var(--surface)); }
 
 .entity-text { min-width: 0; }
 .entity-name { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.entity-meta { font-size: 12px; color: var(--text-3); }
+.entity-meta { font-size: 12px; color: var(--text-2); }
 
 
 /* ============================================================================
@@ -682,13 +742,13 @@ table.lines tbody tr:hover .avatar { background: color-mix(in srgb, currentColor
 .btn {
   font-family: var(--font);
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -.01em;
-  color: var(--surface);
+  color: var(--on-accent);
   background: var(--accent);
   border: none;
   border-radius: var(--r-pill);
-  padding: 12px 22px;
+  padding: 10px 20px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -711,7 +771,7 @@ table.lines tbody tr:hover .avatar { background: color-mix(in srgb, currentColor
 
 .btn-ghost {
   background: transparent;
-  color: var(--accent);
+  color: var(--accent-ink);
   box-shadow: none;
   padding: 8px 14px;
   font-size: 14px;
@@ -734,7 +794,7 @@ table.lines tbody tr:hover .avatar { background: color-mix(in srgb, currentColor
 }
 
 .icon-btn svg { width: 16px; height: 16px; }
-.icon-btn:hover:not(:disabled) { background: var(--red); color: var(--on-accent); }
+.icon-btn:hover:not(:disabled) { background: var(--danger); color: var(--on-accent); }
 .icon-btn:disabled { opacity: .4; cursor: not-allowed; }
 
 /* Header-dəki qısayol: <a>-dır, ona görə mətn stilləri sıfırlanır.
@@ -778,7 +838,7 @@ table.lines tbody tr:hover .avatar { background: color-mix(in srgb, currentColor
   transition: border-color var(--ease), background var(--ease);
 }
 
-.field input::placeholder { color: var(--text-3); }
+.field input::placeholder { color: var(--text-2); }
 .field input:focus, .field select:focus { border-color: var(--accent); background: var(--surface); }
 
 .check { display: flex; align-items: center; gap: var(--s2); font-size: 14px; padding-bottom: 11px; }
@@ -801,9 +861,9 @@ table.lines tbody tr:hover .avatar { background: color-mix(in srgb, currentColor
 }
 
 .notice.info  { background: var(--accent-soft); }
-.notice.ok    { background: var(--green-soft); }
-.notice.warn  { background: var(--amber-soft); }
-.notice.error { background: var(--red-soft); }
+.notice.ok    { background: var(--ok-soft); }
+.notice.warn  { background: var(--info-soft); }
+.notice.error { background: var(--danger-soft); }
 
 .row {
   display: flex;
@@ -819,9 +879,9 @@ table.lines tbody tr:hover .avatar { background: color-mix(in srgb, currentColor
 .row-value { font-size: 14px; font-weight: 700; color: var(--text-2); text-align: right; }
 
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: var(--r-pill); margin-right: var(--s2); background: var(--text-3); }
-.dot.ok { background: var(--green); }
-.dot.warn { background: var(--amber); }
-.dot.bad { background: var(--red); }
+.dot.ok { background: var(--ok); }
+.dot.warn { background: var(--info); }
+.dot.bad { background: var(--danger); }
 
 .spinner {
   display: inline-block;
@@ -857,9 +917,9 @@ table.lines tbody tr:hover .avatar { background: color-mix(in srgb, currentColor
   color: var(--text-2);
 }
 
-.badge strong { color: var(--text); font-weight: 800; }
-.badge.ok   { background: var(--green-soft); color: var(--green); }
-.badge.warn { background: var(--amber-soft); color: var(--amber-ink); }
+.badge strong { color: var(--text); font-weight: 700; }
+.badge.ok   { background: var(--ok-soft); color: var(--ok-ink); }
+.badge.warn { background: var(--info-soft); color: var(--info-ink); }
 
 .hint { font-size: 14px; color: var(--text-2); max-width: var(--measure); }
 
@@ -888,17 +948,17 @@ table.lines tbody tr:hover .avatar { background: color-mix(in srgb, currentColor
 .exception:hover { background: color-mix(in srgb, var(--accent) 5%, var(--surface-2)); }
 
 /* Sol kənarda 3px rəngli zolaq - siyahını sürətlə skan etmək üçün */
-.exception.is-warn { box-shadow: inset 3px 0 0 var(--amber); }
-.exception.is-bad  { box-shadow: inset 3px 0 0 var(--red); }
-.exception.is-ok   { box-shadow: inset 3px 0 0 var(--green); }
+.exception.is-warn { box-shadow: inset 3px 0 0 var(--info); }
+.exception.is-bad  { box-shadow: inset 3px 0 0 var(--danger); }
+.exception.is-ok   { box-shadow: inset 3px 0 0 var(--ok); }
 
 .exception-main { min-width: 0; }
 .exception-title { font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
 .exception-why { font-size: 13px; color: var(--text-2); margin-top: 2px; }
 
 .exception-price { text-align: right; white-space: nowrap; }
-.exception-now { font-size: 17px; font-weight: 800; }
-.exception-was { font-size: 13px; color: var(--text-3); text-decoration: line-through; }
+.exception-now { font-size: 17px; font-weight: 700; }
+.exception-was { font-size: 13px; color: var(--text-2); text-decoration: line-through; }
 
 .counter-row { display: flex; flex-wrap: wrap; gap: var(--s2); margin-bottom: var(--s3); }
 
@@ -947,12 +1007,12 @@ table.lines tbody tr:hover .avatar { background: color-mix(in srgb, currentColor
 .advisor-text mark {
   background: color-mix(in srgb, var(--ai) 14%, transparent);
   color: var(--text);
-  font-weight: 800;
+  font-weight: 700;
   padding: 1px 5px;
   border-radius: var(--r-xs);
 }
 
-.advisor-text mark.is-money { background: var(--green-soft); color: var(--green); }
+.advisor-text mark.is-money { background: var(--ok-soft); color: var(--ok-ink); }
 
 .ai-placeholder { margin-top: var(--s3); font-size: 14px; color: var(--text-2); max-width: var(--measure); }
 
@@ -983,7 +1043,7 @@ table.lines tbody tr:hover .avatar { background: color-mix(in srgb, currentColor
    ============================================================================ */
 
 .chart-summary { display: flex; align-items: baseline; gap: var(--s2); flex-wrap: wrap; margin-top: var(--s3); }
-.chart-value { font-size: 32px; font-weight: 800; letter-spacing: -.035em; }
+.chart-value { font-size: 32px; font-weight: 700; letter-spacing: -.035em; }
 .chart-caption { font-size: 13px; color: var(--text-2); }
 
 /* Hündürlük CSS-dədir, HTML-də inline deyil - əks halda media query onu
@@ -1007,7 +1067,7 @@ table.lines tbody tr:hover .avatar { background: color-mix(in srgb, currentColor
 }
 
 .search-item:hover { background: var(--surface-2); }
-.search-meta { font-size: 12px; color: var(--text-3); }
+.search-meta { font-size: 12px; color: var(--text-2); }
 .result-list { margin-top: var(--s2); }
 
 .cat-row { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); }
@@ -1049,9 +1109,9 @@ code {
 }
 
 .dz-icon svg { width: 22px; height: 22px; }
-.dz-title { font-size: 16px; font-weight: 800; }
+.dz-title { font-size: 16px; font-weight: 700; }
 .dz-sub { font-size: 13px; color: var(--text-2); margin-top: 2px; }
-.link { color: var(--accent); font-weight: 700; }
+.link { color: var(--accent-ink); font-weight: 700; }
 
 
 /* ============================================================================
@@ -1061,7 +1121,7 @@ code {
 .admin-note {
   padding: var(--s3);
   border-radius: var(--r-md);
-  background: var(--amber-soft);
+  background: var(--info-soft);
   font-size: 14px;
   max-width: var(--measure);
 }
@@ -1080,7 +1140,7 @@ code {
 .status-tile-body { min-width: 0; flex: 1; }
 .status-tile .eyebrow { display: block; margin-bottom: var(--s1); }
 .status-value { display: flex; align-items: center; font-size: 14px; font-weight: 700; }
-.status-detail { font-size: 12px; color: var(--text-3); margin-top: 2px; word-break: break-word; }
+.status-detail { font-size: 12px; color: var(--text-2); margin-top: 2px; word-break: break-word; }
 
 
 /* ============================================================================
@@ -1097,7 +1157,6 @@ code {
 
 @media (max-width: 1000px) {
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
-  .hero-body { grid-template-columns: 1fr; }
 }
 
 /* Hərəkəti azaltmaq istəyən istifadəçi üçün bütün animasiyalar söndürülür */
@@ -1106,6 +1165,103 @@ code {
     animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
   }
   .card-lift:hover, .stat:hover { transform: none; }
+}
+
+
+/* ============================================================================
+   MOBİL — 600px-dən dar ekran
+
+   ÖLÇÜLMÜŞ PROBLEM: 380px enində səhifə ÜFÜQİ SÜRÜŞÜRDÜ (scrollWidth 632px).
+   Səbəb cədvəl deyil, YUXARI ZOLAQ idi: loqo + iki yazılı tab + profil
+   düyməsi bir sətirdə 485px yer tuturdu. Bu, trolley palitrasından ƏVVƏL də
+   belə idi (ölçüldü: köhnə CSS 632px, yeni CSS 644px - Poppins bir az enlidir).
+
+   HƏLL: dar ekranda tabın YAZISI gizlədilir, ikonu qalır. `font-size: 0`
+   mətni yığır, amma DOM-dan silmir - ekran oxuyucusu «İstifadəçi» /
+   «Admin / Developer» adlarını yenə oxuyur.
+   ============================================================================ */
+
+@media (max-width: 600px) {
+  .topbar-inner { padding: var(--s2) var(--s3); gap: var(--s2); }
+  .wrap { padding: var(--s3) var(--s3) var(--s5); }
+
+  .seg-btn { font-size: 0; gap: 0; padding: var(--s2) var(--s3); }
+  .seg-btn svg { width: 18px; height: 18px; }
+
+  .brand-name { font-size: 17px; }
+  .brand-mark { width: 30px; height: 30px; }
+  .brand-mark svg { width: 18px; height: 18px; }
+
+  .stat-grid { grid-template-columns: 1fr; }
+  .page-title { font-size: 24px; }
+}
+
+
+/* ============================================================================
+   AÇILAN PANELLƏR (v2, bölmə 8.3)
+
+   Tarixçə, endirim yoxlaması, AI tövsiyəsi və profil DEFOLT BAĞLI gəlir.
+   Səbəb: hamısı birdən açıq olanda səhifə 4900px uzunluğunda mətn divarına
+   çevrilirdi və istifadəçi hansına baxacağını bilmirdi. İndi cavab yuxarıda,
+   qalanı isə maraqlananın açdığı yerdədir.
+
+   `<details>` işlədilir, JS akkordeon yox: klaviatura, ekran oxuyucusu və
+   səhifədaxili axtarış (Ctrl+F) onsuz da işləyir.
+   ============================================================================ */
+
+.fold { padding: 0; }
+
+.fold-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s3) var(--s4);
+  cursor: pointer;
+  list-style: none;
+  border-radius: var(--r-card);
+  transition: background var(--ease);
+}
+
+.fold-head::-webkit-details-marker { display: none; }
+.fold-head:hover { background: var(--bg); }
+.fold-head svg { width: 19px; height: 19px; color: var(--text-2); flex: none; }
+.fold-head .section-heading { flex: 1; min-width: 0; }
+
+/* Açılma göstəricisi: mətn deyil, ox. Açılanda 90° dönür. */
+.fold-head::after {
+  content: "";
+  width: 9px; height: 9px;
+  border-right: 2px solid var(--text-2);
+  border-bottom: 2px solid var(--text-2);
+  transform: rotate(-45deg);
+  transition: transform var(--ease);
+  flex: none;
+}
+
+.fold[open] > .fold-head::after { transform: rotate(45deg); }
+.fold[open] > .fold-head { border-radius: var(--r-card) var(--r-card) 0 0; }
+
+/* Panel məzmunu başlıqla eyni sol kənardan başlayır */
+.fold > *:not(.fold-head) { padding-left: var(--s4); padding-right: var(--s4); }
+.fold > *:last-child { padding-bottom: var(--s4); }
+
+/* Hero-nun içindəki «Market üzrə ətraflı» - kart deyil, sadə açılan sətir */
+.fold-inline {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg);
+}
+
+.fold-inline > .fold-head { padding: var(--s2) var(--s3); font-weight: 700; font-size: 14px; }
+.fold-inline > *:not(.fold-head) { padding: 0 var(--s3) var(--s3); }
+
+/* Dürüstlük qeydi - kiçik, amma görünən (v2, 8.5) */
+.fineprint {
+  font-size: 12px;
+  color: var(--text-2);
+  max-width: var(--measure);
+  margin-top: var(--s2);
 }
