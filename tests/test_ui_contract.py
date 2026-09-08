@@ -32,10 +32,17 @@ def read_static(name: str) -> str:
 
 
 def parse_category_icons() -> dict[str, str]:
-    """`app.js`-dəki CATEGORY_ICON xəritəsini oxuyur."""
-    source = read_static("app.js")
+    """
+    `ui.js`-dəki CATEGORY_ICON xəritəsini oxuyur.
+
+    XƏRİTƏ ARTIQ `app.js`-DƏ DEYİL: məhsul səhifəsi (`product.js`) də eyni
+    ikonları çəkir, `app.js`-i isə oraya qoşmaq olmur (o, yükləndiyi anda
+    yalnız ana səhifədə mövcud olan elementləri axtarır). Paylaşılan hissə
+    `ui.js`-ə ayrıldı — məhz ona görə ki, xəritənin İKİ nüsxəsi olmasın.
+    """
+    source = read_static("ui.js")
     block = re.search(r"const CATEGORY_ICON = \{(.*?)\n\};", source, re.S)
-    assert block, "CATEGORY_ICON xəritəsi app.js-də tapılmadı"
+    assert block, "CATEGORY_ICON xəritəsi ui.js-də tapılmadı"
     return dict(re.findall(r'"([^"]+)":\s*"([^"]+)"', block.group(1)))
 
 
@@ -53,15 +60,54 @@ def test_hər_kateqoriyanın_ikonu_var():
     )
 
 
+def sprite_symbols() -> set[str]:
+    """İkon kitabxanasındakı bütün `#icon-*` adları."""
+    return set(re.findall(r'<symbol id="icon-([\w-]+)"', read_static("icons.svg")))
+
+
 def test_hər_ikon_svg_kitabxanasında_mövcuddur():
     """
     Xəritə mövcud olmayan ikona işarə etsə, `<use>` sükutla BOŞ çəkir -
     konsolda səhv yoxdur, sadəcə ikonun yeri boş qalır.
     """
-    html = read_static("index.html")
-    symbols = set(re.findall(r'<symbol id="icon-([\w-]+)"', html))
+    symbols = sprite_symbols()
     for category, icon in parse_category_icons().items():
         assert icon in symbols, f"«{category}» üçün #icon-{icon} kitabxanada yoxdur"
+
+
+def test_səhifələrin_istinad_etdiyi_hər_ikon_mövcuddur():
+    """
+    HTML və JS-dəki HƏR `#icon-...` istinadı kitabxanada olmalıdır.
+
+    Əvvəl yalnız kateqoriya ikonları yoxlanılırdı. İndi iki səhifə var və
+    ikonlar ayrıca faylda saxlanılır — səhv ad yazmaq (`#icon-shied`) daha
+    asandır, nəticəsi isə eynilə səssizdir: ikonun yeri boş qalır, konsolda
+    xəta yoxdur.
+    """
+    symbols = sprite_symbols()
+    pages_and_scripts = [
+        "index.html", "product.html", "store.html",
+        "app.js", "deals.js", "product.js", "store.js", "store-grid.js", "ui.js",
+    ]
+    for name in pages_and_scripts:
+        used = set(re.findall(r'#icon-([\w-]+)', read_static(name)))
+        missing = sorted(u for u in used if u not in symbols)
+        assert not missing, f"{name} olmayan ikona istinad edir: {missing}"
+
+
+def test_ikon_kitabxanasının_ikinci_nüsxəsi_yoxdur():
+    """
+    Sprite YALNIZ `icons.svg`-də olmalıdır.
+
+    Kimsə onu yenidən HTML-in içinə köçürsə, iki nüsxə yaranar: biri
+    yenilənib digəri köhnə qalar və səhifə yenə «işləyər» — sadəcə səhv
+    ikon göstərər. Belə fərqi gözlə tapmaq praktiki olaraq mümkün deyil.
+    """
+    for page in ["index.html", "product.html", "store.html"]:
+        assert '<symbol id="icon-' not in read_static(page), (
+            f"{page} ikon sprite-ının ikinci nüsxəsini saxlayır — "
+            "kitabxana yalnız icons.svg-də olmalıdır"
+        )
 
 
 # ------------------------------------------------------------ API müqaviləsi
@@ -134,24 +180,65 @@ def test_ən_ucuz_cəm_heç_bir_market_cəmindən_böyük_deyil():
 # ------------------------------------------------ frontend selektorları canlı
 
 
+# Hansı skript hansı səhifədə işləyir.
+#
+# ARTIQ İKİ SƏHİFƏ VAR. Əvvəl siyahı sadə idi, çünki hər şey `index.html`-də
+# idi. İndi `product.js` yalnız `product.html`-də yüklənir - onu ana səhifənin
+# ID-ləri ilə tutuşdursaq, test yalan yerə düşərdi.
+SCRIPT_PAGES = {
+    "index.html": [
+        "nav.js",
+        "app.js",
+        "store-grid.js",
+        "deals.js",
+        "advisor.js",
+        "analytics.js",
+        "scrape.js",
+        "profile.js",
+    ],
+    "product.html": ["product.js"],
+    "store.html": ["store.js"],
+}
+
+
 def test_bütün_js_selektorları_html_də_mövcuddur():
     """
     Skriptlər yüklənəndə `getElementById(...).addEventListener(...)` çağırır.
     Element HTML-dən silinsə, həmin sətir `null`-a düşüb BÜTÜN faylı qırır -
     yəni bir ID-nin adı dəyişəndə səhifənin yarısı işləməyi dayandırır.
     """
-    html = read_static("index.html")
-    ids = set(re.findall(r'\bid="([^"]+)"', html))
+    for page, scripts in SCRIPT_PAGES.items():
+        ids = set(re.findall(r'\bid="([^"]+)"', read_static(page)))
+        for name in scripts:
+            source = read_static(name)
+            wanted = set(re.findall(r'getElementById\("([^"]+)"\)', source))
+            wanted |= set(re.findall(r'\$\("#([\w-]+)"\)', source))
+            wanted |= set(re.findall(r'sel\("([\w-]+)"\)', source))
+            wanted |= set(re.findall(r'advisorEl\("([\w-]+)"\)', source))
+            wanted |= set(re.findall(r'\bel\("([\w-]+)"\)', source))
+            missing = sorted(w for w in wanted if w not in ids)
+            assert not missing, f"{name} ({page}) olmayan elementi axtarır: {missing}"
 
-    scripts = ["nav.js", "app.js", "advisor.js", "analytics.js", "scrape.js", "profile.js"]
-    for name in scripts:
-        source = read_static(name)
-        wanted = set(re.findall(r'getElementById\("([^"]+)"\)', source))
-        wanted |= set(re.findall(r'\$\("#([\w-]+)"\)', source))
-        wanted |= set(re.findall(r'sel\("([\w-]+)"\)', source))
-        wanted |= set(re.findall(r'advisorEl\("([\w-]+)"\)', source))
-        missing = sorted(w for w in wanted if w not in ids)
-        assert not missing, f"{name} olmayan elementi axtarır: {missing}"
+
+def test_hər_skript_bir_səhifədə_qoşulub():
+    """
+    `SCRIPT_PAGES` reallıqla üst-üstə düşməlidir.
+
+    Yuxarıdakı test yalnız SİYAHIDAKI faylları yoxlayır. Kimsə yeni skript
+    yazıb HTML-ə qoşsa, amma siyahıya yazmasa, o fayl bir daha heç vaxt
+    yoxlanmazdı — yəni müqavilə sükutla deşilərdi.
+    """
+    for page, scripts in SCRIPT_PAGES.items():
+        html = read_static(page)
+        linked = set(re.findall(r'<script src="/static/([\w.-]+)"', html))
+        # Paylaşılan köməkçilər (`ui.js`, `icons.js`, `store-colors.js`) DOM
+        # elementi axtarmır, ona görə siyahıda yoxdurlar.
+        shared = {"ui.js", "icons.js", "store-colors.js"}
+        assert set(scripts) == linked - shared, (
+            f"{page}: siyahı ilə HTML fərqlənir — "
+            f"yalnız HTML-də: {sorted(linked - shared - set(scripts))}, "
+            f"yalnız siyahıda: {sorted(set(scripts) - linked)}"
+        )
 
 
 # ------------------------------------------------------------ dizayn sistemi

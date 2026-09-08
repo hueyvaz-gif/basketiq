@@ -1265,3 +1265,242 @@ code {
   max-width: var(--measure);
   margin-top: var(--s2);
 }
+
+
+/* ============================================================================
+   MARKET ŞƏBƏKƏSİ — trolley-nin mağaza şəbəkəsi
+
+   FORMA QƏSDƏN FƏRQLİDİR: bu kartlar DÜZ KÜNCLÜDÜR, halbuki layihənin qalan
+   kartları 10px yumrudur. Səbəb trolley-nin öz mağaza şəbəkəsidir - orada
+   loqo kvadrat çərçivədə dayanır və brend nişanının kənarı kəsilmir.
+   Radius şkalasından kənara çıxan yeganə yer buradır və qəsdəndir.
+
+   Datası olmayan market SİLİNMİR: kəsik çərçivə + «Tezliklə» yazısı.
+   İstifadəçiyə dörd market vəd olunub; ikisini sükutla yox etsək, o, bunu
+   səhv sayar. Kart yenə də kliklənir - marketin səhifəsi səbəbi izah edir.
+   ============================================================================ */
+
+.store-grid {
+  display: grid;
+  /* Geniş ekranda 4 sütun, dar ekranda öz-özünə azalır. */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--s3);
+}
+
+.store-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: var(--s4) var(--s3);
+  border: 1px solid var(--line);
+  border-radius: 0;              /* düz künc - bax yuxarıdakı izah */
+  background: var(--bg);
+  color: inherit;
+  text-decoration: none;
+  text-align: center;
+  transition: border-color var(--ease), box-shadow var(--ease);
+}
+
+.store-card:hover { border-color: var(--accent); box-shadow: var(--shadow); }
+.store-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Loqo qutusu: hündürlüyü SABİTDİR ki, fərqli ölçülü loqolar şəbəkəni
+   sındırmasın. `object-fit: contain` loqonu əzmir, sadəcə sığdırır. */
+.store-logo-box {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 72px;
+  margin-bottom: var(--s2);
+}
+
+.store-logo-box.is-lg { width: 120px; height: 90px; margin-bottom: 0; }
+
+.store-logo { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+/* Loqo faylı yoxdursa marketin adı qalır - saxta loqo çəkmirik.
+   `has-logo` sinfini JS qoyur və şəkil yüklənməyəndə geri götürür. */
+.store-wordmark {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  color: var(--text-2);
+}
+
+.store-logo-box.has-logo .store-wordmark { display: none; }
+
+.store-card-name { font-size: 15px; font-weight: 700; }
+
+.store-card-meta { font-size: 12px; color: var(--text-2); }
+
+/* Hazır olmayan market: fərqli, amma OXUNAQLI.
+   `opacity` işlətmirik - o, mətnin kontrastını WCAG həddindən aşağı salır.
+   Kəsik xətli çərçivə «hələ tamamlanmayıb» mənasını rəngsiz də çatdırır. */
+.store-card.is-soon {
+  border-style: dashed;
+  background: var(--surface);
+}
+
+.store-card-meta.is-soon-text { font-style: italic; }
+
+/* Mobil ekranda kartlar alt-alta düzülür: 2 sütunda loqo çox kiçilir. */
+@media (max-width: 600px) {
+  .store-grid { grid-template-columns: 1fr; }
+  .store-logo-box { height: 60px; }
+}
+
+
+/* ============================================================================
+   ENDİRİM KARTLARI
+   («Bugünün ən sərfəli endirimləri», «Oxşar məhsullar», «Eyni brenddən»)
+   ============================================================================ */
+
+.deal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--s3);
+}
+
+.deal-grid.is-compact {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+.deal {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  color: inherit;
+  text-decoration: none;
+}
+
+.deal:hover { border-color: var(--accent); }
+.deal:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.deal-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+
+/* Faiz kartın ƏSAS rəqəmidir - bölmənin sualı «bu gün nə ucuzlayıb?».
+   Rəng tək siqnal deyil: «−52%» yazısının özü mətndir. */
+.deal-pct {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+  padding: 3px var(--s2);
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.deal-name {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+  /* İki sətirdən sonra kəsilir ki, kartlar eyni hündürlükdə qalsın */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.deal-size { font-size: 12px; color: var(--text-2); }
+
+.deal-price {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  margin-top: auto;
+  padding-top: 5px;
+}
+
+.deal-now {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.deal-was { font-size: 13px; color: var(--text-3); text-decoration: line-through; }
+
+.deal-store { font-size: 12px; }
+
+/* Kartın altındakı market müqayisəsi.
+   NİYƏ VAR? Endirim faizi tək başına aldadıcıdır - qonşu marketin ADİ
+   qiyməti bu endirimli qiymətdən aşağı ola bilər. */
+.deal-offers {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: var(--s2);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--hairline);
+}
+
+.deal-offer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.deal-offer-store { display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
+.deal-offer-price { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Ən ucuz sətir QALIN yazılır, yaşıl fonla vurğulanmır - brend rəngi də
+   yaşıldır, eyni qayda `.price-pill.is-best`-də izah olunub. */
+.deal-offer.is-best { color: var(--text); font-weight: 700; }
+
+/* Tək marketdə tapılan məhsul: boş sətir və ya «—» yox, açıq cümlə. */
+.deal-single {
+  margin-top: var(--s2);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--hairline);
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+
+/* ============================================================================
+   MƏHSUL SƏHİFƏSİNİN BAŞLIĞI
+   ============================================================================ */
+
+.product-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  flex-wrap: wrap;
+}
+
+.product-head-text { flex: 1 1 260px; min-width: 0; }
+
+.product-head-price { text-align: right; }
+
+/* Səhifənin ən böyük rəqəmi - amma ANA səhifədəki `.hero-price`-dan
+   kiçikdir: orada səbətin cavabı, burada bir məhsulun qiyməti dayanır. */
+.product-price {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -.035em;
+  font-variant-numeric: tabular-nums;
+}
+
+.product-price-store { font-size: 13px; color: var(--text-2); }
+
+
+@media (max-width: 600px) {
+  .product-head-price { text-align: left; }
+  .deal-grid,
+  .deal-grid.is-compact { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+}

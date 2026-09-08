@@ -145,10 +145,16 @@ def test_rəng_məntiqi_yalnız_bir_faylda_var():
 
 
 def test_hər_iki_fayl_eyni_funksiyanı_çağırır():
-    """`app.js` CSS dəyişəni, `analytics.js` xana nömrəsi alır — mənbə birdir."""
-    app_js = (STATIC / "app.js").read_text(encoding="utf-8")
+    """
+    `ui.js` CSS dəyişəni, `analytics.js` xana nömrəsi alır — mənbə birdir.
+
+    ÇAĞIRIŞ `app.js`-DƏN `ui.js`-Ə KEÇDİ: market nişanı (`storeAvatar`) indi
+    məhsul və market səhifələri ilə paylaşılan yardımçılar faylındadır.
+    Rəngin mənbəyi isə dəyişməyib - yenə `store-colors.js`-dir.
+    """
+    ui_js = (STATIC / "ui.js").read_text(encoding="utf-8")
     analytics_js = (STATIC / "analytics.js").read_text(encoding="utf-8")
-    assert "StoreColors.cssVar(" in app_js
+    assert "StoreColors.cssVar(" in ui_js
     assert "StoreColors.slot(" in analytics_js
 
 
@@ -165,28 +171,45 @@ def test_xana_hesablanması_sıradan_asılı_deyil():
     assert "localeCompare" not in code
 
 
-def test_index_html_də_yüklənmə_sırası_doğrudur():
+# Rəng mənbəyini işlədən hər səhifə və orada ondan ASILI olan skriptlər.
+PAGES_USING_COLORS = {
+    "index.html": ["ui.js", "app.js", "analytics.js", "deals.js", "store-grid.js"],
+    "product.html": ["ui.js", "product.js"],
+    "store.html": ["ui.js", "store.js"],
+}
+
+
+@pytest.mark.parametrize("page", sorted(PAGES_USING_COLORS))
+def test_html_də_yüklənmə_sırası_doğrudur(page):
     """
-    `store-colors.js` hər iki istifadəçidən ƏVVƏL yüklənməlidir. Sonra
+    `store-colors.js` bütün istifadəçilərindən ƏVVƏL yüklənməlidir. Sonra
     yüklənsə `StoreColors` təyin olunmamış olur: `analytics.js` səssizcə
-    accent rənginə düşür (hamı eyni mavi), `app.js` isə qırılır.
+    accent rənginə düşür (hamı eyni mavi), qalanları isə qırılır.
+
+    ARTIQ ÜÇ SƏHİFƏ VAR. Market nişanı hər üçündə çəkilir, yəni sıra səhvi
+    yalnız ana səhifədə deyil, məhsul və market səhifələrində də mümkündür.
     """
-    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    html = (STATIC / page).read_text(encoding="utf-8")
     order = re.findall(r'<script src="/static/([\w.-]+)"', html)
-    assert "store-colors.js" in order, "store-colors.js index.html-ə qoşulmayıb"
+    assert "store-colors.js" in order, f"store-colors.js {page}-ə qoşulmayıb"
+
     first = order.index("store-colors.js")
-    assert first < order.index("app.js")
-    assert first < order.index("analytics.js")
+    for dependant in PAGES_USING_COLORS[page]:
+        assert dependant in order, f"{dependant} {page}-ə qoşulmayıb"
+        assert first < order.index(dependant), (
+            f"{page}: store-colors.js {dependant}-dən sonra yüklənir"
+        )
 
 
-def test_html_dəki_bütün_lokal_skriptlər_serverdən_gəlir():
+@pytest.mark.parametrize("page", ["index.html", "product.html", "store.html"])
+def test_html_dəki_bütün_lokal_skriptlər_serverdən_gəlir(page):
     """
     Adı dəyişən fayl 404 verir və səhifə YARIM işləyir. `<script>` 404-ü
     konsoldan başqa heç yerdə görünmür.
     """
-    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    html = (STATIC / page).read_text(encoding="utf-8")
     for src in re.findall(r'<script src="(/static/[\w.-]+)"', html):
-        assert client.get(src).status_code == 200, f"{src} tapılmadı"
+        assert client.get(src).status_code == 200, f"{page}: {src} tapılmadı"
 
 
 # ------------------------------------------------------- həqiqi icra (node)

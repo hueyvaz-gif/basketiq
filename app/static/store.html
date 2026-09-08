@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Market — BasketIQ</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300a300' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8h18l-1.6 10.2a2 2 0 0 1-2 1.8H6.6a2 2 0 0 1-2-1.8L3 8Z'/%3E%3Cpath d='M8.5 8 10 4m5.5 4L14 4'/%3E%3C/svg%3E">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<script src="/static/icons.js"></script>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true"><svg><use href="#icon-basket"></use></svg></span>
+      <span class="brand-name">BasketIQ</span>
+    </a>
+
+    <a class="btn btn-secondary" href="/">
+      <svg aria-hidden="true"><use href="#icon-basket"></use></svg>
+      Səbətə qayıt
+    </a>
+  </div>
+</header>
+
+<div class="wrap">
+  <main class="panel">
+
+    <div class="page-head" id="storeHead">
+      <h1 class="page-title skeleton">Yüklənir</h1>
+    </div>
+
+    <!-- Datası olmayan market: səhifə AÇILIR, sadəcə vəziyyəti izah edir.
+         Kartı kliklənməz etmək səbəbi gizlədərdi. -->
+    <div id="soonBox"></div>
+
+    <!-- --- Bu marketin endirimləri --- -->
+    <section class="card hidden" id="storeDealsCard" aria-labelledby="storeDealsTitle">
+      <div class="card-head">
+        <div class="head-row">
+          <svg aria-hidden="true"><use href="#icon-tag"></use></svg>
+          <h2 class="section-heading" id="storeDealsTitle">Bu marketin endirimləri</h2>
+        </div>
+        <p class="section-sub">
+          Kartın altındakı sətir eyni məhsulun digər marketlərdəki qiymətidir —
+          endirim bu marketdə olsa da, ucuz qiymət başqa yerdə ola bilər.
+        </p>
+      </div>
+      <div id="storeDealsGrid" class="deal-grid"></div>
+    </section>
+
+    <!-- --- Bu marketin məhsulları --- -->
+    <section class="card hidden" id="storeProductsCard" aria-labelledby="storeProductsTitle">
+      <div class="card-head">
+        <div class="head-row">
+          <svg aria-hidden="true"><use href="#icon-package"></use></svg>
+          <h2 class="section-heading" id="storeProductsTitle">Məhsullar</h2>
+        </div>
+      </div>
+      <div id="storeProductsBox"></div>
+    </section>
+
+    <p class="fineprint">
+      Qiymətlər marketlərin dərc etdiyi həftəlik kataloqlardan götürülüb və
+      filialda, eləcə də kataloqun qüvvədə olduğu müddətdən sonra fərqlənə bilər.
+    </p>
+  </main>
+</div>
+
+<script src="/static/store-colors.js"></script>
+<script src="/static/ui.js"></script>
+<script src="/static/store.js"></script>
+</body>
+</html>

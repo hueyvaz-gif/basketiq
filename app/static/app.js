@@ -3,90 +3,13 @@
 // Fayl iki paneli birlikdə idarə edir (istifadəçi + admin), amma DOM-un
 // hansı paneldə olduğu burada əhəmiyyət daşımır: hər şey ID ilə tapılır,
 // panel keçidi isə nav.js-in işidir.
+//
+// `esc`, `money`, `price`, `icon`, `categoryIcon`, `storeAvatar`, `storeChip`
+// və `notice` BURADA DEYİL — onlar `ui.js`-dədir və məhsul səhifəsi ilə
+// paylaşılır. `ui.js` bu fayldan ƏVVƏL yüklənməlidir.
 
 const $ = (sel) => document.querySelector(sel);
 let selectedFile = null;
-
-// ---------------------------------------------------------------- yardımçılar
-
-const esc = (s) =>
-  String(s ?? "").replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
-  );
-
-const money = (v) => (v == null ? "—" : Number(v).toFixed(2));
-
-// İkonlar HTML-in başındakı <symbol> kitabxanasından gəlir.
-// Rəng SVG-də deyil, CSS-də təyin olunur (`currentColor`).
-const icon = (name) =>
-  `<svg aria-hidden="true"><use href="#icon-${name}"></use></svg>`;
-
-// Məhsul kateqoriyası -> ikon.
-//
-// Açarlar `app/models.py`-dəki CATEGORIES siyahısından hərfbəhərf götürülüb -
-// backend məhz o dəyərləri qaytarır. Siyahıya yeni kateqoriya əlavə olunsa,
-// burada da bir sətir lazımdır; o vaxta qədər `digər` ikonu düşür.
-//
-// Niyə şəkil deyil, ikon? Layihədə məhsul şəkli YOXDUR - nə DB-də sütun var,
-// nə də kataloqdan çıxarılır. Uydurma şəkil qoymaq isə istifadəçini yanıldardı.
-const CATEGORY_ICON = {
-  "süd məhsulları": "cat-dairy",
-  "çörək və taxıl": "cat-bread",
-  "ət və balıq": "cat-meat",
-  "meyvə-tərəvəz": "cat-produce",
-  "içkilər": "cat-drinks",
-  "yağ və souslar": "cat-oil",
-  "şirniyyat": "cat-sweets",
-  "quru ərzaq": "cat-dry",
-  "təmizlik və gigiyena": "cat-clean",
-  "digər": "package",
-};
-
-const categoryIcon = (category) => CATEGORY_ICON[category] || "package";
-
-/**
- * Market = ikon + ad.
- *
- * Real logo YOXDUR: `stores` cədvəlində yalnız slug/name/website var.
- * Saxta loqo çəkmək əvəzinə hamısına eyni mağaza ikonu verilir - market
- * adı isə mətn kimi qalır, yəni heç bir məlumat itmir.
- */
-const storeChip = (name, best = false) =>
-  `<span class="store-chip${best ? " is-best" : ""}">` +
-  storeAvatar(name, "is-xs") +
-  `${esc(name)}</span>`;
-
-/**
- * Marketin görsəl nişanı: RƏNGLİ DAİRƏ + adın ilk hərfi.
- *
- * Əvvəl hamısına eyni boz mağaza ikonu verilirdi - yəni nişan heç nə
- * ayırd etmirdi, sadəcə yer tuturdu. İndi hərf marketi, rəng isə sabit
- * kimliyi bildirir (rəngi `store-colors.js` ADDAN hesablayır, sıradan yox).
- *
- * Real loqo YENƏ ÇƏKİLMİR: `stores` cədvəlində loqo yoxdur, uydurmuruq.
- */
-const storeInitial = (name) => (String(name).trim()[0] || "?").toLocaleUpperCase("az");
-
-const storeAvatar = (name, cls = "") =>
-  `<span class="avatar is-store ${cls}" style="color:${StoreColors.cssVar(name)}" ` +
-  `aria-hidden="true">${esc(storeInitial(name))}</span>`;
-
-/**
- * Marketə SABİT rəng nöqtəsi.
- *
- * Xananı `store-colors.js` hesablayır - BURADA REYESTR SAXLAMIRIQ. Rəng ADDAN
- * gəlir, sıra indeksindən yox: `basket.py` marketləri səbət cəminə görə
- * çeşidlədiyi üçün sıra hər əlavədən sonra dəyişir, rəng isə dəyişməməlidir.
- *
- * Palitrada YAŞIL və QIRMIZI yoxdur: onlar status rəngidir. Market nöqtəsi
- * yaşıl olsa, "bu market ucuzdur?" sualı yaranardı.
- */
-/** Valyuta işarəsi rəqəmdən nazik göstərilir - fokus ədədin üstündə qalsın. */
-const price = (v) => `${money(v)}<span class="cur">₼</span>`;
-
-function notice(el, kind, html) {
-  el.innerHTML = `<div class="notice ${kind}">${html}</div>`;
-}
 
 // ---------------------------------------------------------------- fayl seçimi
 

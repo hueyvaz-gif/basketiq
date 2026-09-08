@@ -148,3 +148,48 @@ ADVISOR_PROMPT = ChatPromptTemplate.from_messages(
         ("human", ADVISOR_HUMAN),
     ]
 )
+
+
+# ---------------------------------------------------------------- MƏHSUL QEYDİ
+
+PRODUCT_NOTE_PROMPT_VERSION = "product-note-v1"
+
+# NİYƏ «RƏY» DEYİL, «QEYD»?
+#
+# Trolley-nin məhsul səhifəsində istifadəçi rəyləri bölməsi var. Bizdə rəy
+# YOXDUR - nə istifadəçi hesabı, nə rəy cədvəli, nə də bir dənə real müştəri.
+# Modelə «rəy yaz» desək, o, uydurar: «əla məhsuldur, ailəm çox bəyəndi».
+# Bu, saxta rəydir - istifadəçini birbaşa yanıldan ən pis hallardan biri.
+#
+# Ona görə bölmənin ADI da, PROMPT-u da dəyişdirilib: model yalnız BİZİM
+# hesabladığımız qiymət faktlarını cümləyə çevirir. Yəni burada model
+# «məhsul haqqında» yox, «bu məhsulun qiymət mənzərəsi haqqında» yazır.
+PRODUCT_NOTE_SYSTEM = """Sən qiymət müqayisəsi üzrə köməkçisən.
+
+Sənə bir məhsulun marketlərdəki qiymətləri HAZIR RƏQƏMLƏRLƏ verilir.
+
+QAYDALAR:
+1. HEÇ NƏ HESABLAMA və yeni rəqəm uydurma. Yalnız verilən rəqəmləri işlət.
+2. Maksimum 2 qısa cümlə.
+3. MÜŞTƏRİ RƏYİ YAZMA. «Dadlıdır», «keyfiyyətlidir», «tövsiyə edirəm»,
+   «alıcılar bəyənir» kimi ifadələr QADAĞANDIR - sənin məhsulu dadmaq və ya
+   alıcıları tanımaq imkanın yoxdur.
+4. Yalnız qiymətdən danış: harada ucuzdur, fərq nə qədərdir, hansı ölçü
+   vahid qiymətinə görə sərfəlidir, endirim varmı.
+5. Fakt blokunda olmayan heç nə haqqında yazma. Məhsulun tərkibi, dadı,
+   istehsalçısı və istifadəsi barədə məlumatımız yoxdur.
+6. Sadə danışıq dilində yaz. Başlıq, siyahı, markdown işarəsi işlətmə.
+7. Yalnız SON cavabı yaz - düşüncəni və <think> bloklarını yazma.
+
+Azərbaycan dilində cavab ver."""
+
+PRODUCT_NOTE_HUMAN = """{facts}
+
+Yuxarıdakı rəqəmlərə əsasən bu məhsulun qiyməti barədə qısa qeyd yaz."""
+
+PRODUCT_NOTE_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        ("system", PRODUCT_NOTE_SYSTEM),
+        ("human", PRODUCT_NOTE_HUMAN),
+    ]
+)

@@ -13,7 +13,17 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from ai.llm import check_llm
-from app.api import analytics, basket, catalogs, match, products, profile, scrape, voice
+from app.api import (
+    analytics,
+    basket,
+    catalog,
+    catalogs,
+    match,
+    products,
+    profile,
+    scrape,
+    voice,
+)
 from mcp_server.server import http_app as mcp_http_app
 from app.config import settings
 from app.db import db_stats, init_db
@@ -99,6 +109,7 @@ app = FastAPI(
 
 app.mount("/static", RevalidatedStaticFiles(directory=STATIC_DIR), name="static")
 app.include_router(catalogs.router)
+app.include_router(catalog.router)
 app.include_router(products.router)
 app.include_router(match.router)
 app.include_router(basket.router)
@@ -114,6 +125,35 @@ def dashboard():
     # index.html da eyni səbəbdən keşlənməməlidir: köhnə HTML köhnə
     # element adları ilə gəlsə, yeni CSS ona yapışmır və səhifə sınır.
     return FileResponse(STATIC_DIR / "index.html", headers={"Cache-Control": NO_CACHE})
+
+
+@app.get("/product/{product_id}", include_in_schema=False)
+def product_page(product_id: int):
+    """
+    Məhsul səhifəsi — trolley üslubunda ayrıca ünvan.
+
+    NİYƏ MODAL DEYİL, AYRICA SƏHİFƏ?
+    Ünvan paylaşıla bilməlidir: «bu südü Arazdan al» deyəndə linki
+    göndərmək lazımdır. Modal-ın ünvanı yoxdur, geri düyməsi də onu
+    bağlamır — brauzerin öz naviqasiyası ilə ziddiyyət yaradır.
+
+    `product_id` yolun içindədir, amma HTML statikdir: hansı məhsul
+    olduğunu `product.js` ünvandan oxuyub API-dən soruşur. Beləliklə
+    server tərəfdə şablon mühərriki lazım gəlmir.
+    """
+    return FileResponse(STATIC_DIR / "product.html", headers={"Cache-Control": NO_CACHE})
+
+
+@app.get("/store/{slug}", include_in_schema=False)
+def store_page_html(slug: str):
+    """
+    Market səhifəsi — ana səhifədəki loqo şəbəkəsindən buraya keçilir.
+
+    `product_page()` ilə eyni yanaşma: HTML statikdir, hansı market olduğunu
+    `store.js` ünvandan oxuyur. Slug-ın doğruluğunu API yoxlayır (reyestrdə
+    yoxdursa 404) - burada yoxlamaq HTML-i də şablona çevirərdi.
+    """
+    return FileResponse(STATIC_DIR / "store.html", headers={"Cache-Control": NO_CACHE})
 
 
 @app.get("/health", response_model=HealthResponse)

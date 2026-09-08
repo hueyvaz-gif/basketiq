@@ -541,6 +541,119 @@ kimi qalır.
 
 ---
 
+## Kataloq ekranları: marketlər, endirimlər, məhsul səhifəsi
+
+Trolley.co.uk-un üç ekranı BasketIQ-in dörd marketinə uyğunlaşdırılıb.
+Marketlərin **yeganə reyestri** `app/stores.py`-dır:
+
+| Market | slug | Data |
+|---|---|---|
+| Araz Market | `araz` | var (kataloqdan) |
+| Bravo Market | `bravo` | var (kataloqdan) |
+| Bazar Store | `bazar-store` | **hələ yox** → «Tezliklə» |
+| Rahat Market | `rahat` | **hələ yox** → «Tezliklə» |
+
+Bazadakı `stores` cədvəli bundan genişdir: orada test marketləri və köhnə
+mənbə (`oba`) da qalıb. Reyestrdən kənar market yeni ekranlarda **görünmür** —
+istifadəçiyə vəd olunmayan market göstərmək məlumat deyil, səs-küydür.
+
+### 1. Market şəbəkəsi (`store-grid.js`)
+
+Ana səhifənin başında dörd kart: düz künclü, ağ fonlu, nazik boz kənarlı,
+mərkəzdə loqo. Radius şkalasından kənara çıxan yeganə yer buradır və
+qəsdəndir — trolley-nin mağaza şəbəkəsində loqo kvadrat çərçivədə dayanır.
+
+Loqolar `app/static/images/`-dədir (`araz.png`, `bravo.png`, `bazar.png`,
+`rahat.png`). **Fayl yoxdursa səhifə sınmır:** `error` hadisəsi şəkli silir və
+yerinə marketin adı yazılır. Uydurma loqo çəkilmir.
+
+Kart marketin öz səhifəsinə aparır (`/store/<slug>`). Datası olmayan marketin
+səhifəsi də **açılır** — boş siyahı əvəzinə vəziyyəti izah edir. Kartı
+kliklənməz etmək səbəbi gizlədərdi.
+
+### 2. Bugünün ən sərfəli endirimləri (`deals.js`)
+
+Hər məhsul üçün **bir** kart və **ən böyük** faiz endirim. Eyni məhsul iki
+marketdə endirimdədirsə, kiçik faiz kartın içindəki müqayisədə qalır.
+
+İki süzgəc var (`app/catalog.py`):
+
+| Hədd | Dəyər | Səbəb |
+|---|---|---|
+| `MAX_DEPTH` | 70% | ərzaqda daha dərin endirim praktiki olaraq olmur — ya OCR səhvi, ya uydurma köhnə qiymət. Sıralama məhz faizə görə olduğu üçün süzgəcsiz siyahının **başında** həmişə zibil dayanardı |
+| `MIN_DISCOUNT_PCT` | 3% | 1-2% dəyişmə istifadəçinin qərarını dəyişmir |
+
+Hər kartın altında həmin məhsulun **digər marketlərdəki** qiyməti var: 50%
+endirim qonşunun endirimsiz qiymətindən baha ola bilər. Məhsul tək marketdədirsə,
+boş sətir yox, açıq cümlə yazılır — «Yalnız Araz Market-də tapılıb».
+
+### 3. Məhsul səhifəsi (`/product/<id>`)
+
+**«Harada al» sütun üzərində yox, SƏTİR üzərində qurulub.** Trolley-də dörd
+market dörd sütundur, çünki onların tam kataloqu var. Bizdə yoxdur: məhsulun
+qiyməti hansı marketlərdə varsa, o qədər sətir olur. Boş xana, `0.00` və ya
+xəta **heç bir halda** görünmür; hansı marketin datasının hazır olmadığı isə
+cədvəlin altında bir sətirlə yazılır.
+
+**«Ən ucuz» ilə «ən sərfəli» eyni şey deyil:**
+
+```
+125 ml  → 1.39 ₼   (ən ucuz — cibdən çıxan pul)
+1000 ml → 4.55 ₼   (ən sərfəli — 1 L = 4.55 ₼, kiçikdə isə 11.12 ₼)
+```
+
+Bir məhsulun bütün təklifləri **eyni ölçüdədir**, yəni vahid qiyməti
+sıralaması qiymət sıralaması ilə üst-üstə düşür. Ona görə «ən sərfəli» nişanı
+təkliflər cədvəlində yalnız «ən ucuz»dan **fərqlənəndə** verilir — əks halda
+iki nişan həmişə bir sətirdə dayanıb heç nə əlavə etməzdi.
+
+Səhifədə ayrıca «Oxşar məhsullar» (eyni kateqoriya) və «Eyni brenddən»
+bölmələri var. Hər ikisi yalnız **qiyməti olan** məhsulları göstərir: qiyməti
+olmayan kart kliklənəndə boş səhifə açılardı.
+
+### 4. «Rəylər» əvəzinə AI qeydi (`ai/product_note.py`)
+
+Trolley-də məhsulun altında müştəri rəyləri var. **Bizdə rəy yoxdur** — nə
+istifadəçi hesabı, nə rəy cədvəli, nə də bir dənə real müştəri. Modelə «rəy
+yaz» demək saxta rəy istehsal etmək deməkdir.
+
+Ona görə bölmənin adı da, prompt-u da dəyişdirilib: model yalnız **hesablanmış
+qiymət faktlarını** cümləyə çevirir. Üç qat qoruyucu var və prompt onlardan
+yalnız biridir:
+
+1. **fakt bloku** — bütün rəqəmlər Python-da hesablanır, modelə hazır verilir;
+2. **rəqəm yoxlaması** — cavabdakı hər onluq ədəd fakt blokunda axtarılır
+   (`ai.advisor.verify_numbers`);
+3. **rəy sözləri süzgəci** — «dadlı», «tövsiyə edir», «alıcılar» tipli ifadə
+   görünsə cavab atılır.
+
+Üçündən biri düşəndə nəticə eynidir: bölmə **göstərilmir**. Boş kart və ya
+xəta mesajı çıxmır, səhifənin qalanı isə modeldən asılı deyil.
+
+Real Claude cavabı (ölçülüb, 3 rəqəmin hamısı təsdiqlənib):
+
+> Bu dondurma yalnız Araz Marketdə 4.55 AZN-ə var, ona görə müqayisə üçün
+> ikinci qiymət yoxdur. 125 ml variantı 1.39 AZN-ə daha ucuz görünsə də, litr
+> hesabı 11.12 AZN-dir, 1000 ml-lik qablaşdırma isə litri 4.55 AZN ilə daha
+> sərfəlidir.
+
+Qeyd **keşlənir** (`ai/cache.py`), keş açarı isə fakt blokunun özüdür: qiymət
+dəyişəndə qeyd avtomatik yenidən yazılır.
+
+### İkon kitabxanası bir faylda
+
+Üç səhifə eyni 30 ikonu işlədir. Sprite HTML-in içində qalsaydı, üç nüsxə
+yaranardı — biri yenilənib digəri köhnə qalardı və səhifə yenə «işləyərdi»,
+sadəcə səhv ikon göstərərdi. Ona görə sprite `app/static/icons.svg`-dədir,
+`icons.js` isə onu səhifəyə salır.
+
+`<use href="icons.svg#icon-x">` variantı seçilmədi: xarici fayla birbaşa
+istinad **Safari-də işləmir**. Fayl gec gəldiyi üçün mövcud `<use>`
+istinadları əl ilə yenidən həll etdirilir (`href`-i silib eyni dəyərlə geri
+yazmaq) — bu, hər brauzerdə eyni işləyir.
+
+---
+
 ## Chain-of-thought filtri: xam model mətni brauzerə çatmır
 
 Model bəzən cavabdan əvvəl öz-özü ilə danışır:
