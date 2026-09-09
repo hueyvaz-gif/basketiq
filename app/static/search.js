@@ -127,7 +127,13 @@
       `<a class="pcard-link" href="/product/${item.product_id}">` +
       `<span class="pcard-photo">${off}${productThumb(item)}</span>` +
       `<span class="pcard-body">` +
-      (item.brand ? `<span class="pcard-brand">${esc(item.brand)}</span>` : "") +
+      // BREND SƏTRİ HƏMİŞƏ ÇƏKİLİR, hətta boş olanda da.
+      //
+      // BRAUZERDƏ GÖRÜLDÜ: brendsiz məhsulun bir sətri az olurdu və onun
+      // qiyməti qonşu kartlardan 19px yuxarıda dayanırdı - kartların
+      // hündürlüyü eyni olsa da, ŞƏBƏKƏ DİŞLİ görünürdü. Boş sətir yer
+      // tutur, ekran oxuyucusuna isə heç nə demir.
+      `<span class="pcard-brand">${esc(item.brand || "")}</span>` +
       `<span class="pcard-name">${esc(item.label)}</span>` +
       `<span class="pcard-meta">${size}${stores}</span>` +
       `<span class="pcard-price">${price(item.price)}</span>` +

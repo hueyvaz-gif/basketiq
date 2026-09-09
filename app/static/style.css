@@ -49,7 +49,11 @@
      işlədir. Apple da tertiary tonu məhz belə - məlumatın özü üçün deyil,
      onun kölgəsi üçün - işlədir. */
   --text: #1d1d1f;
-  --text-secondary: #6e6e73;
+  /* BİR ADDIM TÜNDLƏŞDİ (M2.4): #6e6e73 → #636367.
+     ÖLÇÜLDÜ - ağ kartda 5.07 → 5.98:1, boz səhifədə 4.66 → 5.49:1.
+     Səbəb: kart ağ, səhifə boz olandan sonra eyni boz iki fərqli fonda
+     görünür və zəif olan tərəf hədd üstündə qalırdı. */
+  --text-secondary: #636367;
   --text-tertiary: #86868b;
   --text-2: var(--text-secondary);   /* köhnə adlar - JS və CSS onları oxuyur */
   --text-3: var(--text-tertiary);
@@ -63,12 +67,15 @@
   --accent-ink: #0066cc;   /* köhnə ad */
   --on-accent: #ffffff;
 
-  /* «Ən ucuz» ARTIQ ÖZ TOKEN-İDİR.
-     Əvvəl bu siqnal yaşıl idi, sonra brend yaşıla keçəndə çərçivəyə verildi.
-     İndi brend mavidir və «ən ucuz» da mavidir — ona görə siqnal yenə FORMA
-     ilə gücləndirilir (çərçivə + ✓), rəng tək başına daşımır.
-     Bax `.price-pill.is-best` və `test_ən_ucuz_siqnalı_rənglə_verilmir`. */
-  --cheapest: #0071e3;
+  /* «ƏN UCUZ» İSTİ AKSENTƏ KEÇDİ (M2.3).
+     Tarixçəsi: əvvəl yaşıl idi, sonra brend yaşıla keçəndə çərçivəyə verildi,
+     brend maviləşəndə isə siqnal da maviləşdi - yəni səhifədəki hər digər
+     interaktiv elementlə eyni rəngdə. İndi isti aksentdədir: qənaət saytın
+     vəd etdiyi yeganə hərəkətdir və gözə birinci o dəyməlidir.
+
+     RƏNG YENƏ DƏ TƏK SİQNAL DEYİL - çərçivə və ✓ ikonu qalır
+     (`test_ən_ucuz_siqnalı_yalnız_rənglə_verilmir`). */
+  --cheapest: var(--accent-hot);
 
   /* --- Semantik status (yaşılsız) ---
      --ok mavidir, çünki «təsdiqlənib» müsbət haldır və Apple dilində müsbət
@@ -104,36 +111,64 @@
   --store-6: #b25000;   /* dark orange */
 
 
-  /* --- Kateqoriya tonları (B6) ---
-     Şəkli olmayan məhsul boz kub əvəzinə ÖZ KATEQORİYASININ lövhəsini alır.
-     Bazada 188 məhsul var, şəkli 61-inin (≈32%) - yəni əvvəllər səhifənin
-     üçdə ikisi eyni boz kvadrat idi.
+  /* KATEQORİYA RƏNGLƏRİ SİLİNDİ (M2.1).
+     Əvvəl hər kateqoriyanın öz tonu vardı (--cat-dairy, --cat-meat...).
+     Şəbəkədə on kart yan-yana duranda ekran rəngli mozaikaya çevrilirdi.
+     İndi kateqoriya fərqi ÜÇ NEYTRAL ton addımı ilə verilir (--tile,
+     --tile-2, --tile-3), ikon isə monoxromdur. */
 
-     BU RƏNGLƏR STATUS DEYİL. Lövhədə həmişə həm ton, həm də AYRI İKON var,
-     yəni məlumat təkcə rəngdə oturmur. Ton həmişə çox açıqdır (16% qarışıq),
-     ona görə doymuş vurğu mavisi ilə - «ən ucuz» siqnalı ilə - yarışmır.
+  /* ==========================================================================
+     LAYLAR VƏ DƏRİNLİK (M2.2)
+     ==========================================================================
+     KART ƏN AÇIQ LAYDIR, səhifə isə ondan bir ton tünd. Əvvəl tərsinə idi:
+     ağ səhifənin üstündə boz kartlar. Fərq incə görünür, amma nəticə böyükdür -
+     tünd fonun üstündəki ağ kart ÖZÜ irəli çıxır və sərhəd xəttinə ehtiyac
+     qalmır. Laylanma rənglə deyil, TONLA qurulur. */
+  --page: #f5f5f7;            /* səhifə fonu - bir addım tünd */
+  --surface-card: #ffffff;    /* kart - ən açıq lay */
 
-     Market palitrası ilə bəzi tonlar yaxındır; problem deyil, çünki market
-     rəngi yalnız hərf avatarında və qrafik xəttində görünür, kateqoriya
-     tonu isə yalnız məhsul lövhəsində - ikisi eyni yerdə heç vaxt olmur. */
-  --cat-dairy: #5ac8fa;     /* süd məhsulları */
-  --cat-bread: #ff9500;     /* çörək və taxıl */
-  --cat-meat: #ff375f;      /* ət və balıq */
-  --cat-produce: #34c759;   /* meyvə-tərəvəz */
-  --cat-drinks: #5856d6;    /* içkilər */
-  --cat-oil: #ffcc00;       /* yağ və souslar */
-  --cat-sweets: #af52de;    /* şirniyyat */
-  --cat-dry: #a2845e;       /* quru ərzaq */
-  --cat-clean: #30b0c7;     /* təmizlik və gigiyena */
-  --cat-other: #8e8e93;     /* digər / tanınmayan */
+  /* MƏHSUL PLİTƏSİ demək olar ağdır: kartın içində yalnız bir addım seçilir.
+     Kateqoriya fərqi RƏNGLƏ YOX, çox yüngül neytral ton addımı ilə verilir
+     (M2.1) - şəkil gələndə (M3) fon dəyişmir, yalnız içindəki ikon şəklə
+     yerini verir. */
+  --tile: #fafafb;
+  --tile-2: #f6f6f7;
+  --tile-3: #f2f2f4;
+
+  /* KÖLGƏ İKİ PİLLƏDİR və hər ikisi yumşaqdır: sərt kölgə Apple dilində
+     yaddır və kartı səhifədən qoparır.
+       shadow-1  sakit vəziyyət
+       shadow-2  hover - kart bir az «qalxır» */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .04), 0 2px 6px rgba(0, 0, 0, .05);
+  --shadow-2: 0 6px 16px rgba(0, 0, 0, .10);
+  /* Seçilmiş kiçik düymə (dil, seqment): «basılmış açar» hissi - kölgə çox
+     kiçikdir və 0.5px kənar xətt onu boz altlıqdan ayırır. */
+  --shadow-key: 0 1px 3px rgba(0, 0, 0, .10), 0 0 0 .5px rgba(0, 0, 0, .04);
+
+  /* --- İSTİ AKSENT (M2.3) ---
+     LAYİHƏDƏ YEGANƏ isti rəngdir və YALNIZ İKİ YERDƏ işlənir: endirim nişanı
+     (−58%) və «ən ucuz» göstəricisi. Səbəb: qənaət saytın vəd etdiyi yeganə
+     hərəkətdir - onu mavi ilə yazsaq, qalan hər şeylə eyni səviyyəyə düşür.
+     ÖLÇÜLDÜ: ağ mətn bu fonda 5.18:1 - AA-dan keçir (#ff9500 cəmi 2.20 verirdi
+     və ağ mətnlə oxunmurdu). */
+  --accent-hot: #c2410c;
+  --accent-hot-soft: color-mix(in srgb, var(--accent-hot) 10%, var(--bg));
+
+  /* --- HƏRƏKƏT (M2.5) ---
+     Bir müddət, bir əyri: müxtəlif sürətlər interfeysi səliqəsiz göstərir.
+     160 ms - gözlə tutulan, amma gözlətməyən hədd. */
+  --motion: 160ms;
+  --motion-ease: ease-out;
 
   /* --- Sərhəd və kölgə (Apple: nazik xətt + yumşaq, az kontrastlı kölgə) --- */
   --hairline: #d2d2d7;
   --line: #d2d2d7;      /* köhnə ad */
   --border: #d2d2d7;
 
-  --shadow: 0 4px 16px rgba(0, 0, 0, .06);
-  --shadow-lift: 0 8px 24px rgba(0, 0, 0, .10);
+  /* KÖHNƏ ADLAR yeni tokenlərə bağlanır: fayl boyu onlarla istifadə yeri var
+     və hamısını əl ilə dəyişmək səhv riski gətirərdi. Dəyər BİR yerdədir. */
+  --shadow: var(--shadow-1);
+  --shadow-lift: var(--shadow-2);
 
   /* --- Forma: Apple radius şkalası --- */
   --r-pill: 980px;      /* düymələr - Apple-ın öz dəyəri */
@@ -183,7 +218,10 @@ body {
   font-family: var(--font);
   font-size: 17px;          /* Apple gövdə ölçüsü (əvvəl 15px) */
   font-weight: 400;
-  background: var(--bg);
+  /* SƏHİFƏ FONU BİR ADDIM TÜND (M2.2): kart onun üstündə ağ qalır və özü
+     irəli çıxır. Əvvəl tərsinə idi - ağ səhifə, boz kartlar; kart geri
+     düşürdü və dərinlik yalnız sərhəd xətti ilə verilə bilirdi. */
+  background: var(--page);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -316,7 +354,7 @@ a.brand:hover .brand-name { color: var(--text-secondary); }
 .lang-btn[aria-selected="true"] {
   background: var(--bg);
   color: var(--text);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, .10), 0 0 0 .5px rgba(0, 0, 0, .04);
+  box-shadow: var(--shadow-key);
 }
 
 
@@ -360,7 +398,7 @@ a.brand:hover .brand-name { color: var(--text-secondary); }
 .seg-btn[aria-selected="true"] {
   background: var(--bg);
   color: var(--text);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, .10), 0 0 0 .5px rgba(0, 0, 0, .04);
+  box-shadow: var(--shadow-key);
 }
 
 .seg-btn[aria-selected="true"]:hover { background: var(--bg); }
@@ -439,27 +477,49 @@ a.brand:hover .brand-name { color: var(--text-secondary); }
    KARTLAR — trolley: 1px sərhəd + kölgə (əvvəl sərhədsiz idi)
    ============================================================================ */
 
-/* Apple ritmi: BÖLMƏ boz altlıqdır, onun İÇİNDƏKİ kartlar ağdır.
-   Əvvəlki variantda hər ikisi ağ idi və nazik çərçivələr üst-üstə düşürdü —
-   səthlərin ierarxiyası itirdi. İndi `.card` boz altlıqdır: çərçivəsiz,
-   kölgəsiz, sadəcə fon fərqi. Ağ səth (`.card.is-raised`, `.store-card`,
-   hero paneli) onun üzərində qalxır. */
+/* LAYLANMA TƏRSİNƏ ÇEVRİLDİ (M2.2).
+   Əvvəl `.card` boz altlıq idi, səhifə isə ağ - kart geri düşürdü və
+   dərinliyi yalnız sərhəd xətti ilə vermək olurdu. İndi səhifə bir addım
+   tünddür (`--page`), kart isə ən açıq laydır (`--surface-card`) və yumşaq
+   kölgə ilə qalxır. Nəticə: xətt olmadan da kart səthdən ayrılır. */
 .card {
-  background: var(--bg-subtle);
+  /* KART ƏN AÇIQ LAYDIR + yumşaq kölgə (M2.2). Sərhəd xətti YOXDUR:
+     laylanma tonla və kölgə ilə verilir, xətlə yox. */
+  background: var(--surface-card);
   border: none;
   border-radius: var(--r-card);
   padding: var(--s3);
+  box-shadow: var(--shadow-1);
 }
 
-/* Ağ, qalxmış kart - boz bölmənin içində istifadə olunur. */
+/* `is-raised` KART ARTIQ AĞ FONDA DEYİL, bir addım güclü kölgədədir:
+   kart onsuz da ağdır, ona görə «qalxmaq» yalnız kölgə ilə ifadə olunur. */
 .card.is-raised {
-  background: var(--bg);
-  border: 1px solid var(--hairline);
-  box-shadow: var(--shadow);
+  background: var(--surface-card);
+  border: none;
+  box-shadow: var(--shadow-2);
 }
 
-.card-lift { transition: box-shadow var(--ease), transform var(--ease); }
-.card-lift:hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
+/* HOVER QAYDASI BİRDİR VƏ HAMISI ONU İŞLƏDİR (M2.2):
+   2px qalxma + güclü kölgə, 160 ms ease-out. Müxtəlif kartların müxtəlif
+   sürətlə hərəkət etməsi interfeysi səliqəsiz göstərir. */
+.card-lift,
+.pcard,
+.store-card {
+  transition: box-shadow var(--motion) var(--motion-ease),
+              transform var(--motion) var(--motion-ease);
+}
+
+.card-lift:hover,
+.pcard:hover,
+.store-card:hover {
+  box-shadow: var(--shadow-2);
+  transform: translateY(-2px);
+}
+
+/* `.deal-row` QALXMIR: o, kart deyil, siyahı sətridir. Sətirlər bir-birinin
+   ardınca qalxsaydı, siyahı kursor altında «titrəyərdi». Onun öz siqnalı
+   fon dəyişikliyidir (aşağıda). */
 
 
 /* ============================================================================
@@ -1307,7 +1367,45 @@ td .row-note { display: block; margin-top: 2px; }
 @media (prefers-reduced-motion: reduce) {
   .skeleton-row::after { animation: none; }
   .skeleton { animation: none; }
+  /* Səbət nişanının sıçrayışı da sönür - məlumat onsuz da rəqəmdədir. */
+  .basket-count.is-bumping { animation: none; }
 }
+
+/* ============================================================================
+   MİKRO-HƏRƏKƏT (M2.5)
+   ============================================================================
+   HƏR HƏRƏKƏTİN BİR İŞİ VAR - bəzək yoxdur:
+
+     · düymə basılanda 2% kiçilir  -> «basıldı» hissi, klik itmədiyini bildirir
+     · səbət nişanı qısa sıçrayır  -> məhsul əlavə olundu, üst panelə baxmadan
+     · qiymət/say dəyişəndə keçid  -> rəqəm birdən dəyişmir, göz onu izləyir
+
+     Hamısı `prefers-reduced-motion` altında sönür (aşağıda). */
+
+/* Səbətə əlavə olunanda nişanın qısa sıçrayışı. `transform` işlədilir,
+   ölçü yox: layout sıçramasın. */
+@keyframes basket-bump {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.28); }
+  100% { transform: scale(1); }
+}
+
+.basket-count.is-bumping { animation: basket-bump 320ms var(--motion-ease); }
+
+/* Qiymət və miqdar YUMŞAQ dəyişir. `tabular-nums` ilə birlikdə işləyir:
+   rəqəmin eni sabitdir, ona görə keçid zamanı sətir tərpənmir. */
+.pcard-price,
+.plan-total,
+.qty-value,
+.row-value {
+  transition: color var(--motion) var(--motion-ease),
+              opacity var(--motion) var(--motion-ease);
+}
+
+/* «Səbətə» düyməsi əlavədən sonra vəziyyətini bildirir - mətn dəyişir,
+   ölçü DƏYİŞMİR (düymənin eni sabit qalır, kart tərpənmir). */
+.add-btn { transition: color var(--motion) var(--motion-ease),
+                       border-color var(--motion) var(--motion-ease); }
 
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 @keyframes shimmer-sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
@@ -1745,7 +1843,7 @@ code {
   transition: box-shadow var(--ease), transform var(--ease);
 }
 
-.store-card:hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
+/* hover qaydası yuxarıda, ortaq blokdadır (M2.2) */
 .store-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Loqo qutusu: hündürlüyü SABİTDİR ki, fərqli ölçülü loqolar şəbəkəni
@@ -2263,26 +2361,44 @@ code {
 .thumb.is-cat {
   display: grid;
   place-items: center;
-  background: color-mix(in srgb, var(--cat-hue) 16%, var(--bg));
+  /* KATEQORİYA FƏRQİ RƏNGLƏ DEYİL, TONLA (M2.1).
+     Əvvəl hər kateqoriyanın öz rəngi vardı (süd mavi, ət çəhrayı, təmizlik
+     firuzəyi). Şəbəkədə on kart yan-yana duranda nəticə rəngli mozaika idi:
+     göz məhsula yox, fon rənglərinə düşürdü. İndi plitə demək olar ağdır və
+     kateqoriya yalnız ÜÇ neytral ton addımından biri ilə seçilir - fərq var,
+     amma diqqət tələb etmir.
+
+     TON ŞƏKİL ÜÇÜN DƏ HAZIRDIR (M3): şəkil gələndə fon və ölçü DƏYİŞMİR,
+     yalnız ikonun yerini şəkil tutur. */
+  background: var(--tile-tone, var(--tile));
 }
 
-/* İkon tonun TÜNDLƏŞDİRİLMİŞ variantıdır: eyni ailədən gəlir (kateqoriya
-   tanınır), amma mətnlə qarışdırılan qədər tünddür (kontrast). */
+/* İKON MONOXROMDUR VƏ HƏR YERDƏ EYNİ ÖLÇÜDƏDİR (M2.1).
+   `icons.svg`-də bütün kateqoriya ikonları eyni xətt qalınlığındadır (1.7)
+   və eyni `viewBox`-dadır (24×24) - yəni faiz ölçüsü hamısında eyni optik
+   ağırlıq verir. Rəng ikinci dərəcəli mətn tonudur: plitə fon, ikon isə
+   onun üstündə sakit işarədir. */
 .thumb.is-cat svg {
-  width: 42%; height: 42%;
-  color: color-mix(in srgb, var(--cat-hue) 65%, var(--text));
+  width: 44%;
+  height: 44%;
+  color: var(--text-secondary);
 }
 
-.thumb.is-cat-dairy   { --cat-hue: var(--cat-dairy); }
-.thumb.is-cat-bread   { --cat-hue: var(--cat-bread); }
-.thumb.is-cat-meat    { --cat-hue: var(--cat-meat); }
-.thumb.is-cat-produce { --cat-hue: var(--cat-produce); }
-.thumb.is-cat-drinks  { --cat-hue: var(--cat-drinks); }
-.thumb.is-cat-oil     { --cat-hue: var(--cat-oil); }
-.thumb.is-cat-sweets  { --cat-hue: var(--cat-sweets); }
-.thumb.is-cat-dry     { --cat-hue: var(--cat-dry); }
-.thumb.is-cat-clean   { --cat-hue: var(--cat-clean); }
-.thumb.is-cat-other   { --cat-hue: var(--cat-other); }
+/* Üç ton addımı kateqoriyalara paylanır. Hansı kateqoriyanın hansı addıma
+   düşməsi məna daşımır - məqsəd yan-yana duran kartların bir-birindən
+   seçilməsidir, kateqoriyanı rənglə kodlamaq deyil (onu ikon bildirir). */
+.thumb.is-cat-dairy,
+.thumb.is-cat-produce,
+.thumb.is-cat-dry     { --tile-tone: var(--tile); }
+
+.thumb.is-cat-bread,
+.thumb.is-cat-drinks,
+.thumb.is-cat-sweets  { --tile-tone: var(--tile-2); }
+
+.thumb.is-cat-meat,
+.thumb.is-cat-oil,
+.thumb.is-cat-clean,
+.thumb.is-cat-other   { --tile-tone: var(--tile-3); }
 
 /* NİSBƏT VƏ FON HƏR YERDƏ EYNİDİR (P5).
    `.deal-photo`, `.pcard-photo` və `.product-photo` üçün üç ortaq qayda var:
@@ -2314,8 +2430,11 @@ code {
   top: 8px; left: 8px;
   padding: 3px 10px;
   border-radius: var(--r-sm);
-  background: color-mix(in srgb, var(--text) 88%, transparent);
-  color: var(--bg);
+  /* İSTİ AKSENT (M2.3) - endirim siyahısında da eyni nişan. Əvvəl neytral
+     tünd idi və «bugünün ən sərfəli endirimləri» bölməsində faiz rəqəmi
+     qara etiketdə itirdi. */
+  background: var(--accent-hot);
+  color: var(--on-accent);
   font-size: 13px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
@@ -2696,21 +2815,55 @@ code {
 
 .pcard-photo img { width: 100%; height: 100%; object-fit: contain; }
 
-.pcard-body { display: flex; flex-direction: column; gap: 3px; padding: var(--s2) var(--s3) var(--s3); }
-.pcard-brand { font-size: 13px; font-weight: 700; }
+/* GÖVDƏ QALAN YERİ TUTUR (`flex: 1`), ona görə qiymətin `margin-top: auto`
+   qaydası işləyir və QİYMƏTLƏR BİR XƏTTDƏ dayanır.
+   BRAUZERDƏ GÖRÜLDÜ: brendsiz məhsulun bir sətri az olduğu üçün onun qiyməti
+   qonşu kartlardan 18px yuxarıda qalırdı - şəbəkə «dişli» görünürdü. */
+.pcard-body { display: flex; flex-direction: column; flex: 1; gap: 3px; padding: var(--s2) var(--s3) var(--s3); }
+/* BREND KİÇİK VƏ BÖYÜK HƏRFLƏ (M2.4): kartda üç ölçü var və brend ən
+   kiçiyidir. Böyük hərf onu addan ayırır - ölçünü daha da kiçiltmək
+   oxunaqlığı pozardı. */
+.pcard-brand {
+  /* BOŞ VƏ DOLU SƏTİR EYNİ HÜNDÜRLÜKDƏ olmalıdır: `min-height` sətir
+     hündürlüyü ilə eyni yazılır, əks halda brendsiz kartın məzmunu 3px
+     yuxarı sürüşür (brauzerdə ölçüldü). */
+  line-height: 1.4;
+  min-height: 1.4em;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--text-secondary);
+}
 
+/* AD - ORTA ÖLÇÜ və ƏSAS mətn rəngi. İki sətirdən sonra kəsilir (aşağıda):
+   bütün kartlar eyni hündürlükdə qalır və şəbəkə «dişli» görünmür. */
 .pcard-name {
-  font-size: 13px;
-  color: var(--text-2);
-  line-height: 1.3;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.35;
+  min-height: calc(14px * 1.35 * 2);   /* iki sətir - tək sətirli ad da yer tutur */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.pcard-meta { display: flex; gap: 5px; flex-wrap: wrap; }
-.pcard-price { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+/* META SƏTRİ SABİT HÜNDÜRLÜKDƏDİR: ölçü çipi olan və olmayan kartlarda
+   sətrin hündürlüyü 3px fərqlənirdi və qiymətlər eyni xəttdə dayanmırdı
+   (brauzerdə ölçüldü). */
+.pcard-meta { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; min-height: 22px; }
+/* QİYMƏT KARTIN VİZUAL MƏRKƏZİDİR (M2.4): ən böyük ölçü, ən ağır çəki.
+   `tabular-nums` - rəqəm dəyişəndə eni sabit qalır və qiymət «sıçramır»
+   (2.05 → 11.90 keçidində sətir tərpənmir). */
+.pcard-price {
+  font-size: 19px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.01em;
+  margin-top: auto;
+  padding-top: 4px;
+}
 
 
 /* ---------- Üst paneldəki kiçik axtarış ---------- */
@@ -2804,13 +2957,16 @@ code {
 /* Kartın üstündəki endirim nişanı - şəbəkədə gözə ilk dəyən siqnal. */
 .pcard-photo { position: relative; }
 
+/* ENDİRİM NİŞANI - İSTİ AKSENTİN BİRİNCİ (VƏ YALNIZ İKİ) YERİNDƏN BİRİ (M2.3).
+   Əvvəl mavi idi, yəni səhifədəki hər digər interaktiv elementlə eyni rəngdə.
+   Qənaət saytın vəd etdiyi yeganə hərəkətdir - onu ayırd etmək lazımdır. */
 .pcard-flag {
   position: absolute;
   top: 6px; left: 6px;
   z-index: 1;
   padding: 2px var(--s2);
   border-radius: var(--r-pill);
-  background: var(--accent);
+  background: var(--accent-hot);
   color: var(--on-accent);
   font-size: 11px;
   font-weight: 700;

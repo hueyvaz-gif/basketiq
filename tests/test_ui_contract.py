@@ -61,23 +61,60 @@ def test_hər_kateqoriyanın_ikonu_var():
 
 
 
-def test_hər_kateqoriyanın_öz_tonu_var():
+def test_hər_kateqoriyanın_öz_ton_addımı_var():
     """
-    B6: şəkli olmayan məhsul boz kub yerinə KATEQORİYA lövhəsi alır.
+    M2.1: şəkli olmayan məhsul KATEQORİYA lövhəsi alır və lövhənin fonu
+    ÜÇ NEYTRAL ton addımından biridir.
 
-    Lövhənin rəngi `--cat-*` tokenindən, `.thumb.is-cat-*` qaydası ilə gəlir.
+    QAYDA DƏYİŞDİ: əvvəl hər kateqoriyanın öz RƏNGİ vardı (süd mavi, ət
+    çəhrayı). Şəbəkədə on kart yan-yana duranda ekran rəngli mozaikaya
+    çevrilirdi - göz məhsula yox, fon rənglərinə düşürdü.
+
     Kateqoriya siyahısına yeni ad düşsə və ton unudulsa, səhv SƏSSİZ olardı:
-    `--cat-hue` təyin olunmadığı üçün `color-mix()` etibarsız çıxar və lövhə
-    ŞƏFFAF qalar - yəni ikon ağ fonda tək dayanar, heç bir xəta görünmədən.
+    `--tile-tone` təyin olunmur, ehtiyat dəyər işə düşür və həmin kateqoriya
+    həmişə eyni tonda qalır - fərq gözlə seçilmir.
     """
     css = read_static("style.css")
     for category, ikon in parse_category_icons().items():
         ton = "is-cat-other" if ikon == "package" else f"is-{ikon}"
         assert f".thumb.{ton}" in css, f"«{category}» üçün .thumb.{ton} qaydası yoxdur"
 
-        token = re.search(rf"\.thumb\.{re.escape(ton)}\s*\{{[^}}]*--cat-hue:\s*var\((--cat-[\w-]+)\)", css)
-        assert token, f"«{category}» tonu --cat-hue təyin etmir"
-        assert f"{token.group(1)}:" in css, f"{token.group(1)} :root-da yoxdur"
+        blok = re.search(
+            rf"\.thumb\.{re.escape(ton)}[^{{]*\{{[^}}]*--tile-tone:\s*var\((--tile[\w-]*)\)",
+            css,
+            re.S,
+        )
+        assert blok, f"«{category}» ton addımı təyin etmir"
+        assert f"{blok.group(1)}:" in css, f"{blok.group(1)} :root-da yoxdur"
+
+
+def test_lövhə_ikonları_monoxromdur():
+    """
+    M2.1: ikon rəngi ikinci dərəcəli MƏTN tonudur, kateqoriya rəngi deyil.
+    Rəngli ikon geri qayıtsa, plitələr yenidən mozaikaya çevrilər.
+    """
+    css = read_static("style.css")
+    blok = re.search(r"\.thumb\.is-cat svg \{([^}]*)\}", css, re.S)
+    assert blok, ".thumb.is-cat svg qaydası tapılmadı"
+    gövdə = blok.group(1)
+    assert "var(--text-secondary)" in gövdə, "ikon monoxrom deyil"
+    assert "--cat-" not in gövdə, "ikon hələ də kateqoriya rəngindən qidalanır"
+
+
+def test_kateqoriya_ikonları_eyni_xətt_qalınlığındadır():
+    """
+    M2.1: «vahid stil» yalnız CSS ölçüsü deyil - SVG-nin özündə də xətt
+    qalınlığı eyni olmalıdır. Bir ikon 2.2, digəri 1.7 olsaydı, eyni ölçüdə
+    biri qalın, digəri nazik görünərdi və plitələr «yığılmamış» oxunardı.
+    """
+    sprite = read_static("icons.svg")
+    qalınlıqlar = set()
+    for ikon in set(parse_category_icons().values()):
+        blok = re.search(rf'<symbol id="icon-{re.escape(ikon)}"(.*?)</symbol>', sprite, re.S)
+        assert blok, f"#icon-{ikon} tapılmadı"
+        qalınlıqlar |= set(re.findall(r'stroke-width="([0-9.]+)"', blok.group(1)))
+
+    assert len(qalınlıqlar) == 1, f"kateqoriya ikonlarında müxtəlif xətt qalınlığı: {qalınlıqlar}"
 
 
 def test_şəkilsiz_məhsul_ünvan_almır():
@@ -460,7 +497,11 @@ def test_semantik_rənglər_təyin_olunub():
         "--accent": "#0071e3",     # brend, naviqasiya, əsas hərəkət
         "--accent-hover": "#0077ed",
         "--link": "#0066cc",       # mətn içindəki keçid
-        "--cheapest": "#0071e3",   # ƏN UCUZ — öz token-i
+        # «Ən ucuz» M2.3-də İSTİ AKSENTƏ keçdi: qənaət saytın vəd etdiyi
+        # yeganə hərəkətdir, mavi ilə yazılanda isə hər digər interaktiv
+        # elementlə eyni səviyyəyə düşürdü.
+        "--cheapest": r"var\(--accent-hot\)",
+        "--accent-hot": "#c2410c",   # LAYİHƏDƏ YEGANƏ isti rəng
         "--ok": "#0066cc",         # təsdiqlənib
         "--info": "#6e6e73",       # yoxlaya bilmirik — neytral
         "--danger": "#d70015",     # bahalı / şübhəli / xəta
