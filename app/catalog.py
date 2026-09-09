@@ -31,6 +31,7 @@ from statistics import median
 
 from app.analytics import IMPLAUSIBLE_DEPTH, SUSPICIOUS_DEPTH, verify_claim
 from app.db import get_connection
+from app.similar import pick_similar
 from app.stores import MARKETS, Market, market_for, market_status, store_map
 from ingestion.images import image_url
 from ingestion.normalize import display_label, display_size, unit_price
@@ -846,13 +847,23 @@ def product_detail(product_id: int) -> dict | None:
             product["group_key"], []
         )
 
-        similar = _card_rows(
+        # OXŞARLIQ İKİ MƏRHƏLƏDİR (P3).
+        #
+        # SQL yalnız NAMİZƏD verir (eyni kateqoriya), qərarı isə
+        # `app/similar.py` verir: ad və brend oxşarlığı. Əvvəl tək şərt
+        # kateqoriya idi və «quru ərzaq» qabında düyü ilə salfet yan-yana
+        # düşürdü - bölmənin adı «Oxşar məhsullar» olduğu üçün bu, yalan idi.
+        #
+        # Namizəd limiti 8 deyil, 60-dır: süzgəc ondan sonra işləyir və dar
+        # siyahıdan yaxşı uyğunluq çıxmaya bilər.
+        namizədlər = _card_rows(
             conn,
             "p.category = ? AND p.group_key != ?",
             (product["category"], product["group_key"]),
             markets,
-            8,
+            60,
         )
+        similar = pick_similar(dict(product), namizədlər, limit=8)
 
         same_brand: list[dict] = []
         if product["brand"]:
