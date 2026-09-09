@@ -859,3 +859,56 @@ qalan element olmasın.
 - **Admin panelinin işlək halları sınanmadı** — fayl yükləmə, mənbədən çəkmə
   və emal düymələri BASILMADI. Yalnız görünüş yoxlanıldı; funksionallığı
   onsuz da testlər örtür.
+
+---
+
+## 2026-09-09 — Admin panelinin düymələri CANLI yoxlandı
+
+Əvvəlki qeyddə «düymələr basılmadı» yazılmışdı. Basıldı — Selenium ilə, real
+serverdə, real bazada.
+
+### Təhlükəsizlik qaydası
+
+Silmə düyməsində **təsdiq dialoqu yoxdur** (`confirm()` heç bir JS faylında
+işlədilmir) — yəni bir klik kataloqu və onun qiymətlərini geri dönməz silir.
+Ona görə yalnız **skriptin özünün yüklədiyi** kataloq silindi.
+**«Mənbədən çək» BASILMADI:** o, xarici sayta (araz.az) sorğu göndərir və
+54 səhifəlik PDF endirir — bu, mənim öz qərarımla ediləcək iş deyil.
+
+### Nəticələr
+
+| Düymə | Nəticə |
+|---|---|
+| Admin / İstifadəçi keçidi | panel dəyişir, `display: none` düzgün işləyir |
+| Fayl seçimi | «sample_catalog.png — 0.07 MB», «Emal et» aktivləşir |
+| **Emal et** (təkrar fayl) | «Bu fayl artıq yüklənib (Bravo) - təkrar emal olunmadı» — SHA-256 dublikat qoruması işləyir |
+| **Emal et** (unikal fayl) | yeni kataloq #1091 yarandı, siyahı 3 → 4 |
+| **Sətirlər** | cədvəl doldu (311 simvol) |
+| **AI ilə çıxar** | «Model sətirləri emal edir…» — zəncir işə düşdü |
+| **Sil** | kataloq silindi, siyahı 4 → 3 |
+| Konsol xətası | **yoxdur** |
+
+**Baza tam əvvəlki halına qayıtdı:** 3 kataloq, 188 məhsul, 195 qiymət,
+0 yetim.
+
+### Yolda tapılan iki şey
+
+**1. `/api/catalogs/4/lines` 404 verirdi.** Kod səhvi deyil: `data/text/`
+gitignore-dadır və worktree-yə köçmür (`.env` kimi), yəni mətn faylı yox idi.
+API isə aydın mesaj qaytarır: «Mətn faylı tapılmadı - kataloqu yenidən yüklə».
+Fayllar əsas checkout-dan köçürüldü, endpoint 200 verdi.
+
+**2. Kataloq silinəndə BOŞ MARKET SƏTRİ qalır.** `DELETE /api/catalogs/{id}`
+kataloqu, qiymətləri və yetim məhsulları silir, amma `stores` cədvəlindəki
+sətri toxunulmaz saxlayır. İstifadəçi panelində görünmür (reyestr süzgəci),
+amma bazada ilişib qalır. `tools/purge_store.py` ilə təmizləndi — alət də
+beləcə canlı sınandı.
+
+### Nəyə əmin deyiləm
+
+- **«AI ilə çıxar»-ın SON statusu görülmədi** — skript aralıq mesajı
+  («Model sətirləri emal edir…») oxuyub davam etdi. Zəncirin işə düşdüyü
+  təsdiqləndi, tam bitməsi yox.
+- **«Mənbədən çək» ümumiyyətlə sınanmadı.**
+- **Silmə düyməsinin təsdiq dialoqu yoxdur** — bu, dizayn qərarıdır, amma
+  admin panelində bir səhv klik kataloqu aparır. Düzəldilmədi, qeyd edildi.
