@@ -511,11 +511,51 @@ def _first_at_or_after(centers: list[float], value: float, tolerance: float) -> 
 
     tolerance qədər geridə qalan mərkəz də "sonra" sayılır - söz lövbərin
     mərkəzindən bir az aşağı/sağa düşə bilər.
+
+    SÖZÜN LÖVBƏRDƏN MƏSAFƏSİ BURADA MƏHDUDLAŞDIRILMIR. Sınandı və ölçüldü:
+    `_grid_step()` kartın eni DEYİL - o, qonşu qiymət qutuları arasındakı
+    median məsafədir və qutular yan-yana düşəndə kiçilir (6-cı səhifədə 112,
+    halbuki kart ~250 pikseldir). Həmin dəyəri sərhəd kimi işlətmək kartın
+    ÖZ sözlərini kəsirdi: «Nestle Damak Şokolad» -> «Şokolad», «Lotte Choco
+    Pie» -> «Lotte Pie». Sərhəd əvəzinə şəbəkənin özü düzəldildi (bax
+    `parse_page`: xanalar bütün qırmızı qutulardan qurulur).
     """
     for i, center in enumerate(centers):
         if center >= value - tolerance:
             return i
     return None
+
+
+# Qiyməti oxunmayan qutu şəbəkəyə yalnız ÖLÇÜSÜ qiymət qutusuna oxşayanda
+# buraxılır. Ölçüldü: bu süzgəc olmadan endirim nişanı («32%» qırmızı ləkəsi)
+# da xana tuturdu və qonşu kartın sözlərini udurdu - «Snickers/Bounty/Mars/Twix
+# Mini şokolad» kartı tamamilə boşaldı.
+LANDMARK_MIN, LANDMARK_MAX = 0.6, 1.6
+
+
+def _grid_landmarks(red_boxes: list[tuple], priced: list[tuple]) -> list[tuple]:
+    """
+    Şəbəkəni quran qutular: qiyməti oxunanların HAMISI + ölçüsü onlara
+    oxşayan qiymətsizlər.
+
+    Qiymətsiz qutu kart yaratmır, amma öz xanasını tutur - belədə onun sözləri
+    qonşu kartın mətninə axmır, sadəcə atılır.
+    """
+    if not priced:
+        return red_boxes
+    ws = sorted(b[2] - b[0] for b in priced)
+    hs = sorted(b[3] - b[1] for b in priced)
+    mw, mh = ws[len(ws) // 2], hs[len(hs) // 2]
+
+    known = set(priced)
+    out = list(priced)
+    for box in red_boxes:
+        if box in known:
+            continue
+        w, h = box[2] - box[0], box[3] - box[1]
+        if LANDMARK_MIN * mw <= w <= LANDMARK_MAX * mw and LANDMARK_MIN * mh <= h <= LANDMARK_MAX * mh:
+            out.append(box)
+    return out
 
 
 def _grid_step(centers: list[int], fallback: int) -> int:
@@ -560,8 +600,17 @@ def parse_page(page: Image.Image) -> LayoutResult:
         return result
 
     words = page_words(page)
-    col = _grid_step([(b[0] + b[2]) // 2 for b, _ in anchors], page.width // 3)
-    row = _grid_step([(b[1] + b[3]) // 2 for b, _ in anchors], page.height // 3)
+    # ŞƏBƏKƏ BÜTÜN QIRMIZI QUTULARDAN QURULUR, yalnız qiyməti oxunanlardan yox.
+    #
+    # REAL SƏHVDƏN ÇIXIB (ölçüldü: 175 qutudan yalnız 102-sinin qiyməti
+    # oxundu). Qiyməti oxunmayan kart şəbəkədən tamamilə çıxırdı və onun
+    # sözləri «özündən sonrakı ilk lövbərə» axıb qonşu kartın mətninə
+    # qarışırdı - «Penstore Karandaş 12 rəng Penstore Qayçı ASH Su qabi»
+    # məhz belə yarandı. İndi belə qutu da öz xanasını SAHİBLƏNİR, sadəcə
+    # kart yaratmır: sözləri qonşuya getmir, ATILIR.
+    grid_boxes = _grid_landmarks(red_boxes, [b for b, _ in anchors])
+    col = _grid_step([(b[0] + b[2]) // 2 for b in grid_boxes], page.width // 3)
+    row = _grid_step([(b[1] + b[3]) // 2 for b in grid_boxes], page.height // 3)
 
     # Sözü hansı karta yazaq? Lövbərlərdən ŞƏBƏKƏ XANALARI qururuq.
     #
@@ -573,14 +622,20 @@ def parse_page(page: Image.Image) -> LayoutResult:
     #
     # Xana sərhədi isə həndəsi olaraq düzgündür: iki qonşu lövbərin ortası.
     # Bu, hər iki düzülüşdə işləyir, çünki kartlar hər halda şəbəkədədir.
-    col_centers = _cluster([(b[0] + b[2]) / 2 for b, _ in anchors], col * 0.5)
-    row_centers = _cluster([(b[1] + b[3]) / 2 for b, _ in anchors], row * 0.5)
-    # Hər lövbər öz şəbəkə xanasını "sahiblənir"
-    owner: dict[tuple[int, int], int] = {}
-    for i, (box, _) in enumerate(anchors):
+    col_centers = _cluster([(b[0] + b[2]) / 2 for b in grid_boxes], col * 0.5)
+    row_centers = _cluster([(b[1] + b[3]) / 2 for b in grid_boxes], row * 0.5)
+
+    # Hər qutu öz şəbəkə xanasını "sahiblənir". Qiyməti oxunmayan qutu xananı
+    # tutur, amma dəyəri None-dur - ora düşən söz heç bir karta yazılmır.
+    priced_index = {box: i for i, (box, _) in enumerate(anchors)}
+    owner: dict[tuple[int, int], int | None] = {}
+    for box in grid_boxes:
         ci = _nearest(col_centers, (box[0] + box[2]) / 2)
         ri = _nearest(row_centers, (box[1] + box[3]) / 2)
-        owner[(ci, ri)] = i
+        index = priced_index.get(box)
+        # Xana artıq qiymətli lövbərindirsə, qiymətsiz qutu onu ƏLİNDƏN ALMIR.
+        if owner.get((ci, ri)) is None:
+            owner[(ci, ri)] = index
 
     buckets: dict[int, list[dict]] = {i: [] for i in range(len(anchors))}
 

@@ -453,3 +453,79 @@ qiymət açarı sönür       -> 1 failed, 9 passed
   şərtinin sərtləşməsi onları da kəsdi — əhatə ilə dürüstlük arasında qəsdən
   edilmiş mübadilədir.
 - **Kadrın sürüşməsinə toxunulmadı** — sol kənar hələ də kəsilir.
+
+---
+
+## 2026-09-09 — `layout.py`: sətirlərin qarışması
+
+Şəkil səhvlərinin «3-cü səbəbi» həll olundu.
+
+### Səbəb
+
+Səhifədə **175 qırmızı qutu**, amma yalnız **102-sinin qiyməti oxunur**
+(Araz-da qiymət ikimərtəbəlidir). Qiyməti oxunmayan qutu şəbəkədən tamamilə
+çıxırdı; söz isə «özündən sonrakı ilk lövbərə» bağlanır — deməli o kartın
+sözləri qonşuya axırdı.
+
+### Nə dəyişdi
+
+| Fayl | Dəyişiklik |
+|---|---|
+| `ingestion/layout.py` | şəbəkə **bütün** qırmızı qutulardan qurulur; **yeni** `_grid_landmarks()` (ölçü süzgəci); `_first_at_or_after()` sənədləşdirildi |
+| `tests/test_layout.py` | **yeni** 2 test (biri OCR-lı uçdan-uca, biri vahid) |
+
+Qiymətsiz qutu kart yaratmır, amma **öz xanasını sahiblənir** — sözləri
+qonşuya getmir, atılır.
+
+### Sınadım, ÖLÇDÜM, ATDIM
+
+İlk variantım sözün lövbərdən məsafəsini `_grid_step()` ilə məhdudlaşdırırdı.
+Səhv idi: **`_grid_step()` kartın eni deyil** — qonşu qiymət qutuları
+arasındakı median məsafədir və qutular yan-yana düşəndə kiçilir. 6-cı səhifədə
+ölçdüm: `col=112`, halbuki kart ~250 pikseldir. Nəticə: kartın ÖZ sözləri
+kəsilirdi — «Nestle Damak Şokolad» → «Şokolad», «Lotte Choco Pie» → «Lotte Pie».
+
+Fərziyyə ilə davam etsəydim bunu görməzdim; iki dəyişikliyi **ayrı-ayrı**
+ölçdüm və günahkarın hansı olduğu ordan çıxdı.
+
+### Ölçmə (20 səhifə, 102 kart)
+
+| | Əvvəl | Sonra |
+|---|---|---|
+| 12 sözdən uzun kart | 6 | **1** |
+| Ən uzun kart | 23 söz | 20 söz |
+| Boş kart | 14 | 15 |
+
+```
+«Penstore Karandaş 12 rəng Penstore Qayçı ASH Su qabi» → «ASH Su qabi»
+«Chupa Chups q 25% 18% Mentos Saqqız 15.5 q»           → «Mentos Saqqız 15.5 q»
+«Sf Nescafe Qəhvə 145q Starbucks Premium qəhvə»        → «Sf Nescafe Qəhvə 145q»
+```
+
+### Uçdan-uca nəticə İKİ TƏRƏFLİDİR
+
+| | Əvvəl | Sonra |
+|---|---|---|
+| Şəkil | 62 | 51 |
+| Doğru | 48 (77%) | **42 (82%)** |
+| Səhv | 10 (16%) | **6 (12%)** |
+
+Səhv nisbəti düşdü, **amma 6 doğru şəkil də itdi.** Səbəb: uyğunlaşdırma
+saxlanılmış `raw_line` ilə **canlı** kart mətnini tutuşdurur; `raw_line` köhnə
+layout ilə yazılıb və qarışıqdır. Kart mətni təmizləndikcə oxşarlıq düşür və
+0.55 həddini keçmir.
+
+### Nəyə əmin deyiləm
+
+- **Bu düzəlişin tam faydası mövcud bazada GÖRÜNMÜR.** Onu görmək üçün kataloq
+  yenidən emal olunmalıdır (`raw_line` yenidən yazılsın) — bu, LLM zəncirini
+  işə salır və məhsul/qiymət sətirlərini yenidən qurur. Ayrıca qərardır,
+  etmədim.
+- **10-cu səhifədə 3 kart mətnini itirdi.** Onların mətni onsuz da qarışıq idi
+  («Marsianka 17.00 49 “1 32% sə) Candy G. Frully Qlazurlu»), amma indi
+  ümumiyyətlə mətn yoxdur — bu, itkidir.
+- **Bir qarışıq kart qaldı** (14-cü səhifə, «Şirniyyat boşqabı» + «Nescafe
+  Gold»). Orada qonşu kartın qırmızı qutusu ümumiyyətlə tapılmır, yəni xana
+  sahibi yoxdur.
+- **Ölçü süzgəcinin sərhədləri (0.6–1.6) bir kataloqda seçilib.** Başqa
+  dizaynda nişanla qiymət qutusunun nisbəti fərqli ola bilər.

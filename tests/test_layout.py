@@ -197,3 +197,74 @@ def test_kartsiz_sehifede_bos_netice(card_page):
         ImageDraw.Draw(plain).text((50, 50), "Sud Milla 1 L 1,89", fill="black", font=font)
     result = parse_page(plain)
     assert result.cards == []
+
+
+# --------------------------------------------- qiyməti oxunmayan kart (real səhv)
+
+
+@pytest.fixture(scope="module")
+def page_with_unreadable_price() -> Image.Image:
+    """
+    İki kart yan-yana; SOLDAKININ qiymət qutusu BOŞDUR (rəqəm yoxdur).
+
+    Real kataloqda bu, adi haldır: 175 qırmızı qutudan yalnız 102-sinin qiyməti
+    oxunur (Araz-da qiymət ikimərtəbəli yazılır, Tesseract onu həmişə tutmur).
+    """
+    font = _font(30)
+    if font is None:
+        pytest.skip("TrueType şrift tapılmadı")
+    price_font = _font(64)
+
+    img = Image.new("RGB", (2 * CARD_W, CARD_H), "white")
+    draw = ImageDraw.Draw(img)
+    for i, (name, price) in enumerate([("Yolcu qaymaq", None), ("Bahar cörək", "2.45")]):
+        cx = i * CARD_W
+        draw.text((cx + 30, 30), name, fill="black", font=font)
+        rx0, ry0, rx1, ry1 = cx + 150, 322, cx + 390, 430
+        draw.rectangle([rx0, ry0, rx1, ry1], fill=(227, 6, 19))
+        if price:
+            draw.text((rx0 + 35, ry0 + 18), price, fill="white", font=price_font)
+    return img
+
+
+def test_qiymeti_oxunmayan_kartin_adi_qonsuya_kecmir(page_with_unreadable_price):
+    """
+    REAL SƏHVDƏN ÇIXIB (`logs/image-check.md`): qiyməti oxunmayan kart şəbəkədən
+    tamamilə çıxırdı və sözləri «özündən sonrakı ilk lövbərə» axırdı. Nəticədə
+    bir sətirdə üç məhsul toplanırdı:
+
+        «Penstore Karandaş 12 rəng Penstore Qayçı ASH Su qabi 5.79»
+
+    Belə sətir həm LLM-i, həm də şəkil uyğunlaşdırmasını çaşdırır - məhz bu
+    sətrə görə «karandaş» məhsuluna SU QABININ şəkli düşmüşdü.
+    """
+    result = parse_page(page_with_unreadable_price)
+
+    kartlar = [c for c in result.cards if c.price is not None]
+    assert kartlar, "qiyməti oxunan kart tapılmadı"
+
+    hamisi = " ".join(c.text for c in kartlar).lower()
+    assert "qaymaq" not in hamisi, (
+        f"qiyməti oxunmayan kartın adı qonşu karta keçdi: {hamisi!r}"
+    )
+
+
+def test_qiymetsiz_qutu_olcusune_gore_suzulur():
+    """
+    Şəbəkə lövbəri yalnız qiymət qutusu ölçüsündə ola bilər.
+
+    REAL SƏHVDƏN ÇIXIB: süzgəcsiz variantda endirim nişanı («32%» qırmızı
+    ləkəsi) də xana tutdu və qonşu kartın bütün sözlərini uddu -
+    «Snickers/Bounty/Mars/Twix Mini şokolad» kartı tamamilə boşaldı.
+    """
+    from ingestion.layout import _grid_landmarks
+
+    qiymetli = [(150, 320, 390, 430), (570, 320, 810, 430)]   # 240x110
+    eyni_olcu = (990, 320, 1230, 430)                          # 240x110 - kartdır
+    nisan = (500, 100, 560, 150)                               # 60x50 - nişandır
+
+    lovberler = _grid_landmarks(qiymetli + [eyni_olcu, nisan], qiymetli)
+
+    assert eyni_olcu in lovberler
+    assert nisan not in lovberler
+    assert all(b in lovberler for b in qiymetli)

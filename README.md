@@ -214,6 +214,44 @@ yazmaqdansa `None` qaytarırıq.
 Kart tapılmayan səhifədə sistem avtomatik adi OCR-a qayıdır — sadə siyahı
 şəklindəki kataloq üçün düzgün cavab elə odur.
 
+### Şəbəkədən düşən kart — sətirlərin qarışması
+
+Səhifədə **175 qırmızı qutu** var, amma yalnız **102-sinin qiyməti oxunur**:
+Araz-da qiymət ikimərtəbəli yazılır (böyük «1», sağ yuxarısında kiçik «99») və
+Tesseract onu həmişə tutmur.
+
+Əvvəl qiyməti oxunmayan qutu şəbəkədən **tamamilə çıxırdı**. Söz isə «özündən
+sonrakı ilk lövbərə» bağlanır — deməli həmin kartın sözləri qonşuya axırdı:
+
+```
+«Penstore Karandaş 12 rəng Penstore Qayçı ASH Su qabi 5.79»   ← üç ayrı kart
+```
+
+Belə sətir həm LLM-i, həm də şəkil uyğunlaşdırmasını çaşdırır: məhz buna görə
+«karandaş» məhsuluna **su qabının** şəkli düşmüşdü (`logs/image-check.md`).
+
+**Düzəliş:** şəbəkə **bütün** qırmızı qutulardan qurulur. Qiymətsiz qutu kart
+yaratmır, amma öz xanasını sahiblənir — sözləri qonşuya getmir, **atılır**.
+Lövbərlər ölçüyə görə süzülür (`_grid_landmarks`, median ölçünün 0.6–1.6-sı),
+əks halda endirim nişanı («32%» qırmızı ləkəsi) də xana tutur və qonşu kartı
+boşaldır.
+
+**Sınanan və atılan variant:** sözün lövbərdən məsafəsini `_grid_step()` ilə
+məhdudlaşdırmaq. Ölçüldü — `_grid_step()` kartın eni **deyil**, qonşu qiymət
+qutuları arasındakı median məsafədir və qutular yan-yana düşəndə kiçilir
+(6-cı səhifədə 112, kart isə ~250 piksel). Nəticədə kartın öz sözləri kəsilirdi:
+«Nestle Damak Şokolad» → «Şokolad». Sərhəd atıldı.
+
+**Ölçmə (20 səhifə, 102 kart):**
+
+| | Əvvəl | Sonra |
+|---|---|---|
+| 12 sözdən uzun kart (qarışıq sətir) | 6 | **1** |
+| Ən uzun kart | 23 söz | 20 söz |
+| Mətni boş kart | 14 | 15 |
+
+---
+
 ## MCP serveri — layihəni AI agentlərinə açmaq
 
 FastAPI endpoint-lərini insan və skript çağırır. MCP isə eyni funksiyaları
@@ -704,7 +742,7 @@ Boş kadr (tək rəngli sahə) atılır, şəkli tapılmayan məhsul neytral
 placeholder alır (`/static/images/product-placeholder.svg`). **Uydurma məhsul
 şəkli çəkilmir.**
 
-**Ölçülmüş əhatə (2026-09-09):** 194 məhsuldan **62-sinin** şəkli var (≈32%),
+**Ölçülmüş əhatə (2026-09-09):** 194 məhsuldan **51-inin** şəkli var (≈26%),
 hamısı Araz kataloqlarından. Bravo-nun 8 məhsulunda şəkil **yoxdur** — o data
 kataloq səhifəsindən gəlmir, deməli kəsiləcək kadr da yoxdur.
 
@@ -726,19 +764,20 @@ deyildi, iki kod qüsuru idi:
 
 Nəticə eyni metodla yenidən sayıldı:
 
-| | Əvvəl | Sonra |
-|---|---|---|
-| Şəkil | 73 | 62 |
-| Doğru | 48 (66%) | **48 (77%)** |
-| Səhv | **21 (29%)** | **10 (16%)** |
-| Unikal kadr | 63/73 | **62/62** |
+| | Başlanğıc | Uyğunlaşma düzəlişi | + layout düzəlişi |
+|---|---|---|---|
+| Şəkil | 73 | 62 | 51 |
+| Doğru | 48 (66%) | 48 (77%) | **42 (82%)** |
+| Səhv | **21 (29%)** | 10 (16%) | **6 (12%)** |
+| Unikal kadr | 63/73 | 62/62 | 51/51 |
 
-**Doğru şəkillərin sayı dəyişmədi, səhvlər iki dəfədən çox azaldı** — itirilən
-11 şəklin 9-u onsuz da səhv idi. Qalan 10 səhv şəkil qatına aid deyil: orada
-səhv kartın qiyməti eynidir və `raw_line` həmin kartın mətnini həqiqətən
-saxlayır (#1921: `Penstore Karandaş 12 rəng Penstore Qayçı ASH Su qabi 5.79`) —
-yəni üç kartın yazısı bir məhsul sətrinə yığılıb. Onu `ingestion/layout.py`
-həll etməlidir. Təfərrüat: `logs/image-check.md`.
+Birinci addımda **doğru şəkillərin sayı dəyişmədi** (itirilən 11 şəklin 9-u
+onsuz da səhv idi). İkinci addım — `layout.py`-də sətirlərin qarışması — səhv
+nisbətini 12%-ə endirdi, **amma 6 doğru şəkil də itdi**: uyğunlaşdırma
+saxlanılmış `raw_line` ilə canlı kart mətnini tutuşdurur, `raw_line` isə köhnə
+layout ilə yazılıb. Kart mətni təmizləndikcə oxşarlıq düşür və 0.55 həddini
+keçmir. **Bu, düzəlişin qüsuru deyil, köhnə datanın nəticəsidir** — tam faydanı
+görmək üçün kataloq yenidən emal olunmalıdır. Təfərrüat: `logs/image-check.md`.
 
 ### 6. Axtarış səhifəsi (`/search`)
 
@@ -1091,9 +1130,13 @@ worktree-yə köçürməkdir.
 - [x] v2 — `price_snapshots` cədvəli (gündəlik qiymət qatı üçün hazır, **boş**)
 - [x] v2 — trolley dizayn sistemi + interfeysin sadələşdirilməsi (4918px → 1831px)
 - [ ] v2 — baza qiymət (mağaza) qatı: **mənbə tapılmadı**, bax «Mənbələr» bölməsi
-- [x] v3 — məhsul şəkilləri kataloqdan kəsilir (194 məhsuldan 62-si, ≈32%)
+- [x] v3 — məhsul şəkilləri kataloqdan kəsilir (194 məhsuldan 51-i, ≈26%)
 - [x] v3 — şəkil uyğunlaşması bir-birə oldu + qiymət açarı məcburi: səhv
       şəkil 29% → **16%** (gözlə sayılıb, `logs/image-check.md`)
+- [x] v3 — `layout.py`: qiymətsiz kart şəbəkədə xana tutur, sətirlər qarışmır
+      (qarışıq kart 6 → 1); səhv şəkil **12%**
+- [ ] v3 — kataloq yenidən emal olunmalıdır: `raw_line` köhnə layout ilə
+      yazılıb, ona görə 6 doğru şəkil uyğunluğunu itirdi
 - [x] v3 — `/search` səhifəsi: filtrlər ünvanda, menyu real datadan
 - [x] v3 — ana səhifə trolley strukturuna keçdi (axtarış üstdə, endirimlər siyahı)
 - [x] v3 — OBA marketi koddan, sənəddən və bazadan tamamilə silindi
@@ -1101,4 +1144,4 @@ worktree-yə köçürməkdir.
 ¹ Mənbə seçimi ölçmə tələb etdiyi üçün Həftə 2-dən sonra tamamlandı.
 ² Real droplet-də yox, lokal Docker-də sınanıb — təfərrüat `deploy/README.md`-də.
 
-**Testlər:** 379 — 377 keçir, 2 atlanır (`pytest -q`)
+**Testlər:** 381 — 379 keçir, 2 atlanır (`pytest -q`)

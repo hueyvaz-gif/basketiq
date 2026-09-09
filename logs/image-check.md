@@ -160,3 +160,75 @@ Qalan 10: #1921, #1927, #1939, #1950, #1956, #1959, #1966, #1968, #1969, #2381.
 
 **Kadrın sürüşməsi** (sol kənarın kəsilməsi, fotonun kadrdan çıxması)
 toxunulmadı — o, ayrıca üçüncü addımdır.
+
+
+---
+
+# Üçüncü addım: `layout.py`-də sətir bölünməsi (eyni gün)
+
+Yuxarıdakı «3-cü səbəb» həll olundu: bir məhsul sətrinə bir neçə kartın yazısı
+yığılırdı.
+
+## Səbəb — şəbəkədən düşən kart
+
+Səhifədə **175 qırmızı qutu** var, amma yalnız **102-sinin qiyməti oxunur**
+(Araz-da qiymət ikimərtəbəli yazılır). Qiyməti oxunmayan qutu şəbəkədən
+**tamamilə çıxırdı**, onun sözləri isə «özündən sonrakı ilk lövbərə» axıb
+qonşu kartın mətninə qarışırdı.
+
+Düzəliş: şəbəkə **bütün** qırmızı qutulardan qurulur. Qiymətsiz qutu kart
+yaratmır, amma öz xanasını **sahiblənir** — sözləri qonşuya getmir, atılır.
+
+Lövbərlər **ölçüyə görə** süzülür (`_grid_landmarks`, 0.6–1.6 median): süzgəcsiz
+variantda endirim nişanı («32%» qırmızı ləkəsi) də xana tutur və qonşu kartı
+boşaldırdı.
+
+## Sınanan, sonra ATILAN variant
+
+İlk variant sözün lövbərdən məsafəsini `_grid_step()` ilə məhdudlaşdırırdı.
+**Ölçüldü və səhv çıxdı:** `_grid_step()` kartın eni deyil — o, qonşu qiymət
+qutuları arasındakı median məsafədir və qutular yan-yana düşəndə kiçilir
+(6-cı səhifədə **112**, halbuki kart ~250 pikseldir). Nəticə: kartın öz sözləri
+kəsilirdi — «Nestle Damak Şokolad» → «Şokolad», «Lotte Choco Pie» → «Lotte Pie».
+Sərhəd atıldı, şəbəkənin özü düzəldildi.
+
+## Nəticə — kart mətnləri (20 səhifə, 102 kart)
+
+| | Əvvəl | Sonra |
+|---|---|---|
+| 12 sözdən uzun kart (qarışıq sətir) | 6 | **1** |
+| Ən uzun kart | 23 söz | 20 söz |
+| Mətni boş kart | 14 | 15 |
+
+Nümunələr:
+
+```
+«Penstore Karandaş 12 rəng Penstore Qayçı ASH Su qabi» → «ASH Su qabi»
+«Chupa Chups q 25% 18% Mentos Saqqız 15.5 q»           → «Mentos Saqqız 15.5 q»
+«Sf Nescafe Qəhvə 145q Starbucks Premium qəhvə»        → «Sf Nescafe Qəhvə 145q»
+«...Seyidoğlu Bizim Tarla Şokolad pastası 400 q...»    → «Bizim Tarla ...cemi 300q»
+```
+
+Yəni bu sənəddə sadalanan səhvlərin **mənbəyi** qurudu.
+
+## Amma mövcud bazada nəticə İKİ TƏRƏFLİDİR
+
+Şəkil uyğunlaşdırması **saxlanılmış `raw_line`** ilə **canlı kart mətnini**
+tutuşdurur. `raw_line` sətirləri KÖHNƏ layout ilə yazılıb — yəni qarışıqdır.
+Kart mətni təmizləndikcə oxşarlıq **düşür** və 0.55 həddini keçmir:
+
+| | Düzəlişdən əvvəl | Sonra |
+|---|---|---|
+| Şəkil | 62 | **51** |
+| Doğru | 48 (77%) | **42 (82%)** |
+| **Səhv** | 10 (16%) | **6 (12%)** |
+| Şübhəli | 4 | 3 |
+
+Səhv nisbəti azaldı (16% → 12%), amma **6 doğru şəkil də itdi** — çünki onların
+`raw_line`-ı köhnədir. İtən 11-in 4-ü səhv idi (#1921, #1956, #1966, #1969),
+7-si doğru/şübhəli (#1940, #1941, #1942, #1949, #1951, #1964, #1973).
+
+**Bu, düzəlişin qüsuru deyil, köhnə datanın nəticəsidir.** Tam faydanı görmək
+üçün kataloq **yenidən emal olunmalıdır** (`raw_line` yenidən yazılsın) — o,
+LLM zəncirini işə salır və ayrıca qərardır. Qalan 6 səhv: #1927, #1939, #1950,
+#1959, #1968, #2381.
