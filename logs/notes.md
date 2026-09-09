@@ -529,3 +529,69 @@ layout ilə yazılıb və qarışıqdır. Kart mətni təmizləndikcə oxşarlı
   sahibi yoxdur.
 - **Ölçü süzgəcinin sərhədləri (0.6–1.6) bir kataloqda seçilib.** Başqa
   dizaynda nişanla qiymət qutusunun nisbəti fərqli ola bilər.
+
+---
+
+## 2026-09-09 — Kataloq yenidən emal olundu + yetimlər silindi
+
+Layout düzəlişinin tam faydası görünmürdü, çünki `raw_line` köhnə layout ilə
+yazılmışdı. Kataloq bütöv yenidən emal olundu: OCR → LLM → baza.
+
+### Yolda MƏNİM səhvim (və onun tapılması)
+
+İlk yenidən emalı `OCR_MAX_PAGES=20` ilə işlətdim. Nəticə çökdü: Araz
+188 → 69 məhsul, qiymət 183 → 62. Bunu «layout düzəlişi datanı qırdı» kimi
+oxumaq asan olardı — və səhv olardı.
+
+Ölçdüm: köhnə və yeni kart mətnlərini **eyni təmizləyicidən** keçirdim →
+**83 sətir vs 78 sətir**, yəni layout cəmi 5 sətir aparıb. Əsl səbəb köhnə
+mətnin **54 səhifədən** gəlməsi idi. 54 səhifə ilə təkrarladım: mətn yenə
+**478 sətir**, tam köhnə fayl kimi.
+
+**Dərs:** rəqəm düşəndə ilk şübhəli ən son dəyişiklik olur, amma çox vaxt
+günahkar o deyil. Fərziyyəni yox, hər amili ayrıca ölçmək lazımdır.
+
+### Nə edildi
+
+| Addım | Nəticə |
+|---|---|
+| OCR (54 səhifə, düzəlmiş layout) | 271 kart, 478 sətir, 12 581 simvol |
+| LLM zənciri | 214 sətir emal, 177 məhsul yazıldı, 37 atıldı (141 keşdən, 73 modeldən, 0 uğursuz, 109 san) |
+| Şəkillərin qurulması | 60 şəkil (uyğunluq 60, atıldı: qiymət yoxdur 66, zəif 47, kart tutulub 2) |
+| Yetimlərin silinməsi | 234 → 188 məhsul, yetim 0 |
+
+### Yekun ölçmə (60 şəklin hamısına gözlə baxıldı)
+
+| | Başlanğıc | Uyğunlaşma | + layout | + yenidən emal |
+|---|---|---|---|---|
+| Şəkil | 73 | 62 | 51 | **60** |
+| Doğru | 48 (66%) | 48 (77%) | 42 (82%) | **50 (83%)** |
+| **Səhv** | **21 (29%)** | 10 (16%) | 6 (12%) | **6 (10%)** |
+| Unikal kadr | 63/73 | 62/62 | 51/51 | **60/60** |
+
+Araz məhsulu **183**, qiymət sətri **177** — yəni əhatə bərpa olundu və səhv
+üç dəfə azaldı.
+
+Kartlar öz məhsullarını tapdı: «ASH Su qabı» → #2571 su qabı (əvvəl
+«karandaş»), «Bizim Tarla ərik/şaftalı cemi» → #2605 (əvvəl «şokolad
+pastası»), «Yemək qabı və termos dəsti» → #2564 termos (əvvəl heç kimə).
+
+### Yeni alət: `tools/purge_orphans.py`
+
+`save_products()` kataloqun qiymətlərini silib yenidən yazır, `products`
+cədvəlinə toxunmur — ona görə əvvəlki emalın məhsulu qiymətsiz qalır. Alət
+onları göstərir (quru qaçış) və `--apply` ilə silir; ehtiyat nüsxə həmişə
+götürülür, səbət sətri və şəkil faylı da təmizlənir.
+
+4 test yazıldı. Mutasiya ilə təsdiqləndi: silmə şərtini götürəndə 3 test düşür.
+
+### Nəyə əmin deyiləm
+
+- **Qalan 6 səhv artıq şəkil səhvi deyil.** Kart doğru tapılır, LLM isə
+  sətirdən yanlış ad çıxarır: kart «Süfrə Sous» deyir, bazadakı ad «duz».
+  Növbəti addım şəkil qatında yox, **atribut çıxarmadadır**.
+- **Şəkil yalnız ilk 20 səhifədən kəsilir** (`build_images` 20 səhifə oxuyur),
+  məhsullar isə 54 səhifədən gəlir. 188 məhsuldan 60-ının şəkli olmasının
+  səbəbi budur — 54 səhifənin hamısını kəsmək sınanmadı.
+- **Şübhəli 4 hökm mənimdir** (#1935, #1952, #1956, #2612): növ uyğundur,
+  brend və ya ölçü yox. «Səhv» sayılsaydılar nisbət 10%-dən 17%-ə qalxardı.

@@ -742,8 +742,9 @@ Boş kadr (tək rəngli sahə) atılır, şəkli tapılmayan məhsul neytral
 placeholder alır (`/static/images/product-placeholder.svg`). **Uydurma məhsul
 şəkli çəkilmir.**
 
-**Ölçülmüş əhatə (2026-09-09):** 194 məhsuldan **51-inin** şəkli var (≈26%),
-hamısı Araz kataloqlarından. Bravo-nun 8 məhsulunda şəkil **yoxdur** — o data
+**Ölçülmüş əhatə (2026-09-09):** 188 məhsuldan **60-ının** şəkli var (≈32%),
+hamısı Araz kataloqlarından. Şəkil yalnız ilk 20 səhifədən kəsilir
+(`build_images`), məhsullar isə 54 səhifənin hamısından gəlir — fərq buradandır. Bravo-nun 8 məhsulunda şəkil **yoxdur** — o data
 kataloq səhifəsindən gəlmir, deməli kəsiləcək kadr da yoxdur.
 
 Şəkillər generasiya olunur, ona görə repo-ya düşmür (`.gitignore`). Təmiz
@@ -764,20 +765,21 @@ deyildi, iki kod qüsuru idi:
 
 Nəticə eyni metodla yenidən sayıldı:
 
-| | Başlanğıc | Uyğunlaşma düzəlişi | + layout düzəlişi |
-|---|---|---|---|
-| Şəkil | 73 | 62 | 51 |
-| Doğru | 48 (66%) | 48 (77%) | **42 (82%)** |
-| Səhv | **21 (29%)** | 10 (16%) | **6 (12%)** |
-| Unikal kadr | 63/73 | 62/62 | 51/51 |
+| | Başlanğıc | Uyğunlaşma | + layout | + yenidən emal |
+|---|---|---|---|---|
+| Şəkil | 73 | 62 | 51 | **60** |
+| Doğru | 48 (66%) | 48 (77%) | 42 (82%) | **50 (83%)** |
+| Səhv | **21 (29%)** | 10 (16%) | 6 (12%) | **6 (10%)** |
+| Unikal kadr | 63/73 | 62/62 | 51/51 | **60/60** |
 
-Birinci addımda **doğru şəkillərin sayı dəyişmədi** (itirilən 11 şəklin 9-u
-onsuz da səhv idi). İkinci addım — `layout.py`-də sətirlərin qarışması — səhv
-nisbətini 12%-ə endirdi, **amma 6 doğru şəkil də itdi**: uyğunlaşdırma
-saxlanılmış `raw_line` ilə canlı kart mətnini tutuşdurur, `raw_line` isə köhnə
-layout ilə yazılıb. Kart mətni təmizləndikcə oxşarlıq düşür və 0.55 həddini
-keçmir. **Bu, düzəlişin qüsuru deyil, köhnə datanın nəticəsidir** — tam faydanı
-görmək üçün kataloq yenidən emal olunmalıdır. Təfərrüat: `logs/image-check.md`.
+Üçüncü addımdan sonra `raw_line` köhnə qalmışdı, ona görə dördüncü addımda
+**kataloq bütöv yenidən emal olundu** (54 səhifə OCR → LLM → baza). Nəticə:
+kartlar öz məhsullarını tapdı — «ASH Su qabı» kartı artıq «karandaş»a yox,
+**su qabı** məhsuluna düşür.
+
+**Qalan 6 səhv artıq şəkil səhvi deyil:** kart doğru tapılır, LLM isə həmin
+sətirdən yanlış ad çıxarır (kart «Süfrə Sous» deyir, bazadakı ad «duz»). Növbəti
+addım atribut çıxarmadadır. Təfərrüat: `logs/image-check.md`.
 
 ### 6. Axtarış səhifəsi (`/search`)
 
@@ -1063,6 +1065,10 @@ python tools/voice_check.py qeyd.ogg
 python tools/build_images.py
 python tools/build_images.py --catalog 12 --force
 
+# Qiymətsiz («yetim») məhsulları silir - kataloq yenidən emal olunandan sonra qalır
+python tools/purge_orphans.py            # quru qaçış
+python tools/purge_orphans.py --apply    # həqiqətən silir
+
 # Marketi bazadan tamamilə silir (əvvəl ehtiyat nüsxə götürür)
 python tools/purge_store.py <slug>          # quru qaçış: nə siləcəyini göstərir
 python tools/purge_store.py <slug> --apply  # həqiqətən silir
@@ -1130,13 +1136,14 @@ worktree-yə köçürməkdir.
 - [x] v2 — `price_snapshots` cədvəli (gündəlik qiymət qatı üçün hazır, **boş**)
 - [x] v2 — trolley dizayn sistemi + interfeysin sadələşdirilməsi (4918px → 1831px)
 - [ ] v2 — baza qiymət (mağaza) qatı: **mənbə tapılmadı**, bax «Mənbələr» bölməsi
-- [x] v3 — məhsul şəkilləri kataloqdan kəsilir (194 məhsuldan 51-i, ≈26%)
+- [x] v3 — məhsul şəkilləri kataloqdan kəsilir (188 məhsuldan 60-ı, ≈32%)
 - [x] v3 — şəkil uyğunlaşması bir-birə oldu + qiymət açarı məcburi: səhv
       şəkil 29% → **16%** (gözlə sayılıb, `logs/image-check.md`)
 - [x] v3 — `layout.py`: qiymətsiz kart şəbəkədə xana tutur, sətirlər qarışmır
       (qarışıq kart 6 → 1); səhv şəkil **12%**
-- [ ] v3 — kataloq yenidən emal olunmalıdır: `raw_line` köhnə layout ilə
-      yazılıb, ona görə 6 doğru şəkil uyğunluğunu itirdi
+- [x] v3 — kataloq bütöv yenidən emal olundu (54 səhifə): səhv şəkil **10%**,
+      doğru şəkil 50 — hər ikisi ən yaxşı göstərici
+- [x] v3 — yetim (qiymətsiz) məhsullar silindi: 234 → 188, `tools/purge_orphans.py`
 - [x] v3 — `/search` səhifəsi: filtrlər ünvanda, menyu real datadan
 - [x] v3 — ana səhifə trolley strukturuna keçdi (axtarış üstdə, endirimlər siyahı)
 - [x] v3 — OBA marketi koddan, sənəddən və bazadan tamamilə silindi
@@ -1144,4 +1151,4 @@ worktree-yə köçürməkdir.
 ¹ Mənbə seçimi ölçmə tələb etdiyi üçün Həftə 2-dən sonra tamamlandı.
 ² Real droplet-də yox, lokal Docker-də sınanıb — təfərrüat `deploy/README.md`-də.
 
-**Testlər:** 381 — 379 keçir, 2 atlanır (`pytest -q`)
+**Testlər:** 385 — 383 keçir, 2 atlanır (`pytest -q`)

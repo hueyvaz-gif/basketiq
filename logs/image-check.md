@@ -232,3 +232,68 @@ Səhv nisbəti azaldı (16% → 12%), amma **6 doğru şəkil də itdi** — ç�
 üçün kataloq **yenidən emal olunmalıdır** (`raw_line` yenidən yazılsın) — o,
 LLM zəncirini işə salır və ayrıca qərardır. Qalan 6 səhv: #1927, #1939, #1950,
 #1959, #1968, #2381.
+
+
+---
+
+# Dördüncü addım: kataloq yenidən emal olundu
+
+Yuxarıda deyilirdi ki, layout düzəlişinin tam faydası görünmür, çünki
+`raw_line` köhnə layout ilə yazılıb. Kataloq yenidən emal olundu:
+OCR (düzəlmiş layout) → LLM zənciri → baza.
+
+## Yolda tapılan səhv — MƏNİM səhvim
+
+İlk yenidən emalı `OCR_MAX_PAGES=20` ilə işlətdim və məhsul sayı çökdü:
+Araz 188 → 69, qiymət sətri 183 → 62. Bunu «layout düzəlişi datanı qırdı»
+kimi oxumaq asan olardı.
+
+**Ölçdüm və səbəb başqa çıxdı.** Köhnə və yeni kart mətnlərini eyni
+təmizləyicidən keçirdim: **83 → 78 sətir**, yəni layout cəmi 5 sətir aparıb.
+Əsl səbəb: köhnə mətn kataloqun **54 səhifəsindən** gəlirdi, mənim emalım isə
+yalnız 20 səhifədən. 54 səhifə ilə təkrarladım — mətn yenə **478 sətir** oldu,
+tam köhnə fayl kimi.
+
+Dərs: rəqəm düşəndə ilk günahkar ən son dəyişiklik olur, amma o, çox vaxt
+günahkar deyil. Ayrı-ayrı ölçmək tələb olunur.
+
+## Yekun nəticə
+
+| | Başlanğıc | Uyğunlaşma | + layout | + yenidən emal |
+|---|---|---|---|---|
+| Şəkil | 73 | 62 | 51 | **60** |
+| **Doğru** | 48 (66%) | 48 (77%) | 42 (82%) | **50 (83%)** |
+| **Səhv** | **21 (29%)** | 10 (16%) | 6 (12%) | **6 (10%)** |
+| Şübhəli | 4 | 4 | 3 | 4 |
+| Unikal kadr | 63/73 | 62/62 | 51/51 | **60/60** |
+
+Araz məhsulları: **183** (əvvəl 188), qiymət sətri **177** (əvvəl 183).
+Yəni əhatə bərpa olundu, səhv isə üç dəfə azaldı.
+
+## Səhv şəkillərin mənbəyi qurudu
+
+Yenidən emaldan sonra kartlar **öz məhsullarını tapdı**:
+
+| Kart | Əvvəl kimə düşürdü | İndi kimindir |
+|---|---|---|
+| ASH Su qabı 5.79 | «karandaş [Penstore]» | **#2571 su qabı [ASH]** |
+| Bizim Tarla ərik/şaftalı cemi | «şokolad pastası [Seyidoğlu]» | **#2605 ərik/şaftalı cemi** |
+| Nestle Şaqayka 190q | «şokolad [Nestle]» (Aquşa şəkli ilə) | öz sətrinə |
+| Yemək qabı və termos dəsti | heç kimə | **#2564 termos** |
+
+## Qalan 6 səhv artıq ŞƏKİL səhvi deyil
+
+#1927 (armudu stəkan → marmelad), #1939 (dondurma → Zabava kreker),
+#2381 (qaymaq → plastilin), #2600 (Starbucks → Nesquik), #2609 (duz → sous),
+#2614 (qrafin dəsti → Tac cola).
+
+Bunlarda kart **doğru tapılır**, amma LLM həmin sətirdən **yanlış ad** çıxarır:
+kart «Süfrə Sous» deyir, bazadakı ad isə «duz». Yəni növbəti addım şəkil
+qatında deyil, **atribut çıxarmadadır**.
+
+## Yetim məhsullar təmizləndi
+
+`save_products()` kataloqun qiymətlərini silib yenidən yazır, `products`
+cədvəlinə isə toxunmur — ona görə əvvəlki emalın məhsulu qiymətsiz qalır.
+Yenidən emaldan sonra 46 belə sətir vardı. `tools/purge_orphans.py` ilə
+silindi: **234 → 188 məhsul, yetim 0**.
