@@ -559,3 +559,21 @@ def test_silmə_təsdiqi_native_confirm_işlətmir():
         assert not re.search(r"(?<![.\w])confirm\s*\(", kod), (
             f"{name} native confirm() işlədir"
         )
+
+
+def test_toxunma_hədəfləri_24px_dən_kiçik_deyil():
+    """
+    WCAG 2.5.8 (AA) toxunma hədəfi üçün MİNİMUM 24×24 px tələb edir.
+
+    REAL ÖLÇMƏDƏN ÇIXIB: səbət çipindəki «sil» düyməsi 20×20 idi — mobil
+    emulyasiyada barmaq ölçüsündə hədəf üçün çox kiçik. İndi 24×24-dür,
+    üstəlik `::before` ilə görünməyən 44×44 sahə var (Apple HIG).
+    """
+    css = read_static("style.css")
+    blok = re.search(r"\.basket-chip-del \{(.*?)\}", css, re.S)
+    assert blok, ".basket-chip-del qaydası tapılmadı"
+
+    ölçü = re.search(r"width:\s*(\d+)px;\s*height:\s*(\d+)px", blok.group(1))
+    assert ölçü, "düymənin ölçüsü tapılmadı"
+    en, hündür = int(ölçü.group(1)), int(ölçü.group(2))
+    assert en >= 24 and hündür >= 24, f"toxunma hədəfi çox kiçikdir: {en}×{hündür}"

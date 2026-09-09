@@ -1023,3 +1023,60 @@ birbaşa qeydiyyata qaytaranda testlər düşür.
   yoxlanıldı, amma test dəstində deyil.
 - **Səbətdə çoxlu məhsul olanda çipin genişlənməsi sətri sındıra bilər** —
   iki məhsulla yoxlandı, on məhsulla yox.
+
+---
+
+## 2026-09-09 — 12 məhsullu səbətdə yoxlama
+
+Əvvəlki qeyddə «çoxlu məhsulla yoxlanmadı» yazmışdım. Yoxlandı: səbətə ən uzun
+adlı 10 məhsul əlavə edildi (cəmi 12), sonra geri qaytarıldı.
+
+### Ölçmə
+
+| | Masaüstü (1280px) | Mobil (380px) |
+|---|---|---|
+| Çip sayı | 12 | 12 |
+| Sıra sayı | 4 | 12 (hər çip öz sətrində) |
+| Zolağın hündürlüyü — təsdiqdən ƏVVƏL / SONRA | 176 → **176** | 544 → **544** |
+| Konteynerdən daşan çip | **0** | **0** |
+| Üfüqi sürüşmə | yoxdur | yoxdur (`scrollLeft` 0 qalır) |
+
+**Təsdiq halı sıranı sındırmır** — «Silinsin?» nişanı çipin İÇİNDƏ genişlənir,
+zolağın hündürlüyü hər iki ölçüdə dəyişməz qalır.
+
+Mobildə `scrollWidth = 730` görünür, amma bu, cədvəlin öz `.table-scroll`
+qutusundakı 741px enidir; səhifə üfüqi sürüşmür.
+
+### Yolda tapılan REAL qüsur: toxunma hədəfi
+
+Mobil emulyasiyada native klik çipin silmə düyməsinə **düşmürdü**. Ölçdüm:
+düymə **20×20 px** idi — **WCAG 2.5.8 (AA) minimumu 24×24-dür**, Apple HIG isə
+44×44 tövsiyə edir.
+
+Düzəliş: düymə 24×24 oldu, üstəlik `::before` ilə görünməyən **44×44** toxunma
+sahəsi əlavə olundu — vizual olaraq heç nə dəyişmir. `svg`-yə
+`pointer-events: none` verildi ki, hadisənin hədəfi həmişə düymənin özü olsun.
+
+Test əlavə olundu (`test_toxunma_hədəfləri_24px_dən_kiçik_deyil`), mutasiya ilə
+təsdiqləndi: 20px-ə qaytaranda düşür.
+
+### Amma səbəb tam bu deyildi — özümü düzəldirəm
+
+24px-dən sonra da mobil native klik işləmədi. Hadisə jurnalını qurdum və
+göründü ki, klik `DIV.answer` elementinə düşür: **`scrollIntoView()` bu CDP
+emulyasiyasında sürüşdürmür**, düymə isə 1265px-də (viewport 900) qalır.
+Mütləq koordinatla (`window.scrollTo`) sürüşdürdükdən sonra native klik
+**işlədi** — «Silinsin?», 12 çip yerində qaldı.
+
+Yəni: mobil qüsur **test artefaktı** idi; toxunma hədəfi isə **real** qüsur idi
+və düzəldildi. Onları qarışdırmamaq üçün ayrıca yazıram.
+
+### Baza
+
+Səbət yoxlamadan sonra əvvəlki halına qaytarıldı: 2 sətir (#1, #3).
+398 test keçir, 2 atlanır, ruff təmiz.
+
+### Nəyə əmin deyiləm
+
+- **20 və daha çox məhsulla sınanmadı.**
+- **Real toxunma cihazında yoxlanmadı** — yalnız emulyasiya.
