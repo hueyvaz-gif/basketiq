@@ -65,7 +65,11 @@
           endirim bu marketdə olsa da, ucuz qiymət başqa yerdə ola bilər.
         </p>
       </div>
-      <div id="storeDealsGrid" class="deal-grid"></div>
+      <!-- İlk render skeletlə (P2): boş qutu «sındı?» sualı yaradır. -->
+      <div id="storeDealsGrid" class="deal-grid">
+        <div class="skeleton-row" style="height:120px"></div>
+        <div class="skeleton-row" style="height:120px"></div>
+      </div>
     </section>
 
     <!-- --- Bu marketin məhsulları --- -->
@@ -76,7 +80,10 @@
           <h2 class="section-heading" id="storeProductsTitle" data-i18n="common.products">Məhsullar</h2>
         </div>
       </div>
-      <div id="storeProductsBox"></div>
+      <div id="storeProductsBox">
+        <div class="skeleton-row" style="height:56px"></div>
+        <div class="skeleton-row" style="height:56px"></div>
+      </div>
     </section>
 
     <p class="fineprint" data-i18n="common.fineprint">

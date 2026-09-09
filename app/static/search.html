@@ -54,7 +54,10 @@
   <main class="search-page">
 
     <aside class="filters" id="filters" aria-label="Filtrlər" data-i18n-attr="aria-label:search.filters">
-      <div class="skeleton" style="height:220px"></div>
+      <div class="skeleton-row" style="height:28px;width:50%"></div>
+      <div class="skeleton-row" style="height:120px"></div>
+      <div class="skeleton-row" style="height:28px;width:60%"></div>
+      <div class="skeleton-row" style="height:160px"></div>
     </aside>
 
     <div class="results">
@@ -63,8 +66,19 @@
         <p class="page-sub" id="resultsCount"></p>
       </div>
 
+      <!-- İLK RENDER SKELETLƏ GƏLİR (P2): JS hələ işə düşməmiş də səhifənin
+           forması görünür, yəni ağ ekran anı ümumiyyətlə olmur. -->
+      <!-- Skelet kartları BİRBAŞA şəbəkənin içindədir.
+           Əvvəl onlar ayrıca `.skeleton-grid` qabına salınmışdı və nəticədə
+           şəbəkənin İÇİNDƏ ikinci şəbəkə yaranırdı: kartlar tək sütuna
+           düzülürdü (brauzerdə görüldü). -->
       <div id="resultsGrid" class="product-grid">
-        <div class="row"><span class="row-label skeleton">Yüklənir</span></div>
+        <div class="skeleton-row skeleton-card"></div>
+        <div class="skeleton-row skeleton-card"></div>
+        <div class="skeleton-row skeleton-card"></div>
+        <div class="skeleton-row skeleton-card"></div>
+        <div class="skeleton-row skeleton-card"></div>
+        <div class="skeleton-row skeleton-card"></div>
       </div>
     </div>
   </main>

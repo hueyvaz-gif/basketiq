@@ -160,7 +160,26 @@
 
   // ------------------------------------------------------------------ start
 
+  /**
+   * KART SKELETİ (P2) — cavab gələnə qədər nəticə şəbəkəsinin FORMASI görünür.
+   *
+   * Əvvəl burada tək sətirlik «Yüklənir» yazısı vardı: səhifənin qalan
+   * hissəsi ağ qalır, sonra kartlar birdən düşürdü və məzmun SIÇRAYIRDI.
+   * Skelet gələcək kartların ölçüsünü tutur - yükləmə bitəndə heç nə yerini
+   * dəyişmir.
+   */
+  function showSkeleton(say = 8) {
+    // Kartlar BİRBAŞA `#resultsGrid`-in içinə gedir: o, onsuz da şəbəkədir.
+    // Ayrıca qab əlavə etsək, şəbəkə içində şəbəkə yaranır və kartlar tək
+    // sütuna düzülür (brauzerdə görüldü).
+    el("resultsGrid").innerHTML = Array.from(
+      { length: say },
+      () => `<div class="skeleton-row skeleton-card"></div>`
+    ).join("");
+  }
+
   async function load() {
+    showSkeleton();
     await window.IconsReady;
 
     el("topSearchInput").value = state.q;

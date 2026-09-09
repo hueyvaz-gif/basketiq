@@ -128,7 +128,14 @@
     grid.innerHTML = items.map((deal, i) => row(deal, i + 1)).join("");
   }
 
+  // Yenidən yükləmə də skeletlə başlayır (P2): «daha çox göstər» və dil
+  // dəyişikliyi siyahını sıfırdan çəkir - o anda qutu boş qalsaydı, səhifə
+  // bir anlıq «boşalırdı».
+  const skelet = (say) =>
+    Array.from({ length: say }, () => `<div class="skeleton-row" style="height:120px"></div>`).join("");
+
   async function load(limit) {
+    grid.innerHTML = skelet(Math.min(limit, 4));
     try {
       const [deals, markets] = await Promise.all([
         fetch(`/api/catalog/deals?limit=${limit}`).then((r) => r.json()),

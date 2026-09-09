@@ -62,6 +62,10 @@
   }
 
   async function load() {
+    grid.innerHTML = Array.from(
+      { length: 4 },
+      () => `<div class="skeleton-row" style="height:150px"></div>`
+    ).join("");
     try {
       const data = await (await fetch("/api/catalog/markets")).json();
       const items = data.items || [];

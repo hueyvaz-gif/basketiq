@@ -1296,10 +1296,11 @@ td .row-note { display: block; margin-top: 2px; }
 
 .skeleton-row:last-child { margin-bottom: 0; }
 
-/* Kart şəbəkəsi üçün skelet: axtarış nəticələri və «oxşar məhsullar»
-   eyni ölçüdə kartlar çəkir, ona görə skelet də kart formasındadır. */
-.skeleton-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--s3); }
-.skeleton-card { height: 260px; }
+/* Kart skeleti: axtarış nəticələri və «oxşar məhsullar» eyni ölçüdə kartlar
+   çəkir. AYRICA ŞƏBƏKƏ QABI YOXDUR - skelet kartları birbaşa mövcud şəbəkənin
+   içinə qoyulur, əks halda şəbəkə içində şəbəkə yaranır və hamısı tək sütuna
+   düşür. */
+.skeleton-card { height: 260px; margin-bottom: 0; }
 
 /* Hərəkət istəməyən istifadəçi üçün parıltı dayanır - skeletin ÖZÜ qalır,
    çünki məlumatı forma daşıyır, hərəkət yox. */
