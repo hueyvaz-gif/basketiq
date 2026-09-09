@@ -63,16 +63,16 @@
     el("filters").innerHTML =
       `<div class="filter-head">` +
       `<svg aria-hidden="true"><use href="#icon-filter"></use></svg>` +
-      `<h2 class="filter-title">Filtrlər</h2>` +
+      `<h2 class="filter-title">${t("search.filters")}</h2>` +
       (state.market || state.category || state.max_price
-        ? `<button class="btn-link" id="clearFilters" type="button">Təmizlə</button>`
+        ? `<button class="btn-link" id="clearFilters" type="button">${t("search.clear")}</button>`
         : "") +
       `</div>` +
       `<div class="filter-group"><h3 class="filter-label">Market</h3>` +
       `<div id="marketFilter">${marketOptions}</div></div>` +
       `<div class="filter-group"><h3 class="filter-label">Kateqoriya</h3>` +
       `<div id="categoryFilter">${catOptions}</div></div>` +
-      `<div class="filter-group"><h3 class="filter-label">Maksimum qiymət</h3>` +
+      `<div class="filter-group"><h3 class="filter-label">${t("search.maxPrice")}</h3>` +
       `<input type="range" id="priceRange" min="1" max="${max}" value="${current}" step="1">` +
       `<div class="filter-price"><span id="priceValue">${current} ₼</span></div></div>`;
 
@@ -110,7 +110,7 @@
       : "";
     const stores =
       item.store_count > 1
-        ? `<span class="pcard-stores">${item.store_count} marketdə</span>`
+        ? `<span class="pcard-stores">${t("search.storeCount", { n: item.store_count })}</span>`
         : "";
 
     return (
@@ -130,13 +130,13 @@
     const grid = el("resultsGrid");
     if (!data.items.length) {
       grid.innerHTML =
-        `<div class="notice warn">Bu filtrlərlə məhsul tapılmadı. ` +
-        `Filtri yumşaldın və ya başqa söz axtarın.</div>`;
+        `<div class="notice warn">${t("search.nothing")}` +
+        `</div>`;
       el("resultsCount").textContent = "";
       return;
     }
     grid.innerHTML = data.items.map(card).join("");
-    el("resultsCount").textContent = `${data.total} məhsul tapıldı`;
+    el("resultsCount").textContent = t("search.found", { n: data.total });
   }
 
   function renderTitle() {
@@ -148,7 +148,7 @@
 
     el("resultsTitle").textContent = bits.length
       ? bits.join(" · ")
-      : "Bütün məhsullar";
+      : t("search.allProducts");
   }
 
   // ------------------------------------------------------------------ start
@@ -178,9 +178,14 @@
     } catch (e) {
       console.error("[search]", e);
       el("resultsGrid").innerHTML =
-        `<div class="notice error">Nəticələr yüklənmədi.</div>`;
+        `<div class="notice error">${t("search.loadError")}</div>`;
     }
   }
 
   load();
+
+  // Dil dəyişəndə bu blok yenidən çəkilir - səhifə yenilənmir.
+  // `i18n.js` hadisəni `document`-ə atır, hər modul yalnız ÖZ hissəsinə
+  // baxır; beləcə heç bir modul digərinin DOM-una toxunmur.
+  document.addEventListener("basketiq:lang", () => load());
 })();

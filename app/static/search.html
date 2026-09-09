@@ -10,8 +10,9 @@
 
   <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
+<body data-page="search">
 
+<script src="/static/i18n.js"></script>
 <script src="/static/icons.js"></script>
 
 <header class="topbar">
@@ -24,10 +25,20 @@
     <form class="searchbar is-compact" id="topSearchForm" action="/search" method="get" role="search">
       <svg class="searchbar-icon" aria-hidden="true"><use href="#icon-search"></use></svg>
       <input type="search" id="topSearchInput" name="q"
-             placeholder="Məhsul və ya brend axtarın" autocomplete="off">
+             placeholder="Məhsul və ya brend axtarın" data-i18n-attr="placeholder:product.searchPlaceholder" autocomplete="off">
     </form>
 
-    <a class="icon-btn is-quiet" href="/" aria-label="Ana səhifə">
+    <!-- Dil keçidi: AZ (defolt) · EN · RU.
+         Seçim `localStorage`-də saxlanılır və BÜTÜN səhifələrə şamil olunur.
+         Mətn HTML-də azərbaycanca qalır - JS işləməsə səhifə yenə oxunur. -->
+    <div class="lang-switch" role="group" aria-label="Dil seçimi"
+         data-i18n-attr="aria-label:nav.language">
+      <button class="lang-btn" type="button" data-lang="az" aria-selected="true">AZ</button>
+      <button class="lang-btn" type="button" data-lang="en" aria-selected="false">EN</button>
+      <button class="lang-btn" type="button" data-lang="ru" aria-selected="false">RU</button>
+    </div>
+
+    <a class="icon-btn is-quiet" href="/" aria-label="Ana səhifə" data-i18n-attr="aria-label:common.home">
       <svg aria-hidden="true"><use href="#icon-basket"></use></svg>
     </a>
   </div>
@@ -40,13 +51,13 @@
        alardı və səbəbini bilməzdi. -->
   <main class="search-page">
 
-    <aside class="filters" id="filters" aria-label="Filtrlər">
+    <aside class="filters" id="filters" aria-label="Filtrlər" data-i18n-attr="aria-label:search.filters">
       <div class="skeleton" style="height:220px"></div>
     </aside>
 
     <div class="results">
       <div class="results-head">
-        <h1 class="page-title" id="resultsTitle">Məhsullar</h1>
+        <h1 class="page-title" id="resultsTitle" data-i18n="common.products">Məhsullar</h1>
         <p class="page-sub" id="resultsCount"></p>
       </div>
 

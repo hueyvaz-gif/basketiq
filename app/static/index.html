@@ -13,7 +13,7 @@
 
   <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
+<body data-page="index">
 
 <!-- İkon kitabxanası ARTIQ BURADA DEYİL: `app/static/icons.svg` faylındadır,
      `icons.js` isə onu səhifəyə salır.
@@ -25,6 +25,7 @@
 
      Gec gələn sprite ilə `<use>` istinadının necə uzlaşdığı `icons.js`-in
      başında izah olunub. -->
+<script src="/static/i18n.js"></script>
 <script src="/static/icons.js"></script>
 
 <!-- ============================================================
@@ -37,22 +38,32 @@
       <span class="brand-name">BasketIQ</span>
     </div>
 
-    <nav class="segmented" role="tablist" aria-label="Panel seçimi">
+    <nav class="segmented" role="tablist" aria-label="Panel seçimi" data-i18n-attr="aria-label:nav.panelSelect">
       <button class="seg-btn" id="tabUser" role="tab" aria-selected="true"
               aria-controls="panel-user" data-panel="user">
         <svg aria-hidden="true"><use href="#icon-user"></use></svg>
-        İstifadəçi
+        <span data-i18n="nav.user">İstifadəçi</span>
       </button>
       <button class="seg-btn" id="tabAdmin" role="tab" aria-selected="false"
               aria-controls="panel-admin" data-panel="admin">
         <svg aria-hidden="true"><use href="#icon-tools"></use></svg>
-        Admin / Developer
+        <span data-i18n="nav.admin">Admin / Developer</span>
       </button>
     </nav>
 
+    <!-- Dil keçidi: AZ (defolt) · EN · RU.
+         Seçim `localStorage`-də saxlanılır və BÜTÜN səhifələrə şamil olunur.
+         Mətn HTML-də azərbaycanca qalır - JS işləməsə səhifə yenə oxunur. -->
+    <div class="lang-switch" role="group" aria-label="Dil seçimi"
+         data-i18n-attr="aria-label:nav.language">
+      <button class="lang-btn" type="button" data-lang="az" aria-selected="true">AZ</button>
+      <button class="lang-btn" type="button" data-lang="en" aria-selected="false">EN</button>
+      <button class="lang-btn" type="button" data-lang="ru" aria-selected="false">RU</button>
+    </div>
+
     <!-- Profilə qısayol. Admin/texniki heç nə burada göstərilmir. -->
     <a class="icon-btn is-quiet" id="profileJump" href="#profileTitle"
-       aria-label="Profil və parametrlərə keç">
+       aria-label="Profil və parametrlərə keç" data-i18n-attr="aria-label:nav.profileJump">
       <svg aria-hidden="true"><use href="#icon-user"></use></svg>
     </a>
   </div>
@@ -74,18 +85,18 @@
          BU, SƏBƏTƏ ƏLAVƏ ETMİR. Layihədə alış-veriş yoxdur: nə checkout,
          nə ödəniş. Axtarışın yeganə məqsədi qiyməti göstərməkdir. -->
     <div class="page-head">
-      <h1 class="page-title">İstənilən məhsulun qiymətini müqayisə edin</h1>
-      <p class="page-sub">
+      <h1 class="page-title" data-i18n="hero.title">İstənilən məhsulun qiymətini müqayisə edin</h1>
+      <p class="page-sub" data-i18n="hero.sub">
         Dörd marketin qiymətini yan-yana göstəririk — harada ucuz olduğunu
         bir baxışda görün.
       </p>
     </div>
 
     <form class="searchbar" id="heroSearchForm" action="/search" method="get"
-          role="search" aria-label="Məhsul axtarışı">
+          role="search" aria-label="Məhsul axtarışı" data-i18n-attr="aria-label:search.aria">
       <svg class="searchbar-icon" aria-hidden="true"><use href="#icon-search"></use></svg>
       <input type="search" id="heroSearchInput" name="q"
-             placeholder="Məhsul və ya brend axtarın — süd, Milla, yağ…"
+             placeholder="Məhsul və ya brend axtarın — süd, Milla, yağ…" data-i18n-attr="placeholder:search.placeholder"
              autocomplete="off">
       <button class="btn" type="submit">Axtar</button>
     </form>
@@ -104,9 +115,9 @@
       <div class="card-head">
         <div class="head-row">
           <svg aria-hidden="true"><use href="#icon-store"></use></svg>
-          <h2 class="section-heading" id="storesTitle">Marketlər</h2>
+          <h2 class="section-heading" id="storesTitle" data-i18n="stores.title">Marketlər</h2>
         </div>
-        <p class="section-sub">
+        <p class="section-sub" data-i18n="stores.sub">
           Marketi seçin — həmin marketin endirimləri və məhsulları açılır.
         </p>
       </div>
@@ -128,9 +139,9 @@
       <div class="card-head">
         <div class="head-row">
           <svg aria-hidden="true"><use href="#icon-tag"></use></svg>
-          <h2 class="section-heading" id="dealsTitle">Bugünün ən sərfəli endirimləri</h2>
+          <h2 class="section-heading" id="dealsTitle" data-i18n="deals.title">Bugünün ən sərfəli endirimləri</h2>
         </div>
-        <p class="section-sub">
+        <p class="section-sub" data-i18n="deals.sub">
           Hər məhsul üçün ən böyük faiz endirim. Sağdakı sütunlar eyni
           məhsulun digər marketlərdəki qiymətidir — endirim həqiqi olsa da,
           qonşu market daha ucuz sata bilər.
@@ -142,7 +153,7 @@
       </div>
 
       <div class="actions">
-        <button class="btn btn-secondary" id="dealsMore" type="button">Daha çox göstər</button>
+        <button class="btn btn-secondary" id="dealsMore" type="button" data-i18n="deals.more">Daha çox göstər</button>
       </div>
     </section>
 
@@ -162,19 +173,19 @@
          çünki ən böyük rəqəm dərhal iki şərtlə məhdudlaşdırılanda
          cavab olmaqdan çıxır. -->
     <section class="hero" aria-labelledby="heroTitle">
-      <h2 class="sr-only" id="heroTitle">Səbətiniz harada ucuzdur?</h2>
+      <h2 class="sr-only" id="heroTitle" data-i18n="basket.title">Səbətiniz harada ucuzdur?</h2>
 
       <div class="basket-mini" id="basketList"></div>
 
       <div id="compareResult">
         <div class="hero-empty">
-          <div class="hero-empty-title">Səbət boşdur</div>
-          <div>Aşağıdakı axtarışdan məhsul əlavə edin — cavab dərhal görünəcək.</div>
+          <div class="hero-empty-title" data-i18n="basket.empty">Səbət boşdur</div>
+          <div data-i18n="basket.emptyHint">Aşağıdakı axtarışdan məhsul əlavə edin — cavab dərhal görünəcək.</div>
         </div>
       </div>
 
       <details class="fold fold-inline" id="storeDetails">
-        <summary class="fold-head"><span>Market üzrə ətraflı</span></summary>
+        <summary class="fold-head"><span data-i18n="basket.storeDetail">Market üzrə ətraflı</span></summary>
         <div id="storeBars"></div>
       </details>
     </section>
@@ -184,17 +195,17 @@
       <div class="card-head">
         <div class="head-row">
           <svg aria-hidden="true"><use href="#icon-package"></use></svg>
-          <h2 class="section-heading">Məhsul üzrə müqayisə</h2>
+          <h2 class="section-heading" data-i18n="compare.title">Məhsul üzrə müqayisə</h2>
         </div>
-        <p class="section-sub">Hər sətirdə ən ucuz qiymət ✓ nişanı və çərçivə ilə işarələnib.</p>
+        <p class="section-sub" data-i18n="compare.sub">Hər sətirdə ən ucuz qiymət ✓ nişanı və çərçivə ilə işarələnib.</p>
       </div>
 
       <div id="compareTableWrap"></div>
 
       <div class="form-row">
         <label class="field">
-          <span>Məhsul axtar və səbətə əlavə et</span>
-          <input type="text" id="searchInput" placeholder="süd, düyü, yağ…" autocomplete="off">
+          <span data-i18n="compare.addLabel">Məhsul axtar və səbətə əlavə et</span>
+          <input type="text" id="searchInput" placeholder="süd, düyü, yağ…" data-i18n-attr="placeholder:compare.addPlaceholder" autocomplete="off">
         </label>
       </div>
       <div id="searchResults" class="result-list"></div>
@@ -205,7 +216,7 @@
     <details class="card ai-card fold">
       <summary class="fold-head">
         <svg aria-hidden="true"><use href="#icon-sparkle"></use></svg>
-        <h2 class="section-heading" id="aiTitle">AI tövsiyəsi</h2>
+        <h2 class="section-heading" id="aiTitle" data-i18n="ai.title">AI tövsiyəsi</h2>
         <span class="pill is-ai">AI</span>
       </summary>
       <div class="ai-head">
@@ -215,18 +226,19 @@
           </button>
           <button class="btn" id="adviseBtn" type="button" disabled>
             <svg aria-hidden="true"><use href="#icon-sparkle"></use></svg>
-            Tövsiyə al
+            <span data-i18n="ai.get">Tövsiyə al</span>
           </button>
         </div>
       </div>
 
-      <p class="section-sub">
+      <p class="section-sub" data-i18n="ai.sub">
         Bütün rəqəmlər Python-da hesablanır — model yalnız onları izah edir.
       </p>
 
       <div id="advisorBox">
         <div class="ai-placeholder" id="advisorPlaceholder">
-          Səbətinizi doldurun, sonra <strong>Tövsiyə al</strong> düyməsini basın.
+          <span data-i18n="ai.placeholderBefore">Səbətinizi doldurun, sonra</span>
+          <strong data-i18n="ai.get">Tövsiyə al</strong><span data-i18n="ai.placeholderAfter"> düyməsini basın.</span>
         </div>
         <div class="advisor-text" id="advisorText"></div>
         <div id="advisorCheck"></div>
@@ -238,7 +250,7 @@
     <details class="card fold">
       <summary class="fold-head">
         <svg aria-hidden="true"><use href="#icon-chart"></use></svg>
-        <h2 class="section-heading" id="historyTitle">Qiymət tarixçəsi</h2>
+        <h2 class="section-heading" id="historyTitle" data-i18n="history.title">Qiymət tarixçəsi</h2>
       </summary>
       <div class="card-head">
         <p class="section-sub">
@@ -273,7 +285,7 @@
     <details class="card fold">
       <summary class="fold-head">
         <svg aria-hidden="true"><use href="#icon-shield"></use></svg>
-        <h2 class="section-heading" id="discountTitle">Endirim yoxlaması</h2>
+        <h2 class="section-heading" id="discountTitle" data-i18n="discount.title">Endirim yoxlaması</h2>
       </summary>
       <div class="card-head">
         <p class="section-sub">
@@ -286,7 +298,7 @@
       <div id="discountList"><div class="row"><span class="row-label skeleton">Yüklənir</span></div></div>
 
       <div class="actions">
-        <button class="btn btn-secondary" id="discountRefresh" type="button">Yenilə</button>
+        <button class="btn btn-secondary" id="discountRefresh" type="button" data-i18n="common.refresh">Yenilə</button>
       </div>
     </details>
 
@@ -294,7 +306,7 @@
     <details class="card fold">
       <summary class="fold-head">
         <svg aria-hidden="true"><use href="#icon-gear"></use></svg>
-        <h2 class="section-heading" id="profileTitle">Profil və parametrlər</h2>
+        <h2 class="section-heading" id="profileTitle" data-i18n="profile.title">Profil və parametrlər</h2>
       </summary>
       <div class="card-head">
         <p class="section-sub">
@@ -305,47 +317,47 @@
 
       <div class="form-row flush">
         <label class="field small">
-          <span>Neçə nəfərlik ev</span>
+          <span data-i18n="profile.household">Neçə nəfərlik ev</span>
           <input type="number" id="profHousehold" min="1" max="20" value="1">
         </label>
         <label class="field small">
-          <span>Həftəlik büdcə (AZN)</span>
+          <span data-i18n="profile.budget">Həftəlik büdcə (AZN)</span>
           <input type="number" id="profBudget" min="0" step="1" placeholder="limit yoxdur">
         </label>
         <label class="field small">
-          <span>Neçə markete gedirsiniz</span>
+          <span data-i18n="profile.storeCount">Neçə markete gedirsiniz</span>
           <select id="profStores">
-            <option value="1">1 — yalnız bir market</option>
-            <option value="2">2 — bölə bilərəm</option>
+            <option value="1" data-i18n="profile.storeCount1">1 — yalnız bir market</option>
+            <option value="2" data-i18n="profile.storeCount2">2 — bölə bilərəm</option>
             <option value="3">3</option>
           </select>
         </label>
         <label class="field small">
-          <span>2-ci market üçün min. qənaət</span>
+          <span data-i18n="profile.minSaving">2-ci market üçün min. qənaət</span>
           <input type="number" id="profMinSaving" min="0" step="0.5" value="1">
         </label>
       </div>
 
       <div class="form-row">
         <label class="field">
-          <span>İstəmədiyiniz sözlər (vergüllə)</span>
-          <input type="text" id="profAvoid" placeholder="məsələn: donuz, alkoqol">
+          <span data-i18n="profile.avoid">İstəmədiyiniz sözlər (vergüllə)</span>
+          <input type="text" id="profAvoid" placeholder="məsələn: donuz, alkoqol" data-i18n-attr="placeholder:profile.avoidPlaceholder">
         </label>
         <label class="check">
           <input type="checkbox" id="profUnitPrice" checked>
-          <span>kq/litr qiymətinə bax</span>
+          <span data-i18n="profile.unitPrice">kq/litr qiymətinə bax</span>
         </label>
       </div>
 
       <div class="actions">
         <button class="btn btn-secondary" id="profSaveBtn" type="button">Yadda saxla</button>
-        <button class="btn btn-secondary" id="planRefresh" type="button">Planı yenilə</button>
+        <button class="btn btn-secondary" id="planRefresh" type="button" data-i18n="profile.save">Planı yenilə</button>
       </div>
 
       <div id="profSummary"></div>
 
       <div class="card-head gap-lg">
-        <h3 class="section-heading subheading">Sizə tövsiyə olunan plan</h3>
+        <h3 class="section-heading subheading" data-i18n="profile.planTitle">Sizə tövsiyə olunan plan</h3>
       </div>
       <div id="planBox"><div class="row"><span class="row-label skeleton">Yüklənir</span></div></div>
     </details>
@@ -356,7 +368,7 @@
          heç birindən onlayn mağaza qatı çəkilə bilmir - qiymətlər HƏFTƏLİK
          KATALOQDAN gəlir. Yanlış mənbə göstərmək dürüstlük qeydini
          mənasız edərdi. -->
-    <p class="fineprint">
+    <p class="fineprint" data-i18n="common.fineprint">
       Qiymətlər marketlərin dərc etdiyi həftəlik kataloqlardan götürülüb və
       filialda, eləcə də kataloqun qüvvədə olduğu müddətdən sonra fərqlənə bilər.
     </p>
@@ -372,13 +384,13 @@
   <main class="panel hidden" id="panel-admin" role="tabpanel" aria-labelledby="tabAdmin">
 
     <div class="page-head">
-      <h1 class="page-title">Admin / Developer</h1>
-      <p class="page-sub">
+      <h1 class="page-title" data-i18n="nav.admin">Admin / Developer</h1>
+      <p class="page-sub" data-i18n="admin.sub">
         Data mənbələri, kataloq emalı və sistem diaqnostikası.
       </p>
     </div>
 
-    <div class="admin-note">
+    <div class="admin-note" data-i18n="admin.hint">
       Yuxarıdakı istifadəçi paneli buradakı kataloqlardan qidalanır: mənbədən çək
       və ya əl ilə yüklə, sonra AI ilə emal et.
     </div>
@@ -421,7 +433,7 @@
       <div class="card-head">
         <div class="head-row">
           <svg aria-hidden="true"><use href="#icon-terminal"></use></svg>
-          <h2 class="section-heading" id="sysTitle">Sistem statusu</h2>
+          <h2 class="section-heading" id="sysTitle" data-i18n="admin.statusTitle">Sistem statusu</h2>
         </div>
       </div>
       <div class="status-grid" id="status">
@@ -435,9 +447,9 @@
       <div class="card-head">
         <div class="head-row">
           <svg aria-hidden="true"><use href="#icon-cloud-download"></use></svg>
-          <h2 class="section-heading" id="sourceTitle">Mənbədən avtomatik çək</h2>
+          <h2 class="section-heading" id="sourceTitle" data-i18n="admin.scrapeTitle">Mənbədən avtomatik çək</h2>
         </div>
-        <p class="section-sub">
+        <p class="section-sub" data-i18n="admin.scrapeSub">
           Market saytından endirim jurnalını tapıb endirir və emal edir.
           <code>robots.txt</code>-ə riayət olunur, sorğular arasında gecikmə qoyulur.
         </p>
@@ -447,18 +459,18 @@
 
       <div class="form-row">
         <label class="field small">
-          <span>Neçə səhifə emal olunsun?</span>
+          <span data-i18n="admin.pagesLabel">Neçə səhifə emal olunsun?</span>
           <select id="scrapePages">
-            <option value="1">1 səhifə</option>
-            <option value="2" selected>2 səhifə</option>
-            <option value="3">3 səhifə</option>
-            <option value="5">5 səhifə</option>
+            <option value="1" data-i18n="admin.page1">1 səhifə</option>
+            <option value="2" selected data-i18n="admin.page2">2 səhifə</option>
+            <option value="3" data-i18n="admin.page3">3 səhifə</option>
+            <option value="5" data-i18n="admin.page5">5 səhifə</option>
           </select>
         </label>
         <div class="actions flush">
           <button class="btn" id="scrapeBtn" type="button">
             <svg aria-hidden="true"><use href="#icon-download"></use></svg>
-            Mənbədən çək
+            <span data-i18n="admin.scrapeBtn">Mənbədən çək</span>
           </button>
         </div>
       </div>
@@ -471,42 +483,42 @@
       <div class="card-head">
         <div class="head-row">
           <svg aria-hidden="true"><use href="#icon-upload"></use></svg>
-          <h2 class="section-heading" id="uploadTitle">Kataloq yüklə</h2>
+          <h2 class="section-heading" id="uploadTitle" data-i18n="admin.uploadTitle">Kataloq yüklə</h2>
         </div>
       </div>
 
       <div class="dropzone" id="dropzone" role="button" tabindex="0"
-           aria-label="Kataloq faylı seç — PDF, JPG və ya PNG">
+           aria-label="Kataloq faylı seç — PDF, JPG və ya PNG" data-i18n-attr="aria-label:admin.dropzoneAria">
         <div class="dz-icon" aria-hidden="true"><svg><use href="#icon-upload"></use></svg></div>
-        <div class="dz-title">Faylı bura sürüşdürün</div>
-        <div class="dz-sub">və ya <span class="link">seçmək üçün klikləyin</span> — PDF, JPG, PNG</div>
+        <div class="dz-title" data-i18n="admin.dropHere">Faylı bura sürüşdürün</div>
+        <div class="dz-sub">və ya <span class="link" data-i18n="admin.clickToPick">seçmək üçün klikləyin</span> — PDF, JPG, PNG</div>
         <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.webp,.tif,.tiff" hidden>
       </div>
 
       <div class="form-row">
         <label class="field">
-          <span>Market adı</span>
-          <input type="text" id="storeInput" placeholder="Məsələn: Bravo" value="">
+          <span data-i18n="admin.storeName">Market adı</span>
+          <input type="text" id="storeInput" placeholder="Məsələn: Bravo" data-i18n-attr="placeholder:admin.storePlaceholder" value="">
         </label>
         <label class="field small">
-          <span>PSM (OCR rejimi)</span>
+          <span data-i18n="admin.psmLabel">PSM (OCR rejimi)</span>
           <select id="psmInput">
-            <option value="0">avtomatik (.env)</option>
-            <option value="6">6 — vahid blok</option>
-            <option value="4">4 — sütunlu mətn</option>
-            <option value="11">11 — səpələnmiş mətn</option>
-            <option value="3">3 — tam avtomatik</option>
+            <option value="0" data-i18n="admin.psmAuto">avtomatik (.env)</option>
+            <option value="6" data-i18n="admin.psm6">6 — vahid blok</option>
+            <option value="4" data-i18n="admin.psm4">4 — sütunlu mətn</option>
+            <option value="11" data-i18n="admin.psm11">11 — səpələnmiş mətn</option>
+            <option value="3" data-i18n="admin.psm3">3 — tam avtomatik</option>
           </select>
         </label>
         <label class="check">
           <input type="checkbox" id="forceOcr">
-          <span>OCR-ı məcbur et</span>
+          <span data-i18n="admin.forceOcr">OCR-ı məcbur et</span>
         </label>
       </div>
 
       <div class="actions">
-        <button class="btn btn-secondary" id="uploadBtn" type="button" disabled>Emal et</button>
-        <span class="file-name" id="fileName">Fayl seçilməyib</span>
+        <button class="btn btn-secondary" id="uploadBtn" type="button" disabled data-i18n="admin.process">Emal et</button>
+        <span class="file-name" id="fileName" data-i18n="admin.noFile">Fayl seçilməyib</span>
       </div>
 
       <div id="uploadStatus"></div>
@@ -517,7 +529,7 @@
       <div class="card-head">
         <div class="head-row">
           <svg aria-hidden="true"><use href="#icon-file"></use></svg>
-          <h2 class="section-heading" id="resultTitle">Emal nəticəsi — təmizlənmiş sətirlər</h2>
+          <h2 class="section-heading" id="resultTitle" data-i18n="admin.resultTitle">Emal nəticəsi — təmizlənmiş sətirlər</h2>
         </div>
       </div>
       <div id="resultMeta"></div>
@@ -527,17 +539,17 @@
 
       <div class="form-row">
         <label class="field small">
-          <span>Neçə sətir emal olunsun?</span>
+          <span data-i18n="admin.linesLabel">Neçə sətir emal olunsun?</span>
           <select id="extractLimit">
-            <option value="5">5 sətir</option>
-            <option value="10" selected>10 sətir</option>
-            <option value="25">25 sətir</option>
-            <option value="0">hamısı</option>
+            <option value="5" data-i18n="admin.lines5">5 sətir</option>
+            <option value="10" selected data-i18n="admin.lines10">10 sətir</option>
+            <option value="25" data-i18n="admin.lines25">25 sətir</option>
+            <option value="0" data-i18n="common.all">hamısı</option>
           </select>
         </label>
         <div class="actions flush">
-          <button class="btn btn-secondary" id="extractBtn" type="button">AI ilə çıxar</button>
-          <button class="btn btn-secondary" id="matchBtn" type="button">Məhsulları uyğunlaşdır</button>
+          <button class="btn btn-secondary" id="extractBtn" type="button" data-i18n="admin.extract">AI ilə çıxar</button>
+          <button class="btn btn-secondary" id="matchBtn" type="button" data-i18n="admin.match">Məhsulları uyğunlaşdır</button>
         </div>
       </div>
       <div id="extractStatus"></div>
@@ -549,7 +561,7 @@
       <div class="card-head">
         <div class="head-row">
           <svg aria-hidden="true"><use href="#icon-package"></use></svg>
-          <h2 class="section-heading" id="productTitle">AI-nin çıxardığı məhsullar</h2>
+          <h2 class="section-heading" id="productTitle" data-i18n="admin.extractedTitle">AI-nin çıxardığı məhsullar</h2>
         </div>
       </div>
       <div id="productMeta"></div>
@@ -563,7 +575,7 @@
       <div class="card-head">
         <div class="head-row">
           <svg aria-hidden="true"><use href="#icon-layers"></use></svg>
-          <h2 class="section-heading" id="catalogTitle">Yüklənmiş kataloqlar</h2>
+          <h2 class="section-heading" id="catalogTitle" data-i18n="admin.catalogsTitle">Yüklənmiş kataloqlar</h2>
         </div>
       </div>
       <div id="catalogList"><div class="row"><span class="row-label skeleton">Yüklənir</span></div></div>

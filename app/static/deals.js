@@ -54,7 +54,7 @@
 
     const stores = offers.length
       ? `<div class="pricecols">${offers.map(storeColumn).join("")}</div>`
-      : `<div class="deal-single">Yalnız ${esc(deal.store)}-də tapılıb</div>`;
+      : `<div class="deal-single">${t("deals.onlyAt", { store: esc(deal.store) })}</div>`;
 
     return (
       `<a class="deal-row" href="/product/${deal.product_id}">` +
@@ -67,8 +67,8 @@
       brand +
       `<span class="deal-title">${title}</span>` +
       `<span class="deal-meta">${size}` +
-      `<span class="deal-save">${money(deal.saving)} ₼ qənaət</span></span>` +
-      `<span class="deal-avail">Mövcuddur</span>` +
+      `<span class="deal-save">${money(deal.saving)} ₼ ${t("deals.saving")}</span></span>` +
+      `<span class="deal-avail">${t("deals.available")}</span>` +
       stores +
       `</span>` +
       `</a>`
@@ -78,8 +78,8 @@
   function render(items) {
     if (!items.length) {
       grid.innerHTML =
-        `<div class="notice warn">Hazırda endirimli məhsul tapılmadı. ` +
-        `Admin panelindən kataloq yükləyin.</div>`;
+        `<div class="notice warn">${t("deals.empty")}` +
+        `</div>`;
       moreBtn.classList.add("hidden");
       return;
     }
@@ -105,17 +105,22 @@
     } catch (e) {
       console.error("[deals]", e);
       grid.innerHTML =
-        `<div class="notice warn">Endirim siyahısı yüklənmədi. ` +
-        `Səhifənin qalan hissəsi işləyir.</div>`;
+        `<div class="notice warn">${t("deals.loadError")}` +
+        `</div>`;
       moreBtn.classList.add("hidden");
     }
   }
 
   moreBtn.addEventListener("click", () => {
     shown = shown === FIRST ? MORE : FIRST;
-    moreBtn.textContent = shown === FIRST ? "Daha çox göstər" : "Daha az göstər";
+    moreBtn.textContent = shown === FIRST ? t("deals.more") : t("deals.less");
     load(shown);
   });
 
   load(shown);
+
+  // Dil dəyişəndə bu blok yenidən çəkilir - səhifə yenilənmir.
+  // `i18n.js` hadisəni `document`-ə atır, hər modul yalnız ÖZ hissəsinə
+  // baxır; beləcə heç bir modul digərinin DOM-una toxunmur.
+  document.addEventListener("basketiq:lang", () => load(shown));
 })();

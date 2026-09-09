@@ -22,8 +22,8 @@
   function card(market) {
     const soon = market.available ? "" : " is-soon";
     const badge = market.available
-      ? `<span class="store-card-meta">${market.products} məhsul</span>`
-      : `<span class="store-card-meta is-soon-text">Tezliklə</span>`;
+      ? `<span class="store-card-meta">${market.products} ${t("stores.productCount")}</span>`
+      : `<span class="store-card-meta is-soon-text">${t("common.soon")}</span>`;
 
     // Loqo <img>-dir, fon şəkli deyil: `alt` mətni ekran oxuyucusuna çatır və
     // fayl tapılmayanda `error` hadisəsi baş verir (fon şəklində belə hadisə
@@ -66,7 +66,7 @@
       const data = await (await fetch("/api/catalog/markets")).json();
       const items = data.items || [];
       if (!items.length) {
-        grid.innerHTML = `<div class="notice warn">Market siyahısı boşdur.</div>`;
+        grid.innerHTML = `<div class="notice warn">${t("stores.empty")}</div>`;
         return;
       }
       StoreColors.note(items.map((m) => m.name));
@@ -76,10 +76,15 @@
       // Şəbəkə bölməsi qırılsa da səhifənin qalanı işləməlidir.
       console.error("[stores]", e);
       grid.innerHTML =
-        `<div class="notice warn">Market siyahısı yüklənmədi. ` +
-        `Səhifənin qalan hissəsi işləyir.</div>`;
+        `<div class="notice warn">${t("stores.loadError")}` +
+        `</div>`;
     }
   }
 
   load();
+
+  // Dil dəyişəndə bu blok yenidən çəkilir - səhifə yenilənmir.
+  // `i18n.js` hadisəni `document`-ə atır, hər modul yalnız ÖZ hissəsinə
+  // baxır; beləcə heç bir modul digərinin DOM-una toxunmur.
+  document.addEventListener("basketiq:lang", () => load());
 })();

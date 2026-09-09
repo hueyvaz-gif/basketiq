@@ -31,8 +31,8 @@
       `<h1 class="page-title">${esc(market.name)}</h1>` +
       `<p class="page-sub">` +
       (market.available
-        ? `${market.products} məhsulun qiyməti bizdədir.`
-        : `Bu marketin data mənbəyi hələ hazır deyil.`) +
+        ? `${t("store.priceCount", { n: market.products })}`
+        : `${t("store.noSource")}`) +
       `</p></div></div>`;
 
     const img = el("storeHead").querySelector("img.store-logo");
@@ -46,10 +46,10 @@
 
   function renderSoon(market) {
     el("soonBox").innerHTML =
-      `<div class="notice warn"><strong>Tezliklə.</strong> ` +
-      `${esc(market.name)} üçün qiymət mənbəyi hələ qoşulmayıb, ona görə ` +
-      `burada göstərəcək qiymətimiz yoxdur. Qoşulan kimi məhsullar bu ` +
-      `səhifədə görünəcək — o vaxta qədər müqayisə digər marketlərlə aparılır.` +
+      `<div class="notice warn"><strong>${t("store.soonTitle")}</strong> ${t("store.soonBody", { store: esc(market.name) })}` +
+      `` +
+      `` +
+      `` +
       `</div>`;
   }
 
@@ -71,7 +71,7 @@
           )
           .join("") +
         `</div>`
-      : `<div class="deal-single">Digər marketlərdə tapılmadı</div>`;
+      : `<div class="deal-single">${t("store.notFoundElsewhere")}</div>`;
 
     return (
       `<a class="deal card-lift" href="/product/${deal.product_id}">` +
@@ -120,7 +120,7 @@
 
     el("storeProductsBox").innerHTML =
       `<div class="table-scroll"><table class="lines">` +
-      `<thead><tr><th>Məhsul</th><th class="num">Qiymət</th></tr></thead>` +
+      `<thead><tr><th>${t("common.product")}</th><th class="num">${t("common.price")}</th></tr></thead>` +
       `<tbody>${rows}</tbody></table></div>`;
     el("storeProductsCard").classList.remove("hidden");
   }
@@ -133,16 +133,16 @@
       const res = await fetch(`/api/catalog/store/${encodeURIComponent(slug)}`);
       if (res.status === 404) {
         el("storeHead").innerHTML =
-          `<h1 class="page-title">Market tapılmadı</h1>` +
-          `<p class="page-sub">Bu ünvanda market yoxdur. ` +
-          `<a class="link" href="/">Ana səhifəyə qayıt</a>.</p>`;
+          `<h1 class="page-title">${t("store.notFound")}</h1>` +
+          `<p class="page-sub">${t("store.notFoundBody")} ` +
+          `<a class="link" href="/">${t("store.backHome")}</a>.</p>`;
         return;
       }
       data = await res.json();
     } catch (e) {
       console.error("[store]", e);
       el("soonBox").innerHTML =
-        `<div class="notice error">Market datası yüklənmədi.</div>`;
+        `<div class="notice error">${t("store.loadError")}</div>`;
       return;
     }
 
@@ -160,4 +160,9 @@
   }
 
   load();
+
+  // Dil dəyişəndə bu blok yenidən çəkilir - səhifə yenilənmir.
+  // `i18n.js` hadisəni `document`-ə atır, hər modul yalnız ÖZ hissəsinə
+  // baxır; beləcə heç bir modul digərinin DOM-una toxunmur.
+  document.addEventListener("basketiq:lang", () => load());
 })();

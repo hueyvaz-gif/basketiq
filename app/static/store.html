@@ -12,6 +12,7 @@
 </head>
 <body>
 
+<script src="/static/i18n.js"></script>
 <script src="/static/icons.js"></script>
 
 <header class="topbar">
@@ -21,9 +22,19 @@
       <span class="brand-name">BasketIQ</span>
     </a>
 
+    <!-- Dil keçidi: AZ (defolt) · EN · RU.
+         Seçim `localStorage`-də saxlanılır və BÜTÜN səhifələrə şamil olunur.
+         Mətn HTML-də azərbaycanca qalır - JS işləməsə səhifə yenə oxunur. -->
+    <div class="lang-switch" role="group" aria-label="Dil seçimi"
+         data-i18n-attr="aria-label:nav.language">
+      <button class="lang-btn" type="button" data-lang="az" aria-selected="true">AZ</button>
+      <button class="lang-btn" type="button" data-lang="en" aria-selected="false">EN</button>
+      <button class="lang-btn" type="button" data-lang="ru" aria-selected="false">RU</button>
+    </div>
+
     <a class="btn btn-secondary" href="/">
       <svg aria-hidden="true"><use href="#icon-basket"></use></svg>
-      Səbətə qayıt
+      <span data-i18n="common.backToBasket">Səbətə qayıt</span>
     </a>
   </div>
 </header>
@@ -44,9 +55,9 @@
       <div class="card-head">
         <div class="head-row">
           <svg aria-hidden="true"><use href="#icon-tag"></use></svg>
-          <h2 class="section-heading" id="storeDealsTitle">Bu marketin endirimləri</h2>
+          <h2 class="section-heading" id="storeDealsTitle" data-i18n="store.discounts">Bu marketin endirimləri</h2>
         </div>
-        <p class="section-sub">
+        <p class="section-sub" data-i18n="store.discountsSub">
           Kartın altındakı sətir eyni məhsulun digər marketlərdəki qiymətidir —
           endirim bu marketdə olsa da, ucuz qiymət başqa yerdə ola bilər.
         </p>
@@ -59,13 +70,13 @@
       <div class="card-head">
         <div class="head-row">
           <svg aria-hidden="true"><use href="#icon-package"></use></svg>
-          <h2 class="section-heading" id="storeProductsTitle">Məhsullar</h2>
+          <h2 class="section-heading" id="storeProductsTitle" data-i18n="common.products">Məhsullar</h2>
         </div>
       </div>
       <div id="storeProductsBox"></div>
     </section>
 
-    <p class="fineprint">
+    <p class="fineprint" data-i18n="common.fineprint">
       Qiymətlər marketlərin dərc etdiyi həftəlik kataloqlardan götürülüb və
       filialda, eləcə də kataloqun qüvvədə olduğu müddətdən sonra fərqlənə bilər.
     </p>

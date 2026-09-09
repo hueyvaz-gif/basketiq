@@ -233,6 +233,42 @@ a.brand:hover .brand-name { color: var(--text-secondary); }
   color: var(--text);
 }
 
+/* --- Dil keçidi (AZ / EN / RU) ---
+   Segmented control-un kiçik qardaşıdır: eyni məntiq, yalnız üç hərf.
+   Yol 44px hündürlüyündədir - toxunma hədəfi qaydası buraya da şamildir. */
+.lang-switch {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--r-pill);
+  background: var(--bg-subtle);
+  flex: none;
+}
+
+.lang-btn {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: .02em;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--r-pill);
+  min-height: 40px;
+  padding: 0 12px;
+  cursor: pointer;
+  transition: background var(--ease), color var(--ease), box-shadow var(--ease);
+}
+
+.lang-btn:hover { color: var(--text); }
+
+.lang-btn[aria-selected="true"] {
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .10), 0 0 0 .5px rgba(0, 0, 0, .04);
+}
+
+
 /* --- Segmented control (Apple) ---
    Yol boz, SEÇİLMİŞ seqment AĞDIR və yüngül kölgə ilə «qalxır».
    Əvvəlki variantda seçilmiş seqment doldurulmuş yaşıl idi - o, düymə kimi

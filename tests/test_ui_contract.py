@@ -262,9 +262,10 @@ def test_hər_skript_bir_səhifədə_qoşulub():
     for page, scripts in SCRIPT_PAGES.items():
         html = read_static(page)
         linked = set(re.findall(r'<script src="/static/([\w.-]+)"', html))
-        # Paylaşılan köməkçilər (`ui.js`, `icons.js`, `store-colors.js`) DOM
-        # elementi axtarmır, ona görə siyahıda yoxdurlar.
-        shared = {"ui.js", "icons.js", "store-colors.js"}
+        # Paylaşılan köməkçilər DOM elementi axtarmır, ona görə siyahıda
+        # yoxdurlar. `i18n.js` də bura düşür: o, HƏR səhifədə yüklənir və
+        # yalnız `data-i18n` işarəsi olan elementlərə toxunur.
+        shared = {"ui.js", "icons.js", "store-colors.js", "i18n.js"}
         assert set(scripts) == linked - shared, (
             f"{page}: siyahı ilə HTML fərqlənir — "
             f"yalnız HTML-də: {sorted(linked - shared - set(scripts))}, "
