@@ -819,3 +819,43 @@ sürüşür — 640px cədvəl 284px-lik qutunun içindədir.
   vizual yoxlama edilmədi.
 - **Chrome uzantısı qoşulu deyil**, ona görə yoxlama Selenium + başsız Chrome
   ilə aparıldı.
+
+
+---
+
+## 2026-09-09 — Admin paneli də yoxlandı (və bir qüsur çıxdı)
+
+Əvvəlki qeyddə «admin paneli ekranda yoxlanmadı» yazmışdım. Yoxlandı.
+
+### Nə tapıldı
+
+**«Emal et» düyməsi tamamilə itmişdi.** `.btn-secondary`-nin fonunu
+`--bg-subtle` etmişdim; həmin düymə isə boz bölmə kartının İÇİNDƏDİR — yəni
+fon fonun üstünə düşdü və düymə görünməz oldu. Disabled halda opasite 0.4
+olduğu üçün mətn də solğun idi.
+
+Düzəliş: ikinci dərəcəli düymə **AĞ + nazik xətt** oldu — həm ağ, həm boz
+səthdə sərhədini saxlayır.
+
+**İkinci qüsur:** `<a class="btn">` (məsələn «Səbətə qayıt») brauzerin
+altıxətti ilə çıxırdı — pill-in içində keçid kimi görünürdü. `a.btn`
+üçün `text-decoration: none`.
+
+### Yoxlanılanlar
+
+| | Nəticə |
+|---|---|
+| Panel keçidi (`.hidden` sinfi) | işləyir — admin açılanda istifadəçi paneli `display: none` |
+| Konsol xətası | 0 |
+| Yüklənməyən şəkil | 0 |
+| Yaşıl qalıq (hesablanmış rənglər üzrə axtarış) | **yoxdur** |
+| Sənəd eni | 1249 (viewport 1280) — daşma yoxdur |
+
+Yoxlama `<details>` bloklarının hamısı açıq vəziyyətdə aparıldı ki, gizli
+qalan element olmasın.
+
+### Nəyə əmin deyiləm
+
+- **Admin panelinin işlək halları sınanmadı** — fayl yükləmə, mənbədən çəkmə
+  və emal düymələri BASILMADI. Yalnız görünüş yoxlanıldı; funksionallığı
+  onsuz da testlər örtür.

@@ -828,17 +828,24 @@ table.lines tbody tr:hover .avatar { background: color-mix(in srgb, currentColor
 }
 
 .btn svg { width: 17px; height: 17px; }
+/* Düymə həm `<button>`, həm `<a>` ola bilir (məsələn «Səbətə qayıt»).
+   Keçid olanda brauzerin altıxətti pill-in içində görünürdü. */
+a.btn { text-decoration: none; }
 .btn:hover:not(:disabled) { background: var(--accent-hover); }
 .btn:active:not(:disabled) { transform: scale(.97); }
 .btn:disabled { opacity: .4; cursor: not-allowed; }
 
-/* İkinci dərəcəli: DOLĞUSUZ, yalnız mavi mətn (Apple-ın «Learn more» üslubu) */
+/* İkinci dərəcəli düymə AĞDIR + nazik xətt.
+   REAL SƏHVDƏN ÇIXIB: əvvəl fonu `--bg-subtle` idi, yəni boz bölmənin
+   üzərində düymə TAM İTİRDİ - admin panelindəki «Emal et» görünmür oldu.
+   Ağ fon + hairline hər iki səthdə (ağ və boz) sərhədini saxlayır. */
 .btn-secondary {
-  background: var(--bg-subtle);
+  background: var(--bg);
   color: var(--text);
+  border: 1px solid var(--hairline);
 }
 
-.btn-secondary:hover:not(:disabled) { background: color-mix(in srgb, var(--text) 8%, var(--bg-subtle)); }
+.btn-secondary:hover:not(:disabled) { background: var(--bg-subtle); }
 
 .btn-ghost {
   background: transparent;
