@@ -979,8 +979,21 @@ a.btn { text-decoration: none; }
 .field input::placeholder { color: var(--text-2); }
 .field input:focus, .field select:focus { border-color: var(--accent); background: var(--surface); }
 
-.check { display: flex; align-items: center; gap: var(--s2); font-size: 14px; padding-bottom: 11px; }
-.check input { accent-color: var(--accent); width: 17px; height: 17px; flex: none; }
+/* Checkbox və radio: TOXUNMA HƏDƏFİ ETİKETDİR, qutunun özü deyil.
+   Ölçüldü: qutu 17×17-dir, amma `<label>` 139×32 idi və ona klik seçimi
+   dəyişir — yəni WCAG 2.5.8 (24×24) onsuz da ödənilirdi. Buna baxmayaraq
+   etiketin hündürlüyü Apple-ın 44px sətir ölçüsündən aşağı idi; `min-height`
+   ilə qaldırıldı, qutunun özü isə 20px oldu (17px barmaq üçün xırdadır). */
+.check {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: 44px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.check input { accent-color: var(--accent); width: 20px; height: 20px; flex: none; }
 
 .file-name { font-size: 13px; color: var(--text-2); }
 
@@ -2201,12 +2214,12 @@ code {
   display: flex;
   align-items: center;
   gap: var(--s2);
-  padding: 5px 0;
-  font-size: 14px;
+  min-height: 44px;     /* Apple sətir ölçüsü - etiketin hamısı toxunulandır */
+  font-size: 15px;
   cursor: pointer;
 }
 
-.filter-opt input { accent-color: var(--accent); flex: none; }
+.filter-opt input { accent-color: var(--accent); width: 18px; height: 18px; flex: none; }
 .filter-opt span { flex: 1 1 auto; min-width: 0; }
 .filter-opt small { color: var(--text-2); font-size: 12px; font-variant-numeric: tabular-nums; }
 

@@ -597,3 +597,23 @@ def test_silmə_düymələrinin_toxunma_sahəsi_44px_dir():
         assert inset, f"{selektor}::before mənfi inset işlətmir"
         toxunma = görünən + 2 * int(inset.group(1))
         assert toxunma >= 44, f"{selektor} toxunma sahəsi {toxunma}px — 44 lazımdır"
+
+
+def test_seçim_sətirləri_44px_hündürlükdədir():
+    """
+    Checkbox və radio üçün TOXUNMA HƏDƏFİ `<label>`-dir, qutunun özü deyil —
+    etikete klik seçimi dəyişir.
+
+    ÖLÇÜLDÜ: qutu 17×17 idi, etiket isə 139×32 — yəni WCAG 2.5.8 (24×24)
+    onsuz da ödənilirdi, amma Apple-ın 44px sətir ölçüsündən aşağı idi.
+    İndi hər iki etiket `min-height: 44px` alır.
+    """
+    css = read_static("style.css")
+    for selektor in (".check", ".filter-opt"):
+        blok = re.search(rf"{re.escape(selektor)} \{{(.*?)\}}", css, re.S)
+        assert blok, f"{selektor} qaydası tapılmadı"
+        hündür = re.search(r"min-height:\s*(\d+)px", blok.group(1))
+        assert hündür, f"{selektor} üçün min-height yoxdur"
+        assert int(hündür.group(1)) >= 44, (
+            f"{selektor} sətri {hündür.group(1)}px — 44 lazımdır"
+        )

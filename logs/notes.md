@@ -1130,3 +1130,44 @@ Mətn idarələri (düymə, input, select) 30–43px hündürlükdədir: WCAG mi
 səhifənin ritmini dəyişərdi — ayrıca qərardır.
 
 399 test keçir, 2 atlanır, ruff təmiz.
+
+---
+
+## 2026-09-09 — Checkbox və radio sətirləri 44px
+
+### ƏVVƏLKİ İDDİAM SƏHV İDİ — düzəldirəm
+
+Əvvəlki qeyddə yazmışdım: «admin panelindəki checkbox 17×17-dir, yəni WCAG
+2.5.8 minimumundan kiçikdir». **Bu, yanlışdır.**
+
+Ölçdüm: qutu doğrudan 17×17-dir, **amma toxunma hədəfi qutu deyil, `<label>`
+elementidir** — o, 139×32 idi və ona klik seçimi dəyişir (brauzerdə
+təsdiqləndi). Yəni WCAG 2.5.8 (24×24) **onsuz da ödənilirdi**.
+
+Səhvim ölçmə metodundan gəldi: yalnız `input` elementinin ölçüsünə baxmışdım,
+onun etiketinə yox. İnteraktiv elementi ölçəndə HƏDƏFİ ölçmək lazımdır, DOM
+düyününü yox.
+
+### Yenə də düzəldildi (Apple ölçüsünə görə)
+
+Etiketin hündürlüyü 31-32px idi — Apple-ın 44px sətir ölçüsündən aşağı.
+
+| | Əvvəl | Sonra |
+|---|---|---|
+| `.check` (admin: «OCR-ı məcbur et») | qutu 17×17, etiket 139×**32** | qutu 20×20, etiket 149×**44** |
+| `.filter-opt` (axtarış: market/kateqoriya) | qutu 13×13, etiket 220×**31** | qutu 18×18, etiket 220×**44** |
+
+Etikete klik yenə seçimi dəyişir (yoxlanıldı). Filtr paneli 10 sətirlə
+806px hündürlükdədir — Apple-ın siyahı ritmi ilə rahat oxunur, ekran
+şəkli ilə baxıldı.
+
+Test əlavə olundu, mutasiya ilə təsdiqləndi: `min-height`-i 32px-ə endirəndə
+düşür.
+
+401 test keçir, 2 atlanır, ruff təmiz.
+
+### Nəyə əmin deyiləm
+
+- **Digər mətn idarələri (düymə, input, select) 30-43px qalır.** WCAG
+  minimumunu ödəyir, Apple tövsiyəsindən aşağıdır. Onları böyütmək
+  tipoqrafiyanı və səhifə ritmini dəyişərdi — ayrıca qərardır.
