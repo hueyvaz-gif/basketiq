@@ -137,3 +137,66 @@ def test_bir_məhsul_iki_kart_almır():
 
     assert len(winners) == 1
     assert winners[0].product_id == 7
+
+
+# ------------------------------------------------- kadrın çərçivəsi (real səhv)
+
+
+def test_sutun_addimi_qiymet_qutusundan_kicik_ola_bilmez():
+    """
+    REAL SƏHVDƏN ÇIXIB: addım qonşu qutu mərkəzləri arasındakı median
+    məsafədir, amma kartlar dəqiq şəbəkədə dayanmır - qonşu SIRALARIN qutuları
+    da x oxunda yan-yana düşür və median həqiqi sütun addımından kiçik çıxır.
+
+    Ölçüldü (20 səhifə): qutu eni sabit ~144 px, hesablanan addım isə 112-414
+    arasında oynayır; 20 səhifədən altısında QUTUNUN ÖZÜNDƏN kiçik idi.
+    Kadr həmin qədər dar kəsilir və kartın sol tərəfi - brendin adı - itir:
+    «Flomaster» → «omaster», «Heineken» → «ineken».
+    """
+    from PIL import Image
+
+    from ingestion.images import MIN_COL_RATIO, _grid_steps
+
+    en = 144
+    # Üç qutu, mərkəzləri cəmi 110 px aralı - median 110 verərdi.
+    boxes = [(100, 100, 100 + en, 188), (210, 400, 210 + en, 488), (320, 700, 320 + en, 788)]
+    page = Image.new("RGB", (1242, 1761), "white")
+
+    col, _ = _grid_steps(boxes, page)
+
+    assert col >= int(MIN_COL_RATIO * en), f"sütun addımı çox kiçikdir: {col}"
+
+
+def test_real_olculmus_addim_asagi_salinmir():
+    """Alt hədd yalnız absurd kiçik dəyəri qaldırır, böyüyünə toxunmur."""
+    from PIL import Image
+
+    from ingestion.images import _grid_steps
+
+    en = 144
+    boxes = [(100, 100, 100 + en, 188), (500, 100, 500 + en, 188), (900, 100, 900 + en, 188)]
+    page = Image.new("RGB", (1242, 1761), "white")
+
+    col, _ = _grid_steps(boxes, page)
+
+    assert col == 400, f"real addım (400) dəyişdirilib: {col}"
+
+
+def test_kadr_qiymet_qutusunun_solunda_ad_ucun_yer_saxlayir():
+    """
+    Kartın adı qiymətin SOLUNDADIR. Kadr qutunun solunda ən azı bir qutu eni
+    qədər yer götürməlidir - yoxsa brend adı kəsilir.
+    """
+    from PIL import Image
+
+    from ingestion.images import _grid_steps, cell_box
+
+    en = 144
+    boxes = [(600, 100, 600 + en, 188), (710, 400, 710 + en, 488)]
+    page = Image.new("RGB", (1242, 1761), "white")
+    col, row = _grid_steps(boxes, page)
+
+    left, _, right, _ = cell_box(boxes[0], col, row, page)
+
+    assert boxes[0][0] - left >= en, "qutunun solunda ad üçün yer qalmayıb"
+    assert right >= boxes[0][2], "qiymət qutusu kadrdan kənarda qalıb"

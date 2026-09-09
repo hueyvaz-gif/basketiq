@@ -686,3 +686,67 @@ rəsm albomu 24 vərəq (0.06), çay 20 ədəd (0.09).
   yerdə — qoyuldu.
 - **«1.5 L / 1.50 ₼» halı süni məlumatla sınandı**, real kataloqda belə sətir
   yox idi.
+
+
+---
+
+## 2026-09-09 — Kadrın sürüşməsi
+
+Son açıq qüsur: uyğunlaşma doğru olanda belə kadr kartın solunu kəsirdi
+(«Flomaster» → «omaster», «Heineken» → «ineken»), bəzi kadrlarda isə məhsulun
+fotosu ümumiyyətlə görünmürdü — yalnız qiymət qutusu qalırdı.
+
+### Səbəb — yenə `_grid_steps()`
+
+Kadrın eni sütun addımından hesablanır, addım isə qonşu qiymət qutuları
+arasındakı median məsafədir. Kartlar dəqiq şəbəkədə dayanmadığı üçün qonşu
+SIRALARIN qutuları da x oxunda yan-yana düşür və median həqiqi addımdan kiçik
+çıxır.
+
+**Ölçüldü (20 səhifə):** qutu eni sabit **~144 px**, hesablanan addım isə
+**112-414** arasında oynayır. 20 səhifədən **15-də** qutunun ikiqatından,
+**altısında** isə qutunun ÖZÜNDƏN kiçikdir. Kadr həmin qədər dar kəsilir.
+
+Bu, `layout.py`-dəki səhvin qardaşıdır — orada da `_grid_step()` kartın eni
+sayılırdı. Fərq: orada sərhəd kimi işlədilmişdi (atdım), burada isə kadrın
+ölçüsüdür (alt hədd qoydum).
+
+### Sınadım və atdım: klasterlənmiş mərkəzlər
+
+Mərkəzləri klasterləyib addımı ordan götürmək məntiqli görünürdü. Ölçdüm:
+20 səhifədən **13-də** yenə qutunun ikiqatından kiçik çıxır (4-cü səhifə 128,
+13-cü 124). Kifayət etmir.
+
+### Tətbiq etdim: alt hədd (`MIN_COL_RATIO = 2.2`)
+
+Addım qiymət qutusu eninin 2.2 qatından kiçik ola bilməz. **2.2 harada
+ölçülüb:** addımın doğru hesablandığı səhifələrdə onun qutu eninə nisbəti
+**2.08-2.87** arasındadır; 2.2 həmin aralığın aşağı ucudur, yəni alt hədd
+yalnız absurd kiçik dəyərləri qaldırır, realları saxlayır. Nəticədə 20
+səhifədən **heç birində** addım qutunun ikiqatından kiçik deyil.
+
+Sıra addımına alt hədd qoyulmadı — ölçüldü, o, heç bir səhifədə qutu
+hündürlüyünə yaxınlaşmır (ən kiçiyi 256 px, qutu ~88 px).
+
+### Nəticə (61 şəklin hamısına yenidən baxıldı)
+
+Kəsilən brend adları bərpa olundu: **Flomaster, Raffaello, Nestle Damak,
+Lotte Choco Pie, Ulduz Start, Petrovskie Nivi, Buzdyakskiy, Joltaya Boçka,
+Beer Mix By Xırdalan, Laimon Fresh.**
+
+Fotosu görünməyən kadrlar doldu: #1943 (Final günəbaxan yağı), #1944 (Zeytun
+Bağları), #1945 (Zateya), #1971 (Borjomi), #1974 (Sadı Pridonya), #1976
+(Xırdalan), #1977 (Tuborg Gold), #2618 (Joltaya Boçka), #2658 (Kırlanğıc).
+
+**Doğruluq hökmləri dəyişmədi: 52 doğru / 6 səhv / 3 şübhəli.** Bu, gözlənilən
+idi — çərçivə hansı kartın seçildiyinə təsir etmir, yalnız onun necə
+göründüyünə.
+
+### Nəyə əmin deyiləm
+
+- **Kadr indi qonşu kartın qiymət qutusunu da tuta bilir** (#1930, #1931,
+  #1932 belədir). Mübadilə qəsdəndir: məhsulun öz adının kəsilməsi qonşunun
+  bir küncünün görünməsindən pisdir. Ölçmədim ki, bu, istifadəçini nə qədər
+  çaşdırır.
+- **2.2 bir kataloqda ölçülüb.** Başqa dizaynda qiymət qutusunun karta nisbəti
+  fərqli ola bilər; onda alt hədd ya artıq, ya az olacaq.

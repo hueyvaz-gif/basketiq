@@ -742,6 +742,22 @@ Boş kadr (tək rəngli sahə) atılır, şəkli tapılmayan məhsul neytral
 placeholder alır (`/static/images/product-placeholder.svg`). **Uydurma məhsul
 şəkli çəkilmir.**
 
+**Kadrın eni: alt hədd lazım oldu.** Kadr sütun addımından hesablanır, addım isə
+qonşu qiymət qutuları arasındakı median məsafədir. Kartlar dəqiq şəbəkədə
+dayanmadığı üçün qonşu SIRALARIN qutuları da x oxunda yan-yana düşür və median
+kiçilir. Ölçüldü (20 səhifə): qutu eni sabit ~144 px, addım isə 112-414 arasında
+oynayır — **altı səhifədə qutunun özündən kiçik**. Nəticə: kadr kartın solunu
+kəsirdi və brend adı itirdi («Flomaster» → «omaster», «Heineken» → «ineken»),
+bəzi kadrlarda isə yalnız qiymət qutusu qalırdı.
+
+`MIN_COL_RATIO = 2.2` alt həddi qoyuldu. **2.2 harada ölçülüb:** addımın doğru
+hesablandığı səhifələrdə onun qutu eninə nisbəti 2.08-2.87-dir; 2.2 həmin
+aralığın aşağı ucudur, yəni alt hədd yalnız absurd kiçik dəyəri qaldırır.
+Sıra addımına toxunulmadı — o, heç bir səhifədə qutu hündürlüyünə yaxınlaşmır.
+
+**Sınanan və atılan variant:** mərkəzləri klasterləyib addımı ordan götürmək —
+ölçüldü, 20 səhifədən 13-də yenə qutunun ikiqatından kiçik çıxır.
+
 **Ölçülmüş əhatə (2026-09-09):** 188 məhsuldan **61-inin** şəkli var (≈32%),
 hamısı Araz kataloqlarından. Şəkil yalnız ilk 20 səhifədən kəsilir
 (`build_images`), məhsullar isə 54 səhifənin hamısından gəlir — fərq buradandır. Bravo-nun 8 məhsulunda şəkil **yoxdur** — o data
@@ -1181,6 +1197,8 @@ worktree-yə köçürməkdir.
 - [x] v3 — yetim (qiymətsiz) məhsullar silindi: 234 → 188, `tools/purge_orphans.py`
 - [x] v3 — atribut çıxarma: qiymət ölçü kimi köçürülmür, saxta `unit_price = 1.0`
       sətir sayı 3 → **0**
+- [x] v3 — kadrın sürüşməsi: sütun addımına alt hədd, kəsilən brend adları bərpa
+      olundu (Flomaster, Heineken, Raffaello...)
 - [x] v3 — `/search` səhifəsi: filtrlər ünvanda, menyu real datadan
 - [x] v3 — ana səhifə trolley strukturuna keçdi (axtarış üstdə, endirimlər siyahı)
 - [x] v3 — OBA marketi koddan, sənəddən və bazadan tamamilə silindi
@@ -1188,4 +1206,4 @@ worktree-yə köçürməkdir.
 ¹ Mənbə seçimi ölçmə tələb etdiyi üçün Həftə 2-dən sonra tamamlandı.
 ² Real droplet-də yox, lokal Docker-də sınanıb — təfərrüat `deploy/README.md`-də.
 
-**Testlər:** 394 — 392 keçir, 2 atlanır (`pytest -q`)
+**Testlər:** 397 — 395 keçir, 2 atlanır (`pytest -q`)

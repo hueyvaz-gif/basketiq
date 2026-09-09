@@ -196,6 +196,22 @@ def similarity(a: str, b: str) -> float:
     return SequenceMatcher(None, normalize(a), normalize(b)).ratio()
 
 
+# Sütun addımının ALT HƏDDİ: qiymət qutusunun eninin bu qədər qatı.
+#
+# REAL SƏHVDƏN ÇIXIB. Addım qonşu qutu mərkəzləri arasındakı median məsafədir,
+# amma kartlar dəqiq şəbəkədə dayanmır: qonşu SIRALARIN qutuları da x oxunda
+# yan-yana düşür və median həqiqi sütun addımından kiçik çıxır. Ölçüldü
+# (20 səhifə): qutu eni sabit ~144 px, hesablanan addım isə 112-414 arasında
+# oynayır - 20 səhifədən 15-də qutunun ikiqatından, altısında isə QUTUNUN
+# ÖZÜNDƏN kiçikdir. Kadr həmin qədər dar kəsilir və kartın sol tərəfi -
+# brendin adı - itir: «Flomaster» -> «omaster», «Heineken» -> «ineken».
+#
+# 2.2 haradan gəlir? Addımın DOĞRU hesablandığı səhifələrdə onun qutu eninə
+# nisbəti 2.08-2.87 arasındadır. 2.2 həmin aralığın aşağı ucudur, yəni alt hədd
+# yalnız absurd kiçik dəyərləri qaldırır, real ölçülənlərə toxunmur.
+MIN_COL_RATIO = 2.2
+
+
 def _grid_steps(boxes: list[tuple[int, int, int, int]], page: Image.Image) -> tuple[int, int]:
     """
     Kartlar şəbəkəsinin sütun və sıra addımı.
@@ -204,6 +220,10 @@ def _grid_steps(boxes: list[tuple[int, int, int, int]], page: Image.Image) -> tu
     səhifədə tək-tük böyük reklam kartı olur və orta qiyməti sürüşdürür.
     Kart bir dənədirsə addım hesablana bilmir; belə halda səhifənin öz
     ölçüsündən ehtiyat dəyər götürülür.
+
+    Sütun addımına ALT HƏDD qoyulur (`MIN_COL_RATIO`) - səbəb yuxarıdadır.
+    Sıra addımına qoyulmur: ölçüldü, o, heç bir səhifədə qutu hündürlüyünə
+    yaxınlaşmır (ən kiçiyi 256 px, qutu isə ~88 px).
     """
     xs = sorted({(b[0] + b[2]) // 2 for b in boxes})
     ys = sorted({(b[1] + b[3]) // 2 for b in boxes})
@@ -212,10 +232,11 @@ def _grid_steps(boxes: list[tuple[int, int, int, int]], page: Image.Image) -> tu
         gaps = [b - a for a, b in zip(values, values[1:]) if b - a > 5]
         return int(median(gaps)) if gaps else fallback
 
-    return (
-        step(xs, page.width // 3),
-        step(ys, page.height // 4),
-    )
+    col = step(xs, page.width // 3)
+    if boxes:
+        col = max(col, int(MIN_COL_RATIO * median(b[2] - b[0] for b in boxes)))
+
+    return col, step(ys, page.height // 4)
 
 
 def cell_box(
