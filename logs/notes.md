@@ -1213,3 +1213,47 @@ control və loqo eyni oxda qalır. Yükləmə formasında düymə (44px) ilə in
 
 - **`select` və `input` toxunulmadı** — onlar düymə deyil, tapşırığın
   hüdudundan kənardır. 41-45px aralığındadırlar, yəni 44-dən 1-3px fərqlə.
+
+---
+
+## 2026-09-09 — `select` və `input` da 44px
+
+Toxunma hədəfləri işinin sonu: forma sahələri düymə ilə eyni hündürlüyə gəldi.
+
+### Niyə lazım idi
+
+`input`/`select` 41-43px, düymə isə 44px idi. Onlar admin yükləmə formasında
+**yan-yana** dayanır — 3px fərq sətri əyri göstərirdi. Əvvəlki qeyddə «gözlə
+seçilmir» yazmışdım; ekran şəklinə diqqətlə baxanda seçilirdi.
+
+### Necə
+
+Hündürlük `padding` ilə yox, **`min-height`** ilə verilir: padding şrift
+ölçüsündən asılıdır və şrift dəyişəndə sahə sürüşür. `select` üçün əlavə
+`line-height: 42px` lazım oldu — o, daxili mətni öz-özünə mərkəzləmir və
+hündürlük artanda yazı yuxarı yapışırdı.
+
+Yolda forma sahələri Apple dilinə tam gətirildi: şrift 15 → **17px**, çəki
+500 → 400, çərçivə 1.5px şəffaf → **1px hairline**, radius `--r-sm` → **12px**,
+fokusda 4px mavi halqa, etiketlər 12px/700 CAPS-dan **13px/500**-ə.
+
+### Ölçmə (brauzerdə, son vəziyyət)
+
+| Element | Görünən | Toxunma |
+|---|---|---|
+| `.btn` | 44px | 44px |
+| `input`, `select` | **44px** | 44px |
+| `.segmented` yolu | 44px | 44px |
+| `.check` / `.filter-opt` | 44px sətir | 44px |
+| `.icon-btn` | 36×36 | 44×44 (örtük) |
+| `.basket-chip-del` | 24×24 | 44×44 (örtük) |
+
+**Artıq 44-dən aşağı toxunma hədəfi yoxdur.**
+
+### Yoxlamalar
+
+- dörd səhifə: konsol xətası 0, yüklənməyən şəkil 0
+- mobil 380px: üfüqi sürüşmə yoxdur
+- test əlavə olundu, mutasiya ilə təsdiqləndi: sahəni 38px-ə endirəndə düşür
+
+403 test keçir, 2 atlanır, ruff təmiz.

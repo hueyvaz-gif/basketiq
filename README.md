@@ -499,6 +499,7 @@ GÖRÜNTÜ deyil, HƏDƏF ölçüsüdür. Ona görə iki yanaşma işlədilir:
 | `.icon-btn` | 36×36 | **44×44** | görünməyən `::before` örtüyü |
 | `.basket-chip-del` | 24×24 | **44×44** | görünməyən `::before` örtüyü |
 | `.check`, `.filter-opt` | — | 44px sətir | `min-height` (hədəf `<label>`-dir) |
+| `input`, `select` | 44px | 44px | `min-height` — düymə ilə eyni sətirdə dayanır |
 
 **Niyə bəzi yerdə örtük, bəzi yerdə həqiqi ölçü?** Cədvəl sətrindəki və üst
 paneldəki dairəvi ikon düyməsini 44px etsək sətirlər və panel ağırlaşır; orada
@@ -1286,4 +1287,4 @@ worktree-yə köçürməkdir.
 ¹ Mənbə seçimi ölçmə tələb etdiyi üçün Həftə 2-dən sonra tamamlandı.
 ² Real droplet-də yox, lokal Docker-də sınanıb — təfərrüat `deploy/README.md`-də.
 
-**Testlər:** 404 — 402 keçir, 2 atlanır (`pytest -q`)
+**Testlər:** 405 — 403 keçir, 2 atlanır (`pytest -q`)

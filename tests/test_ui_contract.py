@@ -642,3 +642,19 @@ def test_düymələrin_hündürlüyü_44px_dir():
     seg_h = int(re.search(r"min-height:\s*(\d+)px", seg.group(1)).group(1))
     yol_p = int(re.search(r"padding:\s*(\d+)px", yol.group(1)).group(1))
     assert seg_h + 2 * yol_p >= 44, f"segmented yolu {seg_h + 2 * yol_p}px — 44 lazımdır"
+
+
+def test_forma_sahələri_düymə_ilə_eyni_hündürlükdədir():
+    """
+    `input` və `select` düymə ilə YAN-YANA dayanır (admin yükləmə forması).
+    Əvvəl 41-43px idi, düymə isə 44 — 3px fərq sətri əyri göstərirdi.
+
+    Hündürlük `padding` ilə yox, `min-height` ilə verilir: padding şrift
+    ölçüsündən asılıdır və şrift dəyişəndə sahə sürüşür.
+    """
+    css = read_static("style.css")
+    blok = re.search(r"\.field input, \.field select \{(.*?)\}", css, re.S)
+    assert blok, ".field input/select qaydası tapılmadı"
+    hündür = re.search(r"min-height:\s*(\d+)px", blok.group(1))
+    assert hündür, "forma sahəsi üçün min-height yoxdur"
+    assert int(hündür.group(1)) >= 44, f"forma sahəsi {hündür.group(1)}px — 44 lazımdır"

@@ -967,26 +967,38 @@ a.btn { text-decoration: none; }
    sətri yana daşırır. Bu, desktop-da da baş verir. */
 .field { display: flex; flex-direction: column; gap: 6px; flex: 1 1 220px; min-width: 0; }
 .field.small { flex: 0 1 200px; }
-.field > span { font-size: 12px; font-weight: 700; color: var(--text-2); }
+.field > span { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
 
 .field input, .field select {
   width: 100%;
   min-width: 0;
   max-width: 100%;
+  /* Düymələrlə EYNİ hündürlük: forma sətri düymə ilə yan-yana duranda
+     3-4px fərq gözə dəyirdi. `min-height` + şaquli mərkəzləmə - padding-lə
+     tənzimləmə şrift ölçüsündən asılı olur və şrift dəyişəndə sürüşür. */
+  min-height: 44px;
   font-family: var(--font);
-  font-size: 15px;
-  font-weight: 500;
+  font-size: 17px;
+  font-weight: 400;
   color: var(--text);
   background: var(--surface-2);
-  border: 1.5px solid transparent;
-  border-radius: var(--r-sm);
-  padding: 11px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  padding: 0 14px;
   outline: none;
-  transition: border-color var(--ease), background var(--ease);
+  transition: border-color var(--ease), background var(--ease), box-shadow var(--ease);
 }
 
-.field input::placeholder { color: var(--text-2); }
-.field input:focus, .field select:focus { border-color: var(--accent); background: var(--surface); }
+/* `select` daxili mətni öz-özünə mərkəzləmir - hündürlük artdıqda yuxarı
+   yapışırdı. */
+.field select { line-height: 42px; }
+
+.field input::placeholder { color: var(--text-tertiary); }
+.field input:focus, .field select:focus {
+  border-color: var(--accent);
+  background: var(--bg);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 12%, transparent);
+}
 
 /* Checkbox və radio: TOXUNMA HƏDƏFİ ETİKETDİR, qutunun özü deyil.
    Ölçüldü: qutu 17×17-dir, amma `<label>` 139×32 idi və ona klik seçimi
