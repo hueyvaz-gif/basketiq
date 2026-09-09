@@ -2112,6 +2112,17 @@ code {
   justify-content: space-between;
 }
 
+/* Boş slotda nişan AXIŞDA qalır, mütləq mövqedə yox.
+   BRAUZERDƏ GÖRÜLDÜ: sağ üst küncdəki «Reklam yeri» nişanı elə həmin
+   küncdəki «Reklam ver» düyməsinin üstünə düşürdü - iki element bir-birini
+   örtürdü. Dolu kartda belə problem yoxdur, çünki orada düymə deyil,
+   şəkil və mətn var. */
+.ad-card.is-empty .ad-flag {
+  position: static;
+  align-self: center;
+  flex: none;
+}
+
 @media (max-width: 600px) {
   .ad-card { flex-direction: column; align-items: flex-start; }
   .ad-image { width: 100%; }
