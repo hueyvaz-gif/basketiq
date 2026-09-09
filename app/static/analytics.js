@@ -385,7 +385,11 @@
         const style = verdictStyle(item.verdict);
         // `verdict_label` backend-dən gəlir - eyni mətni iki yerdə saxlamırıq
         const label = esc(t("verdict." + item.verdict, item.verdict_label || item.verdict));
-        const why = (item.reasons || []).join(" · ");
+        // Səbəb mətni backend-dən İKİ formada gəlir: hazır azərbaycanca cümlə
+        // və açar+parametr. Açar varsa tərcümə olunur, yoxsa mətn qalır.
+        const why = (item.reason_keys || []).length
+          ? item.reason_keys.map((r) => t(r.key, r.params)).join(" · ")
+          : (item.reasons || []).join(" · ");
         return `<div class="exception ${style.row}">
           <span class="pill ${style.pill}">${label}</span>
           <div class="exception-main">

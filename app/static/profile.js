@@ -32,7 +32,12 @@
     sel("profMinSaving").value = data.min_split_saving;
     sel("profUnitPrice").checked = data.prefer_unit_price;
     sel("profAvoid").value = (data.avoid || []).join(", ");
-    sel("profSummary").innerHTML = `<div class="notice">${esc(data.summary || "")}</div>`;
+    // Backend həm azərbaycanca mətn, həm AÇAR siyahısı göndərir.
+    // Açar varsa onu tərcümə edirik; yoxdursa (köhnə cavab) mətn qalır.
+    const xülasə = Array.isArray(data.summary_keys) && data.summary_keys.length
+      ? data.summary_keys.map((s) => t(s.key, s.params)).join("; ")
+      : (data.summary || "");
+    sel("profSummary").innerHTML = `<div class="notice">${esc(xülasə)}</div>`;
   }
 
   async function load() {

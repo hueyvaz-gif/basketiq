@@ -49,7 +49,13 @@ class Profile:
         }
 
     def summary(self) -> str:
-        """Modelə və UI-a veriləcək qısa təsvir."""
+        """
+        Modelə və UI-a veriləcək qısa təsvir (AZƏRBAYCANCA).
+
+        MODEL BU MƏTNİ OXUYUR - prompt azərbaycancadır, ona görə burada dil
+        dəyişmir. Brauzer isə eyni məlumatı `summary_keys()`-dən alır və öz
+        dilinə çevirir.
+        """
         parts = [f"{self.household_size} nəfərlik ev"]
         if self.weekly_budget:
             parts.append(f"həftəlik büdcə {self.weekly_budget:.0f} AZN")
@@ -63,6 +69,24 @@ class Profile:
         if self.avoid:
             parts.append("istəmir: " + ", ".join(self.avoid))
         return "; ".join(parts)
+
+    def summary_keys(self) -> list[dict]:
+        """Eyni təsvir AÇAR + PARAMETR şəklində - tərcümə klientdə olur."""
+        parts = [{"key": "sum.household", "params": {"n": self.household_size}}]
+        if self.weekly_budget:
+            parts.append(
+                {"key": "sum.budget", "params": {"amount": f"{self.weekly_budget:.0f}"}}
+            )
+        parts.append(
+            {"key": "sum.oneStore", "params": {}}
+            if self.max_stores <= 1
+            else {"key": "sum.maxStores", "params": {"n": self.max_stores}}
+        )
+        if self.prefer_unit_price:
+            parts.append({"key": "sum.unitPrice", "params": {}})
+        if self.avoid:
+            parts.append({"key": "sum.avoid", "params": {"words": ", ".join(self.avoid)}})
+        return parts
 
 
 def _parse_avoid(raw: str | None) -> list[str]:

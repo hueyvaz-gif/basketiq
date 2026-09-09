@@ -64,6 +64,10 @@ class DiscountCheck:
     discount_pct: float | None
     verdict: str
     reasons: list[str] = field(default_factory=list)
+    # Eyni səbəb AÇAR + PARAMETR şəklində. Mətn azərbaycancadır və qalır;
+    # brauzer açarı görəndə onu öz dilinə çevirir (`app/static/i18n.js`).
+    # Beləcə server dil bilmir, klient isə tərcüməni bir yerdən alır.
+    reason_keys: list[dict] = field(default_factory=list)
     observations: int = 0
     max_seen: float | None = None
     cheaper_elsewhere: dict | None = None
@@ -77,6 +81,7 @@ class DiscountCheck:
             "price": round(self.price, 2),
             "old_price": round(self.old_price, 2) if self.old_price else None,
             "discount_pct": self.discount_pct,
+            "reason_keys": self.reason_keys,
             "verdict": self.verdict,
             "verdict_label": VERDICTS.get(self.verdict, self.verdict),
             "reasons": self.reasons,
@@ -267,12 +272,16 @@ def check_discounts(limit: int = 50) -> list[DiscountCheck]:
                     f"Endirim {check.discount_pct}% - ərzaqda bu dərinlikdə "
                     f"endirim praktiki olaraq olmur"
                 )
+                check.reason_keys.append(
+                    {"key": "reason.tooDeep", "params": {"pct": check.discount_pct}}
+                )
             elif not history:
                 check.verdict = "tesdiqlenmeyib"
                 check.reasons.append(
                     "Bu məhsulu əvvəllər görməmişik - elan olunan köhnə qiyməti "
                     "yoxlamaq üçün müqayisə nöqtəsi yoxdur"
                 )
+                check.reason_keys.append({"key": "reason.neverSeen", "params": {}})
             elif check.max_seen is not None and old > check.max_seen * INFLATED_RATIO:
                 check.verdict = "subheli"
                 check.reasons.append(
@@ -280,24 +289,47 @@ def check_discounts(limit: int = 50) -> list[DiscountCheck]:
                     f"gördüyümüz ən yüksək qiymət {check.max_seen:.2f} AZN "
                     f"({check.observations} müşahidə)"
                 )
+                check.reason_keys.append({
+                    "key": "reason.inflated",
+                    "params": {
+                        "old": f"{old:.2f}",
+                        "max": f"{check.max_seen:.2f}",
+                        "n": check.observations,
+                    },
+                })
             elif check.max_seen is not None and check.max_seen >= old * CONFIRM_TOLERANCE:
                 check.verdict = "tesdiqlenib"
                 check.reasons.append(
                     f"Bu məhsulu əvvəllər {check.max_seen:.2f} AZN-ə görmüşük - "
                     f"elan olunan köhnə qiymət ({old:.2f}) həqiqətə uyğundur"
                 )
+                check.reason_keys.append({
+                    "key": "reason.confirmed",
+                    "params": {"max": f"{check.max_seen:.2f}", "old": f"{old:.2f}"},
+                })
             else:
                 check.verdict = "tesdiqlenmeyib"
                 check.reasons.append(
                     f"Tarixçədə ən yüksək qiymət {check.max_seen:.2f} AZN, "
                     f"iddia isə {old:.2f} AZN - nə təsdiqləyə, nə təkzib edə bilirik"
                 )
+                check.reason_keys.append({
+                    "key": "reason.inconclusive",
+                    "params": {"max": f"{check.max_seen:.2f}", "old": f"{old:.2f}"},
+                })
 
             if check.cheaper_elsewhere:
                 check.reasons.append(
                     f"Endirimdən asılı olmayaraq {check.cheaper_elsewhere['store']} "
                     f"marketində daha ucuzdur: {check.cheaper_elsewhere['price']} AZN"
                 )
+                check.reason_keys.append({
+                    "key": "reason.cheaperElsewhere",
+                    "params": {
+                        "store": check.cheaper_elsewhere["store"],
+                        "price": check.cheaper_elsewhere["price"],
+                    },
+                })
 
             checks.append(check)
 

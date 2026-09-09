@@ -29,7 +29,12 @@ class ProfileIn(BaseModel):
 @router.get("")
 def read_profile():
     profile = get_profile()
-    return {**profile.as_dict(), "summary": profile.summary()}
+    return {
+        **profile.as_dict(),
+        "summary": profile.summary(),
+        # Eyni təsvir açar+parametr şəklində: brauzer onu öz dilinə çevirir.
+        "summary_keys": profile.summary_keys(),
+    }
 
 
 @router.put("")
@@ -44,7 +49,12 @@ def update_profile(data: ProfileIn):
             avoid=data.avoid,
         )
     )
-    return {**profile.as_dict(), "summary": profile.summary()}
+    return {
+        **profile.as_dict(),
+        "summary": profile.summary(),
+        # Eyni təsvir açar+parametr şəklində: brauzer onu öz dilinə çevirir.
+        "summary_keys": profile.summary_keys(),
+    }
 
 
 @router.get("/recommend")

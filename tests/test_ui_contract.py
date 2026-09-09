@@ -728,3 +728,41 @@ def test_dil_keçidi_hər_səhifədədir():
         assert 'class="lang-switch"' in html, f"{page} dil keçidi yoxdur"
         for lang in ("az", "en", "ru"):
             assert f'data-lang="{lang}"' in html, f"{page} {lang} düyməsi yoxdur"
+
+
+def test_backendin_göndərdiyi_hər_açar_lüğətdə_var():
+    """
+    Backend cümlələri AÇAR + PARAMETR şəklində gəlir (`reason_keys`,
+    `summary_keys`). Açar lüğətdə yoxdursa, ekranda AÇARIN ÖZÜ görünər —
+    «reason.tooDeep» kimi. Bu, ən çirkin, ən asan buraxılan səhvdir.
+
+    Açarlar Python mənbəyindən oxunur, cavabdan yox: endirim səbəbləri yalnız
+    müəyyən datada yaranır, yəni canlı cavab hamısını göstərməyə bilər.
+    """
+    açarlar = set(i18n_keys())
+    kök = Path(__file__).resolve().parent.parent / "app"
+
+    backend_açarları = set()
+    for path in (kök / "analytics.py", kök / "profile.py"):
+        backend_açarları |= set(re.findall(r'"key":\s*"([\w.]+)"', path.read_text(encoding="utf-8")))
+
+    assert backend_açarları, "backend heç bir açar göndərmir — bağlantı qırılıb"
+    çatışmayan = sorted(backend_açarları - açarlar)
+    assert not çatışmayan, f"backend lüğətdə olmayan açar göndərir: {çatışmayan}"
+
+
+def test_backend_azərbaycanca_mətni_də_göndərir():
+    """
+    Açar sistemi mətni ƏVƏZ ETMİR, onun yanına gəlir.
+
+    Səbəb: modelin promptu azərbaycancadır və MCP/n8n klientləri həmin mətni
+    oxuyur. Kimsə mətni silib yalnız açar qoysa, AI zənciri və avtomatlaşdırma
+    səssizcə boş sətir alardı.
+    """
+    from app.profile import Profile
+
+    profil = Profile(household_size=2, weekly_budget=100, max_stores=2)
+    assert "nəfərlik ev" in profil.summary(), "azərbaycanca xülasə itib"
+    açarlar = [p["key"] for p in profil.summary_keys()]
+    assert "sum.household" in açarlar
+    assert len(açarlar) >= 3

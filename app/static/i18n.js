@@ -583,6 +583,51 @@
       ru: "Не найдено в других магазинах",
     },
 
+    // ================================================== BACKEND CÜMLƏLƏRİ
+    // Server bu cümlələri AÇAR + PARAMETR şəklində göndərir (`reason_keys`,
+    // `summary_keys`). Azərbaycanca variant serverdə də var - modelin promptu
+    // azərbaycancadır və köhnə klientlər (MCP, n8n) həmin mətni oxuyur.
+
+    // --- endirim yoxlamasının səbəbləri (app/analytics.py) ---
+    "reason.tooDeep": {
+      az: "Endirim {pct}% - ərzaqda bu dərinlikdə endirim praktiki olaraq olmur",
+      en: "A {pct}% discount — a cut this deep practically does not happen in groceries",
+      ru: "Скидка {pct}% — такой глубины в продуктах практически не бывает",
+    },
+    "reason.neverSeen": {
+      az: "Bu məhsulu əvvəllər görməmişik - elan olunan köhnə qiyməti yoxlamaq üçün müqayisə nöqtəsi yoxdur",
+      en: "We have not seen this product before — there is no reference point to check the claimed old price",
+      ru: "Мы не видели этот товар раньше — нет точки сравнения, чтобы проверить заявленную старую цену",
+    },
+    "reason.inflated": {
+      az: "Elan olunan köhnə qiymət {old} AZN, amma indiyədək gördüyümüz ən yüksək qiymət {max} AZN ({n} müşahidə)",
+      en: "The claimed old price is {old} AZN, but the highest we have ever seen is {max} AZN ({n} observations)",
+      ru: "Заявленная старая цена {old} AZN, но максимум, который мы видели, — {max} AZN ({n} наблюдений)",
+    },
+    "reason.confirmed": {
+      az: "Bu məhsulu əvvəllər {max} AZN-ə görmüşük - elan olunan köhnə qiymət ({old}) həqiqətə uyğundur",
+      en: "We have seen this product at {max} AZN before — the claimed old price ({old}) matches reality",
+      ru: "Мы видели этот товар по {max} AZN — заявленная старая цена ({old}) соответствует действительности",
+    },
+    "reason.inconclusive": {
+      az: "Tarixçədə ən yüksək qiymət {max} AZN, iddia isə {old} AZN - nə təsdiqləyə, nə təkzib edə bilirik",
+      en: "The highest price in our history is {max} AZN against a claim of {old} AZN — we can neither confirm nor refute it",
+      ru: "Максимум в истории — {max} AZN, а заявлено {old} AZN — мы не можем ни подтвердить, ни опровергнуть",
+    },
+    "reason.cheaperElsewhere": {
+      az: "Endirimdən asılı olmayaraq {store} marketində daha ucuzdur: {price} AZN",
+      en: "Discount aside, it is cheaper at {store}: {price} AZN",
+      ru: "Независимо от скидки, в {store} дешевле: {price} AZN",
+    },
+
+    // --- profil xülasəsi (app/profile.py) ---
+    "sum.household": { az: "{n} nəfərlik ev", en: "household of {n}", ru: "семья из {n} чел." },
+    "sum.budget": { az: "həftəlik büdcə {amount} AZN", en: "weekly budget {amount} AZN", ru: "недельный бюджет {amount} AZN" },
+    "sum.oneStore": { az: "yalnız bir markete gedir", en: "visits only one supermarket", ru: "ходит только в один магазин" },
+    "sum.maxStores": { az: "ən çox {n} markete gedə bilir", en: "can visit up to {n} supermarkets", ru: "может посетить до {n} магазинов" },
+    "sum.unitPrice": { az: "kq/litr qiymətinə baxır", en: "compares by kg/litre price", ru: "смотрит цену за кг/литр" },
+    "sum.avoid": { az: "istəmir: {words}", en: "avoids: {words}", ru: "избегает: {words}" },
+
     // ============================================================== KATEQORİYALAR
     // Bazada AZƏRBAYCANCA saxlanılır (data dəyişmir), tərcümə yalnız ekrandadır.
     "cat.süd məhsulları": { az: "süd məhsulları", en: "dairy", ru: "молочные продукты" },
