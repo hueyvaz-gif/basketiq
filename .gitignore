@@ -19,6 +19,12 @@ data/group_key_backup.json
 # LLM keşi generasiya olunur - repo-ya düşmür
 data/cache/
 
+# Market saytindan endirilen mehsul fotolari (M3). Repo-ya dusmur: onlar
+# BIZIM deyil, menbe saytindandir - lisenziyasi bize aid olmayan fayli git
+# tarixcesine daimi yazmaq dogru deyil. Berpa: python tools/product_images.py fetch
+app/static/product_images/*
+!app/static/product_images/.gitkeep
+
 # Kataloqdan kesilen mehsul sekilleri generasiya olunur (tools/build_images.py)
 app/static/images/products/*
 !app/static/images/products/.gitkeep

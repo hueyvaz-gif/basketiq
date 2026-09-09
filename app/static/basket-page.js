@@ -46,6 +46,15 @@
       </div>`;
   }
 
+  // SƏBƏT SƏTRİNDƏ ŞƏKİL YOXDUR - KATEQORİYA PLİTƏSİ QALIR (M3).
+  //
+  // Şəkil əlavə edildi və BRAUZERDƏ ÖLÇÜLDÜ, sonra geri götürüldü: sətirdəki
+  // plitə 44×44-dür, mənbə fotoları isə çox vaxt enlidir (məsələn 600×337).
+  // `contain` ilə belə şəkil 44×25 yer tutur - qalan hissə boş qalır və
+  // sətirdə ləkə kimi oxunur, üstəlik qonşu ikonlu sətirlə eyni çəkidə
+  // görünmür. Kart plitəsi 213px-dir, orada eyni şəkil məhsulu TANIDIR;
+  // burada isə yalnız səliqəni pozur. Ona görə səbətdə vahid, aydın
+  // kateqoriya işarəsi saxlanılır.
   const catTone = (category) => {
     const ikon = categoryIcon(category);
     return ikon === "package" ? "is-cat-other" : `is-${ikon}`;

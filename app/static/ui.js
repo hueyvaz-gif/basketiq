@@ -35,10 +35,10 @@ const icon = (name) =>
 // backend məhz o dəyərləri qaytarır. Siyahıya yeni kateqoriya əlavə olunsa,
 // burada da bir sətir lazımdır; o vaxta qədər `digər` ikonu düşür.
 //
-// Niyə şəkil deyil, ikon? Kataloqdan kəsilmiş şəkillər var, amma onlar
-// istifadəçiyə göstərilmir (P5): nisbətləri və fonları müxtəlifdir, kartlar
-// yan-yana səliqəsiz görünür. Real məhsul fotosu mənbəyi hələ yoxdur -
-// uydurma şəkil isə istifadəçini yanıldardı.
+// İkon nə vaxt düşür? M3-dən sonra məhsulun REAL fotosu varsa, foto
+// göstərilir; ikon isə fotosu OLMAYAN məhsulun lövhəsidir. Ölçülmüş
+// vəziyyət (2026-09-10): 188 məhsuldan 33-ünün fotosu var, 155-i ikondadır -
+// yəni ikon istisna deyil, əsas haldır və elə də görünməlidir.
 const CATEGORY_ICON = {
   "süd məhsulları": "cat-dairy",
   "çörək və taxıl": "cat-bread",
@@ -58,16 +58,19 @@ const categoryIcon = (category) => CATEGORY_ICON[category] || "package";
  * MƏHSULUN LÖVHƏSİ: şəkil, yoxdursa KATEQORİYA lövhəsi.
  *
  * NİYƏ DƏYİŞDİ? Əvvəl şəkli olmayan hər məhsul eyni boz kubu (placeholder
- * SVG) alırdı. Bazada 188 məhsul var, şəkli isə 61-inin (≈32%) - yəni
- * səhifənin üçdə ikisi eyni boz kvadratdan ibarət idi və «yüklənməyib»
- * kimi oxunurdu.
+ * SVG) alırdı - səhifənin böyük hissəsi eyni boz kvadratdan ibarət idi və
+ * «yüklənməyib» kimi oxunurdu. İndi belə məhsul öz kateqoriyasının
+ * İKONUNU alır: uydurma foto qoyulmur - ikon heç nə iddia etmir, sadəcə
+ * növü bildirir.
  *
- * İndi şəkli olmayan məhsul öz kateqoriyasının İKONUNU və RƏNGİNİ alır:
- * süd mavi, ət çəhrayı, təmizlik firuzəyi. Uydurma foto qoyulmur - ikon
- * heç nə iddia etmir, sadəcə növü bildirir.
+ * KATEQORİYA RƏNGİ YOXDUR (M2.1): fərq üç neytral TON addımı ilə verilir.
+ * Əvvəlki rəngli variant (süd mavi, ət çəhrayı) şəbəkəni mozaikaya
+ * çevirirdi. Ayırd edici siqnal ikonun ÖZ FORMASIDIR - rəngdən asılı deyil.
  *
- * RƏNG TƏK SİQNAL DEYİL: hər kateqoriyanın həm rəngi, həm də ayrı ikonu
- * var, yəni rəngi ayırd etməyən istifadəçi də formanı görür.
+ * ŞƏKİLLİ HAL (M3): plitənin ölçüsü və yeri EYNİ QALIR, yalnız ikonun
+ * yerini foto tutur. Fotolar endirilərkən ağ kvadrat kətana
+ * normallaşdırılır (`app/services/product_images.py`), ona görə burada
+ * nisbət düzəltməyə ehtiyac yoxdur.
  */
 // KATALOQDAN KƏSİLMİŞ ŞƏKİLLƏRİN ÜNVAN PREFİKSİ.
 //
@@ -92,12 +95,27 @@ function productThumb(item, cls = "") {
   // fayl tapılmasa ehtiyat qatı onu oradan oxuyur - məhsulun kateqoriyası
   // o anda əlçatan olmur.
   // REAL MƏHSUL FOTOSU varsa göstərilir; kataloq kəsiyi isə YOX (P5).
-  // Hazırda bütün şəkillər kəsikdir, yəni praktikada hər kart kateqoriya
-  // lövhəsi alır - və kartlar ilk dəfə vahid görünür.
+  //
+  // İKİ PREFİKS BİR-BİRİNƏ ÇOX BƏNZƏYİR VƏ MƏNALARI TƏRSDİR:
+  //   /static/images/products/  -> kataloq kəsiyi, GÖSTƏRİLMİR
+  //   /static/product_images/   -> real foto,      GÖSTƏRİLİR
+  // Birində sözlərin yeri dəyişsə, ya bütün fotolar səssizcə itər, ya da
+  // bütün kəsiklər ekrana çıxar - hər ikisi səssiz sınmadır. Ona görə
+  // `tests/test_ui_contract.py` hər iki prefiksin DƏYƏRİNİ kilidləyir.
   if (item.image && !isCatalogCrop(item.image)) {
+    // ÖLÇÜ ATRIBUTLARI (M3): `width`/`height` olmasa, brauzer şəklin yerini
+    // fayl gələnə qədər sıfır sayır və gələndə kart SIÇRAYIR. Atributlar
+    // yalnız nisbəti bildirir - əsl ölçünü CSS verir (plitə sabitdir).
+    //
+    // `is-photo` sinfi plitənin fonunu verir: şəkil yüklənənə qədər yerində
+    // hazır səth durur (skelet), yəni boş deşik olmur və şəkil gələndə fon
+    // dəyişmir.
+    const ölçü = item.image_w && item.image_h
+      ? ` width="${item.image_w}" height="${item.image_h}"`
+      : "";
     return (
-      `<span class="${sinif}" data-cat="${esc(ikon)}">` +
-      `<img src="${esc(item.image)}" alt="" loading="lazy"></span>`
+      `<span class="${sinif} is-photo ${categoryTone(ikon)}" data-cat="${esc(ikon)}">` +
+      `<img src="${esc(item.image)}" alt="" loading="lazy" decoding="async"${ölçü}></span>`
     );
   }
   return (
@@ -130,6 +148,9 @@ document.addEventListener(
     if (!thumb || thumb.classList.contains("is-cat")) return;
 
     const ikon = thumb.dataset.cat || "package";
+    // `is-photo` GÖTÜRÜLÜR: fotoya aid içəri boşluq və solğunlaşma ikona
+    // aid deyil - ikon plitənin mərkəzində, tam ölçüdə dayanmalıdır.
+    thumb.classList.remove("is-photo");
     thumb.classList.add("is-cat", categoryTone(ikon));
     thumb.innerHTML = icon(ikon);
   },

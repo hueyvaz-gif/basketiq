@@ -1011,3 +1011,76 @@ def test_loqo_faylları_eyni_nisbətdədir():
     for f in fayllar:
         en, hünd = Image.open(f).size
         assert abs(en / hünd - 4.0) < 0.02, f"{f.name} nisbəti 4:1 deyil ({en}x{hünd})"
+
+
+# ============================================================================
+# M3: ŞƏKİLLİ VƏ İKONLU KART YAN-YANA
+# ============================================================================
+
+
+def test_şəkilli_plitənin_fonu_tokendəndir():
+    """
+    M3: şəkilli plitənin fonu kartın öz səthidir, kateqoriya tonu DEYİL.
+
+    BRAUZERDƏ ÖLÇÜLDÜ: mənbə fotolarının fonu ağdır, ona görə tonlu plitənin
+    ortasında ağ düzbucaqlı görünürdü - «qutu içində qutu». Qayda tokendən
+    qidalanmalıdır ki, səth rəngi bir yerdən idarə olunsun.
+    """
+    css = read_static("style.css")
+    blok = re.search(r"\.thumb\.is-photo \{([^}]*)\}", css, re.S)
+    assert blok, ".thumb.is-photo qaydası tapılmadı"
+    assert "var(--surface-card)" in blok.group(1), "şəkilli plitə tokendən qidalanmır"
+
+    # Şəkilli qol yenə də kateqoriyanı yazır: fayl açılmasa ehtiyat qatı
+    # ikonu məhz oradan tapır.
+    ui = read_static("ui.js")
+    gövdə = re.search(r"function productThumb\(.*?\n\}", ui, re.S)
+    assert gövdə, "productThumb tapılmadı"
+    assert "categoryTone(" in gövdə.group(0).split("return")[1]
+
+
+def test_şəkil_sıçrayışın_qarşısını_alan_atributlarla_yazılır():
+    """
+    `loading="lazy"` trafik üçün, `width`/`height` isə LAYOUT üçündür:
+    ölçüsüz şəkil gələndə kart hündürlüyü dəyişir və altındakı bütün
+    şəbəkə tullanır.
+    """
+    ui = read_static("ui.js")
+    gövdə = re.search(r"function productThumb\(.*?\n\}", ui, re.S)
+    assert 'loading="lazy"' in gövdə.group(0)
+    assert "image_w" in gövdə.group(0) and "image_h" in gövdə.group(0)
+
+
+def test_şəkil_yüklənməsə_ikona_qayıdır():
+    """
+    Fayl silinsə və ya 404 versə, istifadəçi qırıq şəkil nişanı GÖRMƏMƏLİDİR.
+    Ehtiyat qatı `is-photo`-nu da götürməlidir: fotoya aid içəri boşluq
+    ikonun ölçüsünü kiçildərdi.
+    """
+    ui = read_static("ui.js")
+    assert 'classList.remove("is-photo")' in ui
+    assert 'classList.add("is-cat"' in ui
+
+
+def test_iki_şəkil_prefiksi_qarışdırılmır():
+    """
+    İki ünvan prefiksi bir-birinə çox bənzəyir və mənaları TƏRSDİR:
+
+        /static/images/products/   kataloq kəsiyi -> GÖSTƏRİLMİR
+        /static/product_images/    real foto      -> GÖSTƏRİLİR
+
+    Sözlərin yeri dəyişsə, ya bütün fotolar səssizcə itər, ya da bütün
+    kəsiklər ekrana çıxar. İkisi də səssiz sınmadır - test dəyərləri
+    kilidləyir.
+    """
+    from app.services.product_images import IMAGE_URL_PREFIX
+    from ingestion.images import image_url
+
+    assert IMAGE_URL_PREFIX == "/static/product_images"
+    assert image_url("araz-12.png") == "/static/images/products/araz-12.png"
+
+    ui = read_static("ui.js")
+    assert 'CATALOG_CROP_PREFIX = "/static/images/products/"' in ui
+    # Süzgəc real fotonu ATMAMALIDIR: prefikslərdən biri digərinin əvvəli
+    # olsaydı, `startsWith` real fotonu da kəsik sayardı.
+    assert not IMAGE_URL_PREFIX.startswith("/static/images/products/")

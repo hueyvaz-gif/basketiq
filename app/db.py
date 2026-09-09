@@ -136,6 +136,42 @@ CREATE TABLE IF NOT EXISTS basket_items (
     UNIQUE(basket_id, product_id)
 );
 
+-- MƏHSUL ŞƏKİLLƏRİ (M3) — marketin öz saytından çəkilmiş foto.
+--
+-- NİYƏ AYRICA CƏDVƏL, `products.image_path` DEYİL? Çünki burada saxlanılan
+-- şey yalnız fayl adı deyil: hansı ünvandan gəldiyi, uyğunluğun etibarı,
+-- nə vaxt çəkildiyi və neçə cəhd edildiyi də lazımdır. Bunlar olmadan
+-- «bu şəkil niyə bu məhsuldadır?» sualına cavab vermək mümkün olmazdı.
+--
+-- `source_url` VƏ `fetched_at` MƏCBURİDİR: şəkil kənar saytdan gəlir və
+-- marketlərin şərtləri dəyişə bilər - mənbəyə istinad saxlanılmalıdır.
+--
+-- `status`: ok | rejected | failed
+--   ok        şəkil var və göstərilir
+--   rejected  uyğunluq zəif idi - AVTOMATİK təkrar sınanmır (manual siyahı)
+--   failed    sayt cavab vermədi - həftədə bir təkrar sınanır
+--
+-- `manual` = 1 olan sətrin üstündən avtomatika YAZMIR (3.6): insan qərarı
+-- maşın qərarından üstündür.
+CREATE TABLE IF NOT EXISTS product_images (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id  INTEGER NOT NULL UNIQUE REFERENCES products(id),
+    image_path  TEXT,
+    source_url  TEXT,
+    confidence  REAL,
+    image_hash  TEXT,
+    width       INTEGER,                    -- `<img width>`: sıçrayışın qarşısını alır
+    height      INTEGER,
+    fetched_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    status      TEXT NOT NULL DEFAULT 'ok',
+    attempts    INTEGER NOT NULL DEFAULT 0,
+    manual      INTEGER NOT NULL DEFAULT 0,
+    note        TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_product_images_status ON product_images(status);
+CREATE INDEX IF NOT EXISTS idx_product_images_hash ON product_images(image_hash);
+
 -- REKLAM SİFARİŞLƏRİ (E21).
 --
 -- NİYƏ AYRICA CƏDVƏL, KONFİQ FAYLI YOX? Reklam vaxt üzrə dəyişir (başlanğıc
@@ -307,6 +343,21 @@ def _migrate(conn: sqlite3.Connection) -> None:
     price_columns = {r[1] for r in conn.execute("PRAGMA table_info(prices)")}
     if "flags" not in price_columns:
         conn.execute("ALTER TABLE prices ADD COLUMN flags TEXT")
+
+    # --- product_images.width/height: `<img>` teqinin ölçü atributları (M3) ---
+    #
+    # ŞƏKLİN ÖLÇÜSÜ BAZADA SAXLANILIR ki, HTML qurulanda `width`/`height`
+    # yazıla bilsin. Atributsuz brauzer yeri fayl gələnə qədər boş saxlayır
+    # və sonra səhifə sıçrayır. Ölçünü diskdən oxumaq hər sorğuda fayl
+    # açmaq demək olardı - bir dəfə endirmə anında bilinən dəyəri yazmaq
+    # ucuzdur.
+    image_columns = {r[1] for r in conn.execute("PRAGMA table_info(product_images)")}
+    for column, ddl in (
+        ("width", "ALTER TABLE product_images ADD COLUMN width INTEGER"),
+        ("height", "ALTER TABLE product_images ADD COLUMN height INTEGER"),
+    ):
+        if column not in image_columns:
+            conn.execute(ddl)
 
     # Sütun mövcud olduqdan SONRA indeks
     conn.execute("CREATE INDEX IF NOT EXISTS idx_products_group ON products(group_key)")

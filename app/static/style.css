@@ -129,8 +129,10 @@
 
   /* MƏHSUL PLİTƏSİ demək olar ağdır: kartın içində yalnız bir addım seçilir.
      Kateqoriya fərqi RƏNGLƏ YOX, çox yüngül neytral ton addımı ilə verilir
-     (M2.1) - şəkil gələndə (M3) fon dəyişmir, yalnız içindəki ikon şəklə
-     yerini verir. */
+     (M2.1). Üç addım İKONLU plitə üçündür; ŞƏKİLLİ plitə isə `--surface-card`
+     üzərindədir (M3) - foto ağ kətana normallaşdırıldığı üçün onunla birləşir.
+     Yəni səth şkalası dörd dəyərdən ibarətdir, amma dördüncüsü kateqoriya
+     siqnalı deyil: o, «burada foto var» halının səthidir. */
   --tile: #fafafb;
   --tile-2: #f6f6f7;
   --tile-3: #f2f2f4;
@@ -2385,6 +2387,38 @@ code {
 .thumb { display: block; width: 100%; height: 100%; }
 .thumb img { width: 100%; height: 100%; object-fit: contain; }
 
+/* REAL MƏHSUL FOTOSU (M3) — PLİTƏ KARTIN ÖZ SƏTHİDİR.
+   BRAUZERDƏ ÖLÇÜLDÜ: əvvəl şəkilli plitə də kateqoriya tonunu alırdı və
+   içəri boşluqla çəkilirdi. Nəticə pis idi - tonlu çərçivənin ortasında
+   fotonun ağ fonu ayrıca düzbucaqlı kimi oturur, kart «içinə ikinci kart
+   yapışdırılmış» kimi oxunurdu.
+
+   İndi şəkilli plitənin səthi kartın öz səthidir: fotonun fonu onunla
+   birləşir və məhsul sanki birbaşa kartın üstündə dayanır. İkonlu plitənin
+   tonu ilə fərq cəmi bir ton addımıdır - M2-də kateqoriya fərqi məhz ona
+   görə «çox açıq neytral ton» seçilmişdi: şəkilli və ikonlu kart yan-yana
+   duranda sıçrayış hiss olunmur.
+
+   FOTONUN FONU FƏRZİYYƏ DEYİL: fayl endirilərkən AĞ KVADRAT kətana
+   normallaşdırılır (`app/services/product_images.py`, `_to_square`) - 32
+   fotodan 31-i mənbədə enli idi və üçünün fonu ağ deyildi. Kətan hər ikisini
+   həll edir: bütün fotolar eyni nisbətdə, eyni səthdə gəlir.
+
+   İÇƏRİ BOŞLUQ DA ORADADIR (`CONTENT_RATIO`), CSS-də deyil: buradakı
+   `padding` yalnız plitənin ölçüsündən asılı olardı və fayldan-fayla
+   dəyişən boşluğun ÜSTÜNƏ gələrdi.
+
+   Şəkil YÜKLƏNƏRKƏN də bu səth görünür - skelet elə plitənin özüdür və
+   şəkil gələndə fon dəyişmir. Solğunlaşma animasiyası SINANDI VƏ
+   GÖTÜRÜLDÜ: səhifə hər dil keçidində tam yenidən çəkilir, yəni animasiya
+   heç nə yüklənmədən də təkrarlanırdı - şəkilli plitələr yanıb-sönür,
+   ikonlular yerində qalırdı. M2.5-in qaydası budur: hərəkət yalnız NƏSƏ
+   DƏYİŞƏNDƏ olur; təkrarlanan solğunlaşma mənasını itirir.
+
+   (Qeyd: bu şərhdə HEX yazılmır - `test_rənglər_yalnız_token_lərdən_gəlir`
+   faylın MƏTNİNİ tarayır və şərhdəki rəng kodu da sızıntı sayılır.) */
+.thumb.is-photo { background: var(--surface-card); }
+
 .thumb.is-cat {
   display: grid;
   place-items: center;
@@ -2395,8 +2429,8 @@ code {
      kateqoriya yalnız ÜÇ neytral ton addımından biri ilə seçilir - fərq var,
      amma diqqət tələb etmir.
 
-     TON ŞƏKİL ÜÇÜN DƏ HAZIRDIR (M3): şəkil gələndə fon və ölçü DƏYİŞMİR,
-     yalnız ikonun yerini şəkil tutur. */
+     ŞƏKİL GƏLƏNDƏ (M3) plitənin ÖLÇÜSÜ və YERİ dəyişmir, səthi isə kartın
+     öz səthinə keçir - bax `.thumb.is-photo`. */
   background: var(--tile-tone, var(--tile));
 }
 

@@ -61,6 +61,12 @@
               "name": "setir_limiti",
               "value": "10",
               "type": "string"
+            },
+            {
+              "id": "sekil-limiti",
+              "name": "sekil_limiti",
+              "value": "40",
+              "type": "string"
             }
           ]
         },
@@ -188,7 +194,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        480,
+        700,
         -120
       ]
     },
@@ -201,7 +207,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        700,
+        920,
         -120
       ],
       "notes": "Buradan sonra istenilen bildiris node-u qosula biler: Telegram, Gmail, Slack, Webhook."
@@ -232,6 +238,42 @@
         180
       ],
       "notes": "Cedvel gozlemeden sinamaq ucun. Basqa workflow-dan da cagirila biler."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Konfiqurasiya').first().json.basketiq_url }}/api/images/refresh",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "={{ $('Konfiqurasiya').first().json.sekil_limiti }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 600000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $('Konfiqurasiya').first().json.api_key }}"
+            }
+          ]
+        }
+      },
+      "id": "http-images",
+      "name": "Mehsul sekillerini cek",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "onError": "continueRegularOutput",
+      "position": [
+        370,
+        -120
+      ]
     }
   ],
   "connections": {
@@ -290,7 +332,7 @@
       "main": [
         [
           {
-            "node": "Sebeti muqayise et",
+            "node": "Mehsul sekillerini cek",
             "type": "main",
             "index": 0
           }
@@ -313,6 +355,17 @@
         [
           {
             "node": "Konfiqurasiya",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mehsul sekillerini cek": {
+      "main": [
+        [
+          {
+            "node": "Sebeti muqayise et",
             "type": "main",
             "index": 0
           }

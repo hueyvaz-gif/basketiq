@@ -34,6 +34,7 @@ from app.db import get_connection
 from app.search_norm import match_score, tokens as norm_tokens
 from app.similar import pick_similar
 from app.stores import MARKETS, Market, market_for, market_status, store_map
+from app.services.product_images import photo_map
 from ingestion.images import image_url
 from ingestion.normalize import display_label, display_size, unit_price
 
@@ -276,6 +277,9 @@ def todays_deals(limit: int = 12) -> dict:
         ).fetchall()
 
         best: dict[str, dict] = {}
+        # Real məhsul fotosu kataloq kəsiyini ƏVƏZ EDİR (M3): kəsik
+        # vərəqədən qayçı ilə kəsilmiş parçadır, foto isə məhsulun özü.
+        foto = photo_map(conn)
         for row in rows:
             old = float(row["old_price"])
             price = float(row["price"])
@@ -301,7 +305,9 @@ def todays_deals(limit: int = 12) -> dict:
                 "brand": row["brand"],
                 "size": display_size(row["size_value"], row["size_unit"]),
                 "category": row["category"],
-                "image": image_url(row["image_path"]),
+                "image": foto.get(row["product_id"], {}).get("url") or image_url(row["image_path"]),
+                "image_w": foto.get(row["product_id"], {}).get("w"),
+                "image_h": foto.get(row["product_id"], {}).get("h"),
                 "store": market.name,
                 "store_short": market.short,
                 "store_slug": market.slug,
@@ -535,6 +541,9 @@ def search(
         rows = _rank_matches(rows, sorğu_tokenləri, _sorğusuz_namizədlər)[:limit]
 
         items = []
+        # Real məhsul fotosu kataloq kəsiyini ƏVƏZ EDİR (M3): kəsik
+        # vərəqədən qayçı ilə kəsilmiş parçadır, foto isə məhsulun özü.
+        foto = photo_map(conn)
         for row in rows:
             price = round(float(row["price"]), 2)
             old = row["old_price"]
@@ -551,7 +560,9 @@ def search(
                     "brand": row["brand"],
                     "size": display_size(row["size_value"], row["size_unit"]),
                     "category": row["category"],
-                    "image": image_url(row["image_path"]),
+                    "image": foto.get(row["product_id"], {}).get("url") or image_url(row["image_path"]),
+                    "image_w": foto.get(row["product_id"], {}).get("w"),
+                    "image_h": foto.get(row["product_id"], {}).get("h"),
                     "price": price,
                     "discount_pct": pct,
                     "store_count": row["store_count"],
@@ -670,6 +681,9 @@ def store_page(slug: str, limit: int = 40) -> dict | None:
         # Qrup üzrə ƏN SON müşahidə: `prices` tarixçə saxlayır, market
         # səhifəsində isə cari qiymət göstərilməlidir.
         latest: dict[str, dict] = {}
+        # Real məhsul fotosu kataloq kəsiyini ƏVƏZ EDİR (M3): kəsik
+        # vərəqədən qayçı ilə kəsilmiş parçadır, foto isə məhsulun özü.
+        foto = photo_map(conn)
         for row in rows:
             price = float(row["price"])
             old = float(row["old_price"]) if row["old_price"] is not None else None
@@ -686,7 +700,9 @@ def store_page(slug: str, limit: int = 40) -> dict | None:
                 "brand": row["brand"],
                 "size": display_size(row["size_value"], row["size_unit"]),
                 "category": row["category"],
-                "image": image_url(row["image_path"]),
+                "image": foto.get(row["product_id"], {}).get("url") or image_url(row["image_path"]),
+                "image_w": foto.get(row["product_id"], {}).get("w"),
+                "image_h": foto.get(row["product_id"], {}).get("h"),
                 "price": round(price, 2),
                 "old_price": round(old, 2) if pct else None,
                 "discount_pct": pct,
@@ -757,6 +773,9 @@ def _card_rows(
         (*markets, *params, limit),
     ).fetchall()
 
+    # Real məhsul fotosu kataloq kəsiyini ƏVƏZ EDİR (M3).
+    foto = photo_map(conn)
+
     return [
         {
             "product_id": row["product_id"],
@@ -765,7 +784,9 @@ def _card_rows(
             "brand": row["brand"],
             "size": display_size(row["size_value"], row["size_unit"]),
             "category": row["category"],
-            "image": image_url(row["image_path"]),
+            "image": foto.get(row["product_id"], {}).get("url") or image_url(row["image_path"]),
+            "image_w": foto.get(row["product_id"], {}).get("w"),
+            "image_h": foto.get(row["product_id"], {}).get("h"),
             "price": round(float(row["price"]), 2),
             "store_count": row["store_count"],
         }
@@ -912,9 +933,14 @@ def product_detail(product_id: int) -> dict | None:
         if row is None:
             return None
 
+        # Real məhsul fotosu kataloq kəsiyini ƏVƏZ EDİR (M3).
+        foto = photo_map(conn)
+
         product = {
             "id": row["id"],
-            "image": image_url(row["image_path"]),
+            "image": foto.get(row["id"], {}).get("url") or image_url(row["image_path"]),
+            "image_w": foto.get(row["id"], {}).get("w"),
+            "image_h": foto.get(row["id"], {}).get("h"),
             "group_key": row["group_key"],
             "name": row["name"],
             "brand": row["brand"],

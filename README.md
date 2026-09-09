@@ -917,6 +917,194 @@ kartlar öz məhsullarını tapdı — «ASH Su qabı» kartı artıq «karanda�
 sətirdən yanlış ad çıxarır (kart «Süfrə Sous» deyir, bazadakı ad «duz»). Növbəti
 addım atribut çıxarmadadır. Təfərrüat: `logs/image-check.md`.
 
+### 5b. Real məhsul fotosu: market saytından (M3)
+
+Kataloq kəsiyi (yuxarıdakı bölmə) vərəqədən qayçı ilə kəsilmiş parçadır —
+kənarında qonşu kartın izi qalır və fonu kataloqun öz rəngidir. **İstifadəçiyə
+göstərilmir** (`ui.js`-dəki `isCatalogCrop`). M3-də şəkil öz mənbəyindən —
+`arazmarket.az`-ın məhsul səhifələrindən — gətirilir.
+
+**Aparıcı prinsip dəyişmədi: səhv şəkildənsə ikon yaxşıdır.**
+
+#### Namizədlər saytın öz sitemap-ından gəlir
+
+`sitemap.xml` → `sitemap-products-1/2.xml` → **5183 azərbaycanca məhsul
+ünvanı**. Siyahının tamlığı yoxlanıldı: iki faylda cəmi 15 549 `<loc>` var,
+yəni üç dilin (az/en/ru) hər biri üçün eyni 5183 məhsul — **kataloqun hamısı
+əlimizdədir**, kəsik siyahı deyil.
+
+Ünvanın slug-ı məhsulun adını olduğu kimi saxlayır
+(`milla-sud-32-1l-7759`), ona görə uyğunlaşdırma **əlavə sorğu tələb etmir**:
+5183 ünvanın üstündə 188 məhsul yaddaşda tutuşdurulur, şəbəkəyə yalnız
+uyğunluq tapılandan sonra gedilir.
+
+#### Bal: çatışmayan söz artıq sözdən ağır cəzalanır
+
+İlk versiyada ad balı əhatə (bizim sözlərin neçəsi tapıldı) ilə dəqiqliyin
+(namizədin neçə sözü işə yaradı) **harmonik ortası** idi — yəni simmetrik.
+33 şəklin hamısına gözlə baxıldı və **iki səhv** tapıldı, hər ikisi tam
+0.75-də:
+
+| Bizim ad | Seçilən səhifə | Nə səhv idi |
+|---|---|---|
+| Palmolive **maye** sabun | `sabun-palmolive-sud-zeytun-70-qr` | bərk sabun, maye deyil |
+| **Bloom** ağardıcı vasitə | `bloom-agardici-limon-1-l` | şüşədə «White Bello» yazılıb |
+
+Hər ikisində **bizim sözümüz namizəddə yox idi**. Simmetrik ölçü bunu
+namizədin artıq sözü ilə eyni sayır — halbuki onlar eyni şey deyil:
+
+* bizim sözümüz çatmırsa, məhsulun **növü** başqa ola bilər (maye ≠ bərk);
+* namizəddə artıq söz varsa, o adətən dad/qablaşdırma təfərrüatıdır
+  («keratin», «pendirli») — saytın adı sadəcə daha dəqiqdir.
+
+```
+ad_balı = əhatə × (0.6 + 0.4 × dəqiqlik)
+```
+
+Tam əhatə heç vaxt 0.6-dan aşağı düşmür, yarımçıq əhatə isə 0.5-i keçmir.
+Hər iki səhv 0.68-ə düşdü və eşiyi keçmədi.
+
+#### Dörd sərt qayda — baldan asılı olmayaraq
+
+1. **Ölçü ziddiyyəti** (`size_conflict`) — 750 ml ilə 500 ml eyni məhsul
+   deyil. Yalnız hər ikisi məlum olanda işləyir; vahid növü fərqlidirsə
+   (qram ↔ litr) müqayisə edilmir.
+2. **Yad brend** (`brand_conflict`) — «Sola günəbaxan yağı» üçün
+   `zateya-gunebaxan-yagi` sözlərin yarısını örtür, amma səhv şüşədir.
+   *Brend lüğəti haradandır?* Saytın `sitemap-categories.xml`-ı **8502
+   kateqoriya ünvanı** verir; onlardan **1517 ümumi ad** çıxarılır («süd»,
+   «şəkər tozu», «uşaq bezi»). Kateqoriya adında **olmayan** söz demək olar
+   həmişə brenddir — `richmond`, `borjomi`, `molfix` belə tapılır. Beləliklə
+   brend siyahısı əl ilə saxlanmır, saytın öz quruluşundan çıxarılır.
+3. **Kateqoriya uyğunsuzluğu** — səhifə açılandan sonra yoxlanılır (slug-da
+   kateqoriya yoxdur), əlavə sorğu tələb etmir.
+4. **Qeyri-müəyyənlik** — birinci ilə ikinci arasında fərq 0.05-dən azdırsa.
+
+Dördüncü qayda **dəqiqləşdirildi və bu, əhatəni iki qat artırdı.** Ölçüldü:
+bərabər qalan 21 məhsulun **hamısında** namizədlər eyni məhsulun
+variantları idi:
+
+```
+Zateya günəbaxan yağı → 1.8 lt / 1 l / 500 ml
+Molfix uşaq bezi      → N6 / N5 / N2
+Persil yuyucu toz     → color / gül
+```
+
+Vərəqədəki adda variantı ayıran söz **yoxdur**, yəni hansını seçsək,
+bildiyimiz hər şeyə uyğundur — şüşə də, paket də eyni görünür. Ona görə
+qayda belədir: bərabər qrupun **hər** üzvü bizim **bütün** sözlərimizi
+ehtiva edirsə, bu variant bərabərliyidir və seçim təyinatlı edilir (ən qısa
+slug = bazis variant, bərabərlikdə ünvan sıralayır — şəkil hər gün
+dəyişməməlidir). Üzvlərdən biri sözümüzü örtmürsə («Tac peçenye» ↔
+`tac-narşərab`), rədd qalır.
+
+#### ÖLÇÜLMÜŞ NƏTİCƏ (2026-09-10) — hədəf tutulmadı, səbəbi ölçülüb
+
+| | |
+|---|---|
+| Qiyməti olan məhsul | 188 (183-ü Araz) |
+| **Şəkilləndi** | **33 — 17.6%** |
+| Orta etibar | 0.868 |
+| Gözlə yoxlanıldı | 33/33 |
+| **Səhv şəkil** | **0** |
+| Rədd: etibar aşağıdır | 95 |
+| Rədd: uyğun namizəd yoxdur | 60 |
+| Uğursuz (sayt/şəbəkə) | 0 |
+
+**Qapı ≥60% tələb edirdi. 17.6% alındı və eşiyi aşağı salmaq həlli DEYİL.**
+Səbəb ölçüldü: 188 məhsulun **yalnız 81-i (43%)** üçün 5183 namizəd arasında
+bizim **bütün** sözlərimizi ehtiva edən bir ünvan var. Bu, heç bir bal
+formulasından asılı olmayan **tavandır** — sərt qaydalar və qeyri-müəyyənlik
+tətbiq olunmamışdan əvvəlki rəqəm.
+
+Tavanın altında qalan hissə üç səbəbdəndir:
+
+* **Məhsul saytda yoxdur.** Vərəqədə var, onlayn kataloqda yox: `flomaster`,
+  `ETTA rəsm albomu`, `Nestle Damak` — hər üçü üçün 5183 ünvanda **sıfır**
+  uyğunluq. (Ölçüldü: 60 məhsul.)
+* **Adımız çox ümumidir.** «şəkər tozu», «toyuq yumurtası», «su qabı» —
+  brendsiz, ölçüsüz. Saytda onlarla brendli variant var və hansının
+  vərəqədəki olduğunu bilmirik. Birini seçmək **brend uydurmaq** olardı.
+* **Adımız OCR-dandır və qısadır.** Vərəqə «Milla süd» yazır, sayt
+  «süd Milla 3.2% 1 lt» — variant sözü bizdə yoxdur.
+
+Şəkil **niyə lazımdır** sualına cavab dəyişmir: sayt şəkilsiz də tam
+işləkdir (155 məhsul kateqoriya ikonundadır və heç bir ekran boş qalmır).
+Ona görə düzgün qərar eşiyi düşürmək yox, **17.6%-i olduğu kimi bildirmək**
+və qalanını manual siyahıya buraxmaqdır:
+
+```
+python tools/product_images.py pending          # nə üçün şəkil yoxdur
+python tools/product_images.py set 42 https://.../foto.png
+```
+
+Əl ilə təyin edilmiş sətrin üstündən **avtomatika yazmır** (`manual = 1`).
+
+#### Nəzakət və dözümlülük
+
+`robots.txt` hər çəkilişdən əvvəl oxunur (oxunmursa **çəkilmir** — şübhə
+saytın xeyrinə); User-Agent layihənin adını və əlaqə ünvanını daşıyır;
+saniyədə bir sorğu; timeout 10 san; iki təkrar (1 san, 2 san). **Xəta
+prosesi dayandırmır** — bir məhsul üçün sayt cavab verməsə, sətir `failed`
+yazılır və növbəti məhsula keçilir.
+
+Hotlink yoxdur: şəkil endirilir, `Content-Type` yoxlanılır, 5 MB-dan böyük
+fayl atılır, uzun tərəf 600px-ə salınır və `webp` kimi
+`app/static/product_images/<sha256[:16]>.webp` altında saxlanılır. Eyni
+ünvan ikinci dəfə endirilmir.
+
+Təkrar cəhd qaydası: **uğursuz** → həftədə bir; **şəkli var** → 30 gündən
+tez yox; **rədd edilib** → avtomatik heç vaxt (qərar ölçülmüş səbəbə görə
+verilib, sabah eyni data eyni nəticəni verəcək).
+
+#### Göstərmə
+
+Şəkil kartın **eyni plitəsinə** düşür — ölçü və yer dəyişmir, yalnız ikonun
+yerini şəkil tutur (`object-fit: contain`, kəsilmir). `width`/`height`
+atributları bazadan gəlir ki, şəkil gələndə səhifə sıçramasın; `loading="lazy"`.
+
+**Plitənin fonu şəkilli halda kartın öz səthidir** (ikonlu halda açıq
+neytral ton). Bu, brauzerdə ölçüldükdən sonra dəyişdirildi: tonlu plitənin
+ortasında fotonun fonu ayrıca düzbucaqlı kimi oturur — «qutu içində qutu».
+İki plitə arasındakı fərq indi cəmi bir ton addımıdır.
+
+**Foto endirilərkən AĞ KVADRAT kətana normallaşdırılır.** Bu da ölçmədən
+çıxdı: mənbədən gələn **32 fotodan 31-i enlidir** (600×337, 600×333,
+600×399), plitə isə 1:1-dir — `contain` ilə belə şəkil plitə hündürlüyünün
+cəmi ~56%-ni tutur. Nəticə şəbəkədə görünürdü: ikonun optik kütləsi sabitdir
+(44%×44%, mərkəzdə), fotolarınkı isə fayldan-fayla dəyişirdi və şəkilli
+kartlar bir-birindən fərqli «ağırlıqda» oxunurdu.
+
+Layihə bu problemi **bir dəfə həll edib** — market loqoları üçün
+(`tools/normalize_logos.py`): əvvəl kənardakı boşluq kəsilir, sonra şəkil
+eyni kətanın ortasına eyni payla (`CONTENT_RATIO = 0.86`) oturdulur. Səbəb
+də eynidir: *«`object-fit: contain` boşluğu da şəkil sayır»*. İndi hər foto
+600×600-dür və plitəni eyni dolğunluqda tutur.
+
+Kətanın ağ olması «fotoların fonu ağdır» fərziyyəsini də aradan qaldırır:
+32 fotodan **üçünün** fonu ağ deyil (studiya bozu, sarı fon), kətan onları
+da eyni səthdə birləşdirir.
+
+**Solğunlaşma animasiyası sınandı və götürüldü.** Səhifə hər dil keçidində
+tam yenidən çəkilir, yəni animasiya heç nə yüklənmədən də təkrarlanırdı —
+şəkilli plitələr yanıb-sönür, ikonlular yerində qalırdı. M2.5-in qaydası
+budur: hərəkət yalnız **nəsə dəyişəndə** olur.
+
+Fayl açılmasa (repo təzə klonlanıb, fayl silinib) `error` dinləyicisi
+kateqoriya ikonuna qayıdır — **qırıq şəkil nişanı görünmür**.
+
+**Səbətdə şəkil yoxdur, qəsdən.** Əlavə edildi, brauzerdə ölçüldü, geri
+götürüldü: sətirdəki plitə 44×44-dür, mənbə fotoları isə çox vaxt enlidir
+(600×337) — `contain` ilə 44×25 yer tutur və sətirdə ləkə kimi oxunur.
+Kart plitəsi 213px-dir, orada eyni şəkil məhsulu **tanıdır**.
+
+#### Zəncirdə yeri
+
+n8n gündəlik axını: kataloqu çək → AI məhsulları çıxar → **şəkilləri çək**
+(`POST /api/images/refresh?limit=40`) → səbəti müqayisə et. Düyün
+`continueRegularOutput` ilədir: şəkil xidməti sönsə, qiymət müqayisəsi
+**dayanmır**.
+
 ### 6. Axtarış səhifəsi (`/search`)
 
 Şəkilli kart şəbəkəsi + üç filtr: market, kateqoriya, maksimum qiymət.

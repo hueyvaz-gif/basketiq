@@ -124,7 +124,13 @@ def test_hər_admin_router_i_qapının_arxasındadır():
     # `/api/admin/ads` ayrıca yazılır: `/api/admin` prefiksli router (vəziyyət
     # endpoint-i) QƏSDƏN qapısızdır - bağlı halda özü də 404 versəydi, brauzer
     # tabı gizlətmək üçün heç nə öyrənə bilməzdi.
-    ADMİN_PREFİKSLƏRİ = ("/api/catalogs", "/api/scrape", "/api/review", "/api/admin/ads")
+    # `/api/images` də buradadır (M3): şəkil çəkilişi kənar sayta sorğu
+    # göndərir və əl ilə şəkil təyin etməyə imkan verir - hər ikisi əməliyyat
+    # səlahiyyətidir, istifadəçi funksiyası deyil. Oxu tərəfi (kartdakı şəkil)
+    # bu router-dən keçmir: o, kataloq cavabının içindədir.
+    ADMİN_PREFİKSLƏRİ = (
+        "/api/catalogs", "/api/scrape", "/api/review", "/api/admin/ads", "/api/images",
+    )
 
     yoxlanan = 0
     for prefiks, router in _routerlər():
@@ -147,7 +153,9 @@ def test_istifadəçi_routerləri_qapının_arxasında_deyil():
     from app.security import require_admin
 
     for prefiks, router in _routerlər():
-        if prefiks.startswith(("/api/catalogs", "/api/scrape", "/api/review", "/api/admin/ads")):
+        if prefiks.startswith(
+            ("/api/catalogs", "/api/scrape", "/api/review", "/api/admin/ads", "/api/images")
+        ):
             continue
         asılılıqlar = [d.dependency for d in getattr(router, "dependencies", [])]
         assert require_admin not in asılılıqlar, f"{prefiks} səhvən qapıya salınıb"

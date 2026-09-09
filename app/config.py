@@ -118,6 +118,23 @@ class Settings:
     # yalnız «bu yer satılır» yazısı qalır.
     ads_contact: str = _str("ADS_CONTACT", "")
 
+    # --- MƏHSUL ŞƏKİLLƏRİ (M3) ---
+    #
+    # ETİBAR EŞİYİ KONFİQDƏDİR, çünki onu datanın üzərində kalibrləmək lazım
+    # gəlir: eşik aşağı olsa səhv şəkil düşür, yüksək olsa əhatə itir.
+    # «Səhv şəkildənsə ikon yaxşıdır» prinsipi ilə defolt YÜKSƏKDİR.
+    product_image_min_confidence: float = _float("PRODUCT_IMAGE_MIN_CONFIDENCE", 0.75)
+
+    # İki namizədin balı bu qədər yaxındırsa, İKİSİ DƏ şübhəlidir: seçim
+    # təsadüfə çevrilir. Belə hal rədd olunur və manual siyahıya yazılır.
+    product_image_ambiguity_gap: float = _float("PRODUCT_IMAGE_AMBIGUITY_GAP", 0.05)
+
+    # Nəzakət: saniyədə bir sorğudan çox getmir (3.3).
+    product_image_delay_seconds: float = _float("PRODUCT_IMAGE_DELAY_SECONDS", 1.0)
+    product_image_timeout: int = _int("PRODUCT_IMAGE_TIMEOUT", 10)
+    product_image_max_bytes: int = _int("PRODUCT_IMAGE_MAX_BYTES", 5 * 1024 * 1024)
+    product_image_max_side: int = _int("PRODUCT_IMAGE_MAX_SIDE", 600)
+
     # --- Yollar ---
     # Yazılan hər şey DATA_DIR altındadır: baza, xam kataloqlar, OCR mətni, keş.
     # Deployment-də bu, tək volume kimi bağlanır (bax: deploy/README.md).

@@ -20,6 +20,7 @@ from app.api import (
     basket,
     catalog,
     catalogs,
+    images,
     match,
     products,
     profile,
@@ -120,6 +121,7 @@ app.include_router(basket.router)
 app.include_router(scrape.router)
 app.include_router(analytics.router)
 app.include_router(admin.router)
+app.include_router(images.router)
 app.include_router(ads.router)
 app.include_router(ads.admin_router)
 app.include_router(review.router)
