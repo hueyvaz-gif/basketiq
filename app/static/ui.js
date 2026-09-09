@@ -35,8 +35,10 @@ const icon = (name) =>
 // backend məhz o dəyərləri qaytarır. Siyahıya yeni kateqoriya əlavə olunsa,
 // burada da bir sətir lazımdır; o vaxta qədər `digər` ikonu düşür.
 //
-// Niyə şəkil deyil, ikon? Layihədə məhsul şəkli YOXDUR - nə DB-də sütun var,
-// nə də kataloqdan çıxarılır. Uydurma şəkil qoymaq isə istifadəçini yanıldardı.
+// Niyə şəkil deyil, ikon? Kataloqdan kəsilmiş şəkillər var, amma onlar
+// istifadəçiyə göstərilmir (P5): nisbətləri və fonları müxtəlifdir, kartlar
+// yan-yana səliqəsiz görünür. Real məhsul fotosu mənbəyi hələ yoxdur -
+// uydurma şəkil isə istifadəçini yanıldardı.
 const CATEGORY_ICON = {
   "süd məhsulları": "cat-dairy",
   "çörək və taxıl": "cat-bread",
@@ -67,6 +69,20 @@ const categoryIcon = (category) => CATEGORY_ICON[category] || "package";
  * RƏNG TƏK SİQNAL DEYİL: hər kateqoriyanın həm rəngi, həm də ayrı ikonu
  * var, yəni rəngi ayırd etməyən istifadəçi də formanı görür.
  */
+// KATALOQDAN KƏSİLMİŞ ŞƏKİLLƏRİN ÜNVAN PREFİKSİ.
+//
+// Bu şəkillər həftəlik kataloq SƏHİFƏSİNDƏN kəsilir (`ingestion/images.py`):
+// nisbətləri müxtəlifdir, kənarlarında qonşu kartın parçası qalır, fonları
+// isə kataloqun öz rəngidir. Kartlar yan-yana düzüləndə nəticə səliqəsiz
+// görünür - biri ağ, biri sarı, biri yarımçıq.
+//
+// Emal zənciri SAXLANILIR (şəkillər admin üçün faydalıdır və gələcəkdə real
+// məhsul fotosu mənbəyi tapılsa, qat hazırdır), amma İSTİFADƏÇİYƏ kəsik
+// göstərilmir.
+const CATALOG_CROP_PREFIX = "/static/images/products/";
+
+const isCatalogCrop = (url) => String(url || "").startsWith(CATALOG_CROP_PREFIX);
+
 function productThumb(item, cls = "") {
   const sinif = ["thumb", cls].filter(Boolean).join(" ");
   // `cat-dairy` -> `is-cat-dairy`; tanınmayan kateqoriya `package` ikonunu
@@ -75,7 +91,10 @@ function productThumb(item, cls = "") {
   // Kateqoriya lövhəsi ŞƏKİLLİ məhsulda da qutuya yazılır (`data-cat`):
   // fayl tapılmasa ehtiyat qatı onu oradan oxuyur - məhsulun kateqoriyası
   // o anda əlçatan olmur.
-  if (item.image) {
+  // REAL MƏHSUL FOTOSU varsa göstərilir; kataloq kəsiyi isə YOX (P5).
+  // Hazırda bütün şəkillər kəsikdir, yəni praktikada hər kart kateqoriya
+  // lövhəsi alır - və kartlar ilk dəfə vahid görünür.
+  if (item.image && !isCatalogCrop(item.image)) {
     return (
       `<span class="${sinif}" data-cat="${esc(ikon)}">` +
       `<img src="${esc(item.image)}" alt="" loading="lazy"></span>`

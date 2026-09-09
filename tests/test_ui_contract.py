@@ -381,6 +381,38 @@ def test_sürüşən_cədvəl_qapsayıcısı_mövqedədir():
         ".table-scroll mövqedə deyil - gizli mətn səhifəni üfüqi sürüşdürəcək"
     )
 
+
+def test_kataloq_kəsikləri_istifadəçiyə_göstərilmir():
+    """
+    P5: kataloqdan kəsilmiş şəkil kartda GÖSTƏRİLMİR.
+
+    Kəsiklərin nisbəti müxtəlifdir, kənarlarında qonşu kartın parçası qalır
+    və fonları kataloqun öz rəngidir. Kartlar yan-yana düzüləndə nəticə
+    səliqəsiz olur - biri ağ, biri sarı, biri yarımçıq. Emal zənciri saxlanılır
+    (admin üçün faydalıdır), amma UI onları çəkmir.
+
+    Səhv geri qayıtsa, gözlə dərhal seçilməz: bir neçə kartda şəkil, qalanında
+    ikon olar və bu, «data belədir» kimi oxunar.
+    """
+    ui = read_static("ui.js")
+    assert "CATALOG_CROP_PREFIX" in ui, "kəsik süzgəci yoxdur"
+    assert "isCatalogCrop(item.image)" in ui, "şəkil qolu süzgəci işlətmir"
+
+
+def test_bütün_məhsul_lövhələri_eyni_formadadır():
+    """
+    P5: eyni məhsul endirim siyahısında və axtarış kartında EYNİ formada
+    görünməlidir. Əvvəl biri sabit piksel ölçüsü, digəri `aspect-ratio`
+    işlədirdi və fonları da fərqli tokenlərdən gəlirdi.
+    """
+    css = read_static("style.css")
+    for selektor in (".deal-photo", ".pcard-photo", ".product-photo"):
+        blok = re.search(rf"\n{re.escape(selektor)} \{{(.*?)\}}", css, re.S)
+        assert blok, f"{selektor} qaydası tapılmadı"
+        gövdə = blok.group(1)
+        assert "aspect-ratio: 1 / 1" in gövdə, f"{selektor} kvadrat deyil"
+        assert "--bg-subtle" in gövdə, f"{selektor} ortaq fondan istifadə etmir"
+
 def test_dark_mode_bloku_yoxdur():
     """Layihə həmişə işıq rejimindədir - sistem ayarı UI-ı dəyişməməlidir."""
     css = re.sub(r"/\*.*?\*/", "", read_static("style.css"), flags=re.S)

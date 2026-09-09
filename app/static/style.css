@@ -2108,7 +2108,10 @@ code {
    düymə isə ayrı hərəkətdir - ona görə öz fonu var. */
 .add-btn { gap: 6px; }
 .add-btn.is-added { color: var(--ok-ink); border-color: var(--ok-ink); }
-.pcard-add { width: calc(100% - var(--s3) * 2); margin: 0 var(--s3) var(--s3); }
+/* Düymə kartın ALTINA yapışır: brendsiz məhsulun bir sətri az olur və
+   düymələr müxtəlif hündürlükdə dayanırdı (brauzerdə görüldü). */
+.pcard { justify-content: space-between; }
+.pcard-add { width: calc(100% - var(--s3) * 2); margin: auto var(--s3) var(--s3); }
 .product-add { margin-top: var(--s3); width: 100%; }
 
 /* Səbət sətri: ad + miqdar + sil. Grid, flex deyil - üç sütunun eni sabitdir
@@ -2281,9 +2284,15 @@ code {
 .thumb.is-cat-clean   { --cat-hue: var(--cat-clean); }
 .thumb.is-cat-other   { --cat-hue: var(--cat-other); }
 
+/* NİSBƏT VƏ FON HƏR YERDƏ EYNİDİR (P5).
+   `.deal-photo`, `.pcard-photo` və `.product-photo` üçün üç ortaq qayda var:
+   kvadrat nisbət, `--bg-subtle` fon, eyni künc radiusu. Əvvəl endirim
+   siyahısı sabit piksel ölçüsü, kartlar isə `aspect-ratio` işlədirdi -
+   nəticədə eyni məhsul iki yerdə fərqli formada görünürdü. */
 .deal-photo {
   position: relative;
   display: block;
+  aspect-ratio: 1 / 1;
   width: 132px; height: 132px;
   border-radius: var(--r-md);
   background: var(--bg-subtle);
@@ -2462,7 +2471,7 @@ code {
 .product-photo {
   margin-top: var(--s3);
   border-radius: var(--r-card);
-  background: var(--surface);
+  background: var(--bg-subtle);
   aspect-ratio: 1 / 1;
   display: grid;
   place-items: center;
@@ -2662,13 +2671,27 @@ code {
   overflow: hidden;
 }
 
+/* KEÇİD ARTIQ KARTIN İÇİNDƏDİR (P1: kartda «Səbətə» düyməsi var, keçidin
+   içinə düymə qoymaq isə HTML qaydasını pozur). Üslub da onunla birlikdə
+   İÇƏRİ KÖÇMƏLİDİR - əks halda kartın bütün mətni brauzerin defolt keçid
+   görünüşünü alır: göy və altıxətli (brauzerdə görüldü). */
+.pcard-link {
+  display: flex;
+  flex-direction: column;
+  color: inherit;
+  text-decoration: none;
+}
+
 .pcard:hover { border-color: var(--accent); }
-.pcard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pcard:focus-within { border-color: var(--accent); }
+.pcard-link:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 .pcard-photo {
   display: block;
   aspect-ratio: 1 / 1;
-  background: var(--surface);
+  background: var(--bg-subtle);
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  overflow: hidden;
 }
 
 .pcard-photo img { width: 100%; height: 100%; object-fit: contain; }
