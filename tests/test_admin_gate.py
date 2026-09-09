@@ -82,8 +82,9 @@ def test_qapı_açıq_olanda_admin_səthi_çatılandır(path):
 
 def test_vəziyyət_endpoint_i_qapı_bağlı_olanda_da_cavab_verir(qapı_bağlı):
     """
-    `nav.js` tabı bu cavaba görə gizlədir. Endpoint qapının arxasında
-    olsaydı, bağlı halda özü də 404 verər və brauzer heç nə öyrənə bilməzdi.
+    Endpoint qapının arxasında olsaydı, bağlı halda özü də 404 verərdi və
+    soruşan tərəf «admin bağlıdır» ilə «belə endpoint yoxdur» hallarını
+    ayırd edə bilməzdi.
     """
     res = client.get("/api/admin/state")
     assert res.status_code == 200

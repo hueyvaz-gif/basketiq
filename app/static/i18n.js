@@ -129,6 +129,7 @@
 
     "nav.panelSelect": { az: "Panel seçimi", en: "Panel selection", ru: "Выбор панели" },
     "nav.user": { az: "İstifadəçi", en: "User", ru: "Пользователь" },
+    "admin.backToSite": { az: "Sayta qayıt", en: "Back to site", ru: "На сайт" },
     "nav.admin": { az: "Admin / Developer", en: "Admin / Developer", ru: "Админ / Разработчик" },
     "nav.profileJump": {
       az: "Profil və parametrlərə keç",

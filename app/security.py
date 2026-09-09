@@ -16,8 +16,10 @@ NİYƏ 404, 403 YOX? Bağlı panel «icazən yoxdur» deyil, «burada belə səh
 yoxdur» deməkdir. 403 endpoint-in MÖVCUD olduğunu təsdiqləyir və axtaran
 adama xəritə verir; 404 heç nə demir.
 
-FRONTEND QORUMA DEYİL. `nav.js` tabı gizlədir, amma statik HTML onsuz da
-brauzerə gedir - gizlətmək yalnız səliqədir. Əsl qapı buradadır, serverdə.
+FRONTEND QORUMA DEYİL. P6-dan sonra admin paneli ayrıca ünvandadır
+(`/admin`) və istifadəçi interfeysində izi yoxdur, amma bu da yalnız
+səliqədir: ünvanı yazan hər kəs açmağa cəhd edə bilər. Əsl qapı buradadır -
+həm səhifənin özü, həm endpoint-lər ondan keçir.
 """
 
 from fastapi import HTTPException

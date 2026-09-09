@@ -8,7 +8,7 @@ Sağlamlıq:   http://localhost:8000/health
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -31,6 +31,7 @@ from mcp_server.server import http_app as mcp_http_app
 from app.config import settings
 from app.db import db_stats, init_db
 from app.models import HealthResponse
+from app.security import require_admin
 
 STATIC_DIR = settings.base_dir / "app" / "static"
 
@@ -132,6 +133,22 @@ def dashboard():
     # index.html da eyni səbəbdən keşlənməməlidir: köhnə HTML köhnə
     # element adları ilə gəlsə, yeni CSS ona yapışmır və səhifə sınır.
     return FileResponse(STATIC_DIR / "index.html", headers={"Cache-Control": NO_CACHE})
+
+
+@app.get("/admin", include_in_schema=False)
+def admin_page(_: None = Depends(require_admin)):
+    """
+    ADMİN SƏHİFƏSİ — ayrıca ünvan, istifadəçi interfeysində izi yoxdur (P6).
+
+    Əvvəl admin paneli ana səhifənin ikinci tabı idi: alış-veriş edən adam
+    üst paneldə «Admin / Developer» yazısını görürdü və bir kliklə scraping,
+    OCR rejimi, model diaqnostikası ilə qarşılaşırdı. Bunlar məhsulun İÇİdir.
+
+    QAPI SƏHİFƏNİN ÖZÜNDƏDİR: `ADMIN_ENABLED` bağlı olanda 404 qaytarılır -
+    yəni istehsalda səhifə sadəcə gizli deyil, MÖVCUD deyil. Endpoint-lər
+    onsuz da ayrıca qapının arxasındadır (`app/security.py`).
+    """
+    return FileResponse(STATIC_DIR / "admin.html", headers={"Cache-Control": NO_CACHE})
 
 
 @app.get("/basket", include_in_schema=False)

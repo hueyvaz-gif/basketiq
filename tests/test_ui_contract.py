@@ -239,18 +239,22 @@ def test_ən_ucuz_cəm_heç_bir_market_cəmindən_böyük_deyil():
 # ID-ləri ilə tutuşdursaq, test yalan yerə düşərdi.
 SCRIPT_PAGES = {
     "index.html": [
-        "nav.js",
         "app.js",
         "store-grid.js",
         "deals.js",
         "ads.js",
         "advisor.js",
         "analytics.js",
+        "profile.js",
+    ],
+    # Admin səhifəsi AYRIDIR (P6): istifadəçi səhifəsi onun skriptlərini
+    # ümumiyyətlə yükləmir.
+    "admin.html": [
+        "admin.js",
+        "scrape.js",
         "review.js",
         "coverage.js",
         "ads-admin.js",
-        "scrape.js",
-        "profile.js",
     ],
     "product.html": ["product.js"],
     "store.html": ["store.js"],

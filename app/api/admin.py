@@ -2,12 +2,15 @@
 Admin panelinin VƏZİYYƏTİ (B11).
 
 Bu, qapının ÖZÜ deyil - qapı `app/security.py`-dədir. Buradakı yeganə
-endpoint brauzerə «panel açıqdırmı?» sualının cavabını verir ki, `nav.js`
-bağlı halda tabı göstərməsin.
+endpoint «admin səthi işləkdirmi?» sualına cavab verir.
+
+P6-DAN SONRA İSTİFADƏÇİ İNTERFEYSİNDƏ ADMİN TABI YOXDUR (panel ayrıca
+`/admin` ünvanındadır), yəni cavab artıq tab gizlətmək üçün lazım deyil.
+Endpoint QALIR: xarici alət (n8n, monitorinq) «bu nüsxədə admin açıqdırmı?»
+sualını soruşa bilər və `/admin` səhifəsinin özü onsuz da 404 verir.
 
 QƏSDƏN QORUNMAYIB: qapının arxasında olsaydı, bağlı vəziyyətdə özü də 404
-verərdi və brauzer heç nə öyrənə bilməzdi. Cavab isə heç bir sirr açmır -
-sayta baxan onsuz da tabın olub-olmadığını görür.
+verərdi və soruşan heç nə öyrənə bilməzdi. Cavab isə sirr açmır.
 """
 
 from fastapi import APIRouter, Depends
