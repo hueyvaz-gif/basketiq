@@ -966,3 +966,60 @@ təsdiq şərtini götürəndə və `confirm()` qaytaranda hər ikisi düşür.
   (məhsulu yenidən əlavə etmək olar), ona görə eyni qoruma verilmədi.
 - **Silinən kataloqun boş market sətri hələ də qalır** — ayrı məsələdir,
   `tools/purge_store.py` ilə təmizlənir.
+
+---
+
+## 2026-09-09 — Səbətdən silməyə də təsdiq
+
+Əvvəlki qeyddə «səbətdən silmək təsdiqsiz qaldı, çünki geri qaytarıla bilir»
+yazmışdım. İstifadəçi əksini qərara aldı — üç silmə düyməsinin hamısı indi
+eyni mexanikadan keçir.
+
+### Yenidən qurma
+
+`armDeleteButton(btn)` → `armDeleteButton(btn, onConfirm)`. Funksiya artıq
+YALNIZ təsdiq mexanikasını bilir; silmənin özü çağıran tərəfdə qalır. Beləcə
+eyni məntiq üç yerdə işlədilir:
+
+| Yer | Sorğu |
+|---|---|
+| admin: kataloq sətri | `DELETE /api/catalogs/{id}` |
+| səbət çipi | `DELETE /api/basket/items/{id}` |
+| müqayisə cədvəli | `DELETE /api/basket/items/{id}` |
+
+Bir kiçik səhv yolda düzəldildi: ləğv zamanı düymənin içi `icon("trash")` ilə
+BƏRPA olunurdu, halbuki səbət çipində ikon fərqli ola bilər. İndi ilkin
+`innerHTML` yadda saxlanılır və o qaytarılır.
+
+### Canlı yoxlandı (Selenium)
+
+| Addım | Nəticə |
+|---|---|
+| Cədvəl, 1-ci klik | mətn «Silinsin?», təsdiq halı, **sətir sayı dəyişmədi** (2) |
+| Escape | təsdiq ləğv olundu |
+| Çip, 1-ci klik | mətn «Silinsin?», təsdiq halı, **sətir sayı dəyişmədi** (2) |
+| Konsol xətası | yoxdur |
+| Səbət | yoxlamadan sonra 2 sətir — toxunulmadı |
+
+Ekran şəkli: «Milla süd» çipi genişlənib içində qırmızı «Silinsin?» nişanı
+göstərir, pill quruluşu pozulmur.
+
+### Test yeniləndi
+
+Köhnə test yalnız kataloq düyməsini yoxlayırdı və yenidən qurmadan sonra
+düşdü — düzgün davrandı. Yeni test **hər** `DELETE` sorğusundan geriyə gedib
+ilk qeydiyyat nöqtəsini tapır: `armDeleteButton(` olmalıdır, birbaşa
+`addEventListener("click"` yox. Yəni gələcəkdə əlavə olunacaq dördüncü silmə
+düyməsi də avtomatik yoxlanacaq.
+
+**Mutasiya ilə təsdiqləndi:** təsdiq şərtini götürəndə və səbət silməsini
+birbaşa qeydiyyata qaytaranda testlər düşür.
+
+398 test keçir, 2 atlanır, ruff təmiz.
+
+### Nəyə əmin deyiləm
+
+- **Statik test yenə davranışı yox, formanı yoxlayır.** Davranış brauzerdə
+  yoxlanıldı, amma test dəstində deyil.
+- **Səbətdə çoxlu məhsul olanda çipin genişlənməsi sətri sındıra bilər** —
+  iki məhsulla yoxlandı, on məhsulla yox.

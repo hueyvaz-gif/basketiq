@@ -304,7 +304,13 @@ async function loadCatalogs() {
     $("#catalogList").querySelectorAll("[data-lines]").forEach((b) =>
       b.addEventListener("click", () => showLines(b.dataset.lines))
     );
-    $("#catalogList").querySelectorAll("[data-del]").forEach(armDeleteButton);
+    $("#catalogList").querySelectorAll("[data-del]").forEach((b) =>
+      armDeleteButton(b, async () => {
+        await fetch(`/api/catalogs/${b.dataset.del}`, { method: "DELETE" });
+        await Promise.all([loadCatalogs(), loadHealth()]);
+        $("#resultCard").classList.add("hidden");
+      })
+    );
   } catch {
     $("#catalogList").innerHTML = `<div class="row"><span class="row-value">Siyahı yüklənmədi</span></div>`;
   }
@@ -337,17 +343,24 @@ let pendingDelete = null;   // {btn, label, timer}
 /** Düyməni ilkin (ikon) halına qaytarır. */
 function cancelPendingDelete() {
   if (!pendingDelete) return;
-  const { btn, label, timer } = pendingDelete;
+  const { btn, label, html, timer } = pendingDelete;
   clearTimeout(timer);
   btn.classList.remove("is-confirming");
-  btn.innerHTML = icon("trash");
+  // İlkin məzmun BƏRPA olunur (ikon sabit deyil - səbət çipində başqa ola bilər).
+  btn.innerHTML = html;
   btn.setAttribute("aria-label", label);
   pendingDelete = null;
 }
 
-/** Bir «sil» düyməsini iki addımlı edir. */
-function armDeleteButton(btn) {
+/**
+ * Bir «sil» düyməsini iki addımlı edir.
+ *
+ * `onConfirm` yalnız İKİNCİ klikdə çağırılır - silmə əməliyyatının özü
+ * çağıran tərəfdə qalır, bu funksiya yalnız təsdiq mexanikasını bilir.
+ */
+function armDeleteButton(btn, onConfirm) {
   const label = btn.getAttribute("aria-label") || "Sil";
+  const html = btn.innerHTML;
 
   btn.addEventListener("click", async (event) => {
     event.stopPropagation();
@@ -356,9 +369,7 @@ function armDeleteButton(btn) {
     if (pendingDelete && pendingDelete.btn === btn) {
       cancelPendingDelete();
       btn.disabled = true;
-      await fetch(`/api/catalogs/${btn.dataset.del}`, { method: "DELETE" });
-      await Promise.all([loadCatalogs(), loadHealth()]);
-      $("#resultCard").classList.add("hidden");
+      await onConfirm();
       return;
     }
 
@@ -370,6 +381,7 @@ function armDeleteButton(btn) {
     pendingDelete = {
       btn,
       label,
+      html,
       timer: setTimeout(cancelPendingDelete, DELETE_CONFIRM_MS),
     };
   });
@@ -524,8 +536,7 @@ function renderBasket(data) {
       .join("");
 
   box.querySelectorAll("[data-del-item]").forEach((b) =>
-    b.addEventListener("click", async () => {
-      b.disabled = true;
+    armDeleteButton(b, async () => {
       await fetch(`/api/basket/items/${b.dataset.delItem}`, { method: "DELETE" });
       await loadCompare();
     })
@@ -746,8 +757,7 @@ function renderCompareTable(data) {
     </div>`;
 
   $("#compareTableWrap").querySelectorAll("[data-del-item]").forEach((b) =>
-    b.addEventListener("click", async () => {
-      b.disabled = true;
+    armDeleteButton(b, async () => {
       await fetch(`/api/basket/items/${b.dataset.delItem}`, { method: "DELETE" });
       await loadCompare();
     })

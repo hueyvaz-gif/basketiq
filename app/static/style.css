@@ -485,6 +485,19 @@ a.brand:hover .brand-name { color: var(--text-secondary); }
 .basket-chip-del svg { width: 13px; height: 13px; }
 .basket-chip-del:hover { background: var(--danger-soft); color: var(--danger-ink); }
 
+/* Təsdiq gözləyən hal — kataloq düyməsindəki ilə eyni məntiq, sadəcə çip
+   ölçüsündə. Mətn («Silinsin?») rəngin yanında ikinci siqnaldır. */
+.basket-chip-del.is-confirming {
+  width: auto;
+  padding: 0 8px;
+  background: var(--danger);
+  color: var(--bg);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 /* --- CAVAB: səhifənin yeganə böyük rəqəmi ---
    Əvvəl burada iki sütunlu «qalib + yan panel» quruluşu vardı və guşədə
    döndərilmiş lent dururdu. Lent silindi (v2, 8.1): mətni guşəyə sığmırdı

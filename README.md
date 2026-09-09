@@ -507,6 +507,13 @@ ingiliscə gəlir («OK / Cancel»), halbuki interfeys tam azərbaycancadır.
 Rəng **tək siqnal deyil**: düymənin öz mətni («Silinsin?») nə baş verəcəyini
 deyir, yəni rəngi görməyən istifadəçi də başa düşür.
 
+**Üç silmə düyməsinin hamısı eyni mexanikadan keçir** — kataloq, səbət çipi və
+müqayisə cədvəlindəki sətir. Mexanika `armDeleteButton(btn, onConfirm)`
+funksiyasındadır: o, yalnız təsdiqi bilir, silmənin ÖZÜ çağıran tərəfdə qalır.
+`test_hər_silmə_sorğusu_təsdiqin_arxasındadır` hər `DELETE` sorğusundan geriyə
+gedib qeydiyyat nöqtəsini yoxlayır — birbaşa `addEventListener("click")`
+qalsa, qapı sınır.
+
 **Market rəng nöqtələri** kimlik bildirir, status yox — ona görə palitrada
 brend yaşılı, `#4caf50` və `#cc3327` **yoxdur**. Rəng market ADINDAN hesablanır
 (`app/static/store-colors.js` — hash xananı təklif edir, toqquşma əlifba
@@ -1252,4 +1259,4 @@ worktree-yə köçürməkdir.
 ¹ Mənbə seçimi ölçmə tələb etdiyi üçün Həftə 2-dən sonra tamamlandı.
 ² Real droplet-də yox, lokal Docker-də sınanıb — təfərrüat `deploy/README.md`-də.
 
-**Testlər:** 399 — 397 keçir, 2 atlanır (`pytest -q`)
+**Testlər:** 400 — 398 keçir, 2 atlanır (`pytest -q`)

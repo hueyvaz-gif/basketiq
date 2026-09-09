@@ -494,31 +494,52 @@ def test_dəyişməyən_fayl_304_qaytarır():
 # ------------------------------------------------ silmə təsdiqi (real risk)
 
 
-def test_kataloq_silinməsi_təsdiq_tələb_edir():
+def test_hər_silmə_sorğusu_təsdiqin_arxasındadır():
     """
-    Admin panelində «sil» düyməsi TƏSDİQSİZ idi: bir klik kataloqu, onun
-    bütün qiymətlərini və yetim qalan məhsulları geri dönməz silirdi.
-    Canlı yoxlama zamanı görüldü (`logs/notes.md`, 2026-09-09).
+    Silmə düymələri TƏSDİQSİZ idi: bir klik kataloqu (və onun bütün
+    qiymətlərini) və ya səbət sətrini dərhal silirdi. Canlı yoxlamada göründü
+    (`logs/notes.md`, 2026-09-09).
 
-    İndi düymə iki addımlıdır. Bu test STATİKDİR — o, yalnız `DELETE`
-    sorğusunun təsdiq şərtinin İÇİNDƏ olduğunu yoxlayır; davranışın özü
-    brauzerdə ayrıca yoxlanılıb.
+    İndi hər silmə `armDeleteButton()`-un içindədir — o, ikinci kliki gözləyir.
+    Test hər `DELETE` sorğusundan GERİYƏ gedib ilk qeydiyyat nöqtəsini tapır:
+    o, `armDeleteButton(` olmalıdır, birbaşa `addEventListener("click"` yox.
+
+    Bu test STATİKDİR — kodun formasını yoxlayır, davranışı yox. Davranış
+    brauzerdə ayrıca yoxlanılıb (bax `logs/notes.md`).
+    """
+    lines = read_static("app.js").splitlines()
+    silmələr = [i for i, line in enumerate(lines) if 'method: "DELETE"' in line]
+    assert len(silmələr) >= 3, f"3 silmə sorğusu gözlənilirdi, {len(silmələr)} tapıldı"
+
+    for i in silmələr:
+        qeydiyyat = None
+        for j in range(i, -1, -1):
+            if "armDeleteButton(" in lines[j]:
+                qeydiyyat = "armDeleteButton"
+                break
+            if 'addEventListener("click"' in lines[j]:
+                qeydiyyat = "addEventListener"
+                break
+        assert qeydiyyat == "armDeleteButton", (
+            f"{i + 1}-ci sətirdəki silmə təsdiqin arxasında deyil: {lines[i].strip()!r}"
+        )
+
+
+def test_təsdiq_ikinci_kliki_gözləyir():
+    """
+    `armDeleteButton()`-un özü: silmə YALNIZ eyni düymə artıq gözləyəndə
+    çağırılmalıdır. Kimsə şərti götürsə, bir klik yenidən silərdi.
     """
     js = read_static("app.js")
+    yer = js.find("pendingDelete.btn === btn")
+    assert yer > 0, "təsdiq şərti tapılmadı — iki addımlı silmə pozulub"
 
-    blok = re.search(
-        r"if \(pendingDelete && pendingDelete\.btn === btn\) \{(.*?)\n    \}", js, re.S
+    # Şərtdən sonrakı blok silməni çağırmalıdır.
+    assert "await onConfirm()" in js[yer : yer + 400], (
+        "silmə əməliyyatı təsdiq şərtinin içində deyil"
     )
-    assert blok, "təsdiq şərti tapılmadı — iki addımlı silmə pozulub"
-    assert 'method: "DELETE"' in blok.group(1), (
-        "kataloq silmə sorğusu təsdiq şərtinin içində deyil"
-    )
-
-    # Şərtdən KƏNARDA kataloq silən başqa sorğu qalmamalıdır.
-    qalan = js.replace(blok.group(0), "")
-    assert not re.search(r"/api/catalogs/\$\{[^}]+\}`?, \{ method: \"DELETE\"", qalan), (
-        "təsdiqdən kənar silmə sorğusu var"
-    )
+    assert "Escape" in js, "Escape ilə ləğv yoxdur"
+    assert "DELETE_CONFIRM_MS" in js, "avtomatik ləğv taymeri yoxdur"
 
 
 def test_silmə_təsdiqi_native_confirm_işlətmir():
