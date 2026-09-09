@@ -302,6 +302,74 @@
       ru: "Не участвует в сравнении",
     },
 
+    // ------------------------------------------------------------- REKLAM (E19-E24)
+    // «Reklam» sözü ÜÇ DİLDƏ də açıq yazılır: sponsorlu məzmunun
+    // nişanlanması qaydadır, tərcümə seçimi deyil.
+    "ads.sponsored": { az: "Reklam", en: "Sponsored", ru: "Реклама" },
+    "ads.slotLabel": { az: "Reklam yeri", en: "Ad space", ru: "Рекламное место" },
+    "ads.emptyTitle": {
+      az: "Sizin reklamınız burada ola bilər",
+      en: "Your ad could be here",
+      ru: "Здесь может быть ваша реклама",
+    },
+    "ads.emptyBody": {
+      az: "Ana səhifənin bu yeri boşdur — qiymət axtaran istifadəçilərə görünün.",
+      en: "This spot on the home page is free — get in front of people comparing prices.",
+      ru: "Это место на главной свободно — покажитесь тем, кто сравнивает цены.",
+    },
+    "ads.cta": { az: "Reklam ver", en: "Advertise here", ru: "Разместить рекламу" },
+    "ads.mailSubject": {
+      az: "BasketIQ-də reklam",
+      en: "Advertising on BasketIQ",
+      ru: "Реклама на BasketIQ",
+    },
+
+    // -------------------------------------------------- REKLAM MENECERİ (E22)
+    "adsAdmin.title": { az: "Reklam sifarişləri", en: "Ad orders", ru: "Рекламные заказы" },
+    "adsAdmin.sub": {
+      az: "Yalnız AKTİV və tarix aralığında olan sifariş göstərilir — müddəti bitən reklam öz-özünə dayanır.",
+      en: "Only orders that are active and within their dates are shown — an expired ad stops on its own.",
+      ru: "Показываются только активные заказы в пределах срока — истёкшая реклама останавливается сама.",
+    },
+    "adsAdmin.ad": { az: "Sifariş", en: "Order", ru: "Заказ" },
+    "adsAdmin.slot": { az: "Yer", en: "Slot", ru: "Место" },
+    "adsAdmin.impressions": { az: "Göstərim", en: "Impressions", ru: "Показы" },
+    "adsAdmin.clicks": { az: "Klik", en: "Clicks", ru: "Клики" },
+    "adsAdmin.advertiser": { az: "Reklamverən", en: "Advertiser", ru: "Рекламодатель" },
+    "adsAdmin.adTitle": { az: "Başlıq", en: "Title", ru: "Заголовок" },
+    "adsAdmin.body": { az: "Qısa mətn", en: "Short text", ru: "Короткий текст" },
+    "adsAdmin.url": { az: "Hədəf ünvan", en: "Target URL", ru: "Целевая ссылка" },
+    "adsAdmin.start": { az: "Başlanğıc", en: "Start", ru: "Начало" },
+    "adsAdmin.end": { az: "Bitmə", en: "End", ru: "Конец" },
+    "adsAdmin.creative": {
+      az: "Kreativ (PNG/JPG/WEBP, max 2 MB)",
+      en: "Creative (PNG/JPG/WEBP, max 2 MB)",
+      ru: "Креатив (PNG/JPG/WEBP, макс. 2 МБ)",
+    },
+    "adsAdmin.active": { az: "Aktiv", en: "Active", ru: "Активен" },
+    "adsAdmin.create": { az: "Sifarişi yarat", en: "Create order", ru: "Создать заказ" },
+    "adsAdmin.saved": { az: "Sifariş yaradıldı.", en: "Order created.", ru: "Заказ создан." },
+    "adsAdmin.saveError": {
+      az: "Sifariş yazılmadı.",
+      en: "The order was not saved.",
+      ru: "Заказ не сохранён.",
+    },
+    "adsAdmin.loadError": {
+      az: "Sifarişlər yüklənmədi.",
+      en: "Could not load the orders.",
+      ru: "Не удалось загрузить заказы.",
+    },
+    "adsAdmin.empty": {
+      az: "Hələ sifariş yoxdur — slot «bu yer satılır» vəziyyətindədir.",
+      en: "No orders yet — the slot shows its “this space is for sale” state.",
+      ru: "Заказов пока нет — слот показывает «это место продаётся».",
+    },
+    "adsAdmin.live": { az: "efirdə", en: "live", ru: "в эфире" },
+    "adsAdmin.paused": { az: "dayanıb", en: "paused", ru: "остановлен" },
+    "adsAdmin.sample": { az: "nümunə", en: "sample", ru: "пример" },
+    "adsAdmin.pause": { az: "Dayandır", en: "Pause", ru: "Остановить" },
+    "adsAdmin.resume": { az: "Davam et", en: "Resume", ru: "Возобновить" },
+
     // ----------------------------------------------------- MARKET ƏHATƏSİ (D15)
     "coverage.title": { az: "Market əhatəsi", en: "Store coverage", ru: "Охват магазинов" },
     "coverage.sub": {

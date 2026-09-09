@@ -112,6 +112,12 @@ class Settings:
     # qərar tələb edir.
     admin_enabled: bool = _bool("ADMIN_ENABLED", _str("APP_ENV", "development") != "production")
 
+    # REKLAM ƏLAQƏ ÜNVANI (E20). Boş slotdakı «Reklam ver» düyməsi buraya
+    # yazır. UYDURMA ÜNVAN YAZILMIR: qeyri-mövcud e-poçt reklamverəni
+    # itirilmiş məktubla qoyar. Boş qalsa, UI düyməni ümumiyyətlə göstərmir,
+    # yalnız «bu yer satılır» yazısı qalır.
+    ads_contact: str = _str("ADS_CONTACT", "")
+
     # --- Yollar ---
     # Yazılan hər şey DATA_DIR altındadır: baza, xam kataloqlar, OCR mətni, keş.
     # Deployment-də bu, tək volume kimi bağlanır (bax: deploy/README.md).

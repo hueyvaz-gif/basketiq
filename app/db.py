@@ -135,6 +135,38 @@ CREATE TABLE IF NOT EXISTS basket_items (
     qty        REAL NOT NULL DEFAULT 1,
     UNIQUE(basket_id, product_id)
 );
+
+-- REKLAM SİFARİŞLƏRİ (E21).
+--
+-- NİYƏ AYRICA CƏDVƏL, KONFİQ FAYLI YOX? Reklam vaxt üzrə dəyişir (başlanğıc
+-- və bitmə tarixi var), sayılır (göstərim/klik) və admin panelindən idarə
+-- olunur. Konfiq faylı bunların heç birini verə bilmir.
+--
+-- SLOT NƏDİR? Səhifədəki yer: 'home-banner' (market şəbəkəsi ilə endirimlər
+-- arasında). Slot adı KODDA sabitdir (`app/ads.py:SLOTS`) - bazadan gələn
+-- sərbəst mətn səhifədə yer aça bilməz.
+--
+-- SAYĞACLAR SƏTRİN ÖZÜNDƏDİR: ayrı hadisə cədvəli daha dəqiq olardı, amma bu
+-- layihədə reklam sayı bir neçədir və hesabat «neçə göstərim, neçə klik»
+-- sualından ibarətdir. Ayrı cədvəl cavabı dəyişmədən mürəkkəblik gətirərdi.
+CREATE TABLE IF NOT EXISTS ads (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    advertiser   TEXT NOT NULL,
+    title        TEXT NOT NULL,
+    body         TEXT NOT NULL DEFAULT '',
+    image_path   TEXT,                          -- /static/images/ads/... (NULL = mətn reklamı)
+    target_url   TEXT NOT NULL,
+    slot         TEXT NOT NULL,                 -- app/ads.py:SLOTS
+    starts_at    TEXT NOT NULL,                 -- YYYY-MM-DD
+    ends_at      TEXT NOT NULL,                 -- YYYY-MM-DD (daxil)
+    active       INTEGER NOT NULL DEFAULT 1,
+    impressions  INTEGER NOT NULL DEFAULT 0,
+    clicks       INTEGER NOT NULL DEFAULT 0,
+    is_sample    INTEGER NOT NULL DEFAULT 0,    -- nümunə sifariş: real satış deyil
+    created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_ads_slot ON ads(slot, active);
 """
 
 
@@ -299,6 +331,14 @@ def init_db() -> None:
         conn.commit()
     finally:
         conn.close()
+
+    # NÜMUNƏ REKLAM (E24): slot canlı nümunə ilə gəlir. İdempotentdir və
+    # yalnız baza tamam boş olanda işə düşür - admin nümunəni silsə, o,
+    # növbəti başlanğıcda geri qayıtmır. İdxal BURADA edilir, çünki
+    # `app/ads.py` öz növbəsində `app/db.py`-dan asılıdır.
+    from app.ads import seed_sample_ad
+
+    seed_sample_ad()
 
 
 def db_stats() -> dict:

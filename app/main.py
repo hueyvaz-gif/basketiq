@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from ai.llm import check_llm
 from app.api import (
     admin,
+    ads,
     analytics,
     basket,
     catalog,
@@ -118,6 +119,8 @@ app.include_router(basket.router)
 app.include_router(scrape.router)
 app.include_router(analytics.router)
 app.include_router(admin.router)
+app.include_router(ads.router)
+app.include_router(ads.admin_router)
 app.include_router(review.router)
 app.include_router(profile.router)
 app.include_router(voice.router)

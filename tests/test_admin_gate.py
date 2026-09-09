@@ -26,6 +26,7 @@ client = TestClient(app)
 # genişləndirməlidir - `test_hər_admin_router_i_siyahıdadır` bunu tutur.
 ADMIN_YOLLARI = [
     ("GET", "/api/catalogs"),
+    ("GET", "/api/admin/ads"),
     ("GET", "/api/review/flagged"),
     ("POST", "/api/review/flagged/1/approve"),
     ("GET", "/api/scrape/sources"),
@@ -119,7 +120,10 @@ def test_hər_admin_router_i_qapının_arxasındadır():
     """
     from app.security import require_admin
 
-    ADMİN_PREFİKSLƏRİ = ("/api/catalogs", "/api/scrape", "/api/review")
+    # `/api/admin/ads` ayrıca yazılır: `/api/admin` prefiksli router (vəziyyət
+    # endpoint-i) QƏSDƏN qapısızdır - bağlı halda özü də 404 versəydi, brauzer
+    # tabı gizlətmək üçün heç nə öyrənə bilməzdi.
+    ADMİN_PREFİKSLƏRİ = ("/api/catalogs", "/api/scrape", "/api/review", "/api/admin/ads")
 
     yoxlanan = 0
     for prefiks, router in _routerlər():
@@ -142,7 +146,7 @@ def test_istifadəçi_routerləri_qapının_arxasında_deyil():
     from app.security import require_admin
 
     for prefiks, router in _routerlər():
-        if prefiks.startswith(("/api/catalogs", "/api/scrape", "/api/review")):
+        if prefiks.startswith(("/api/catalogs", "/api/scrape", "/api/review", "/api/admin/ads")):
             continue
         asılılıqlar = [d.dependency for d in getattr(router, "dependencies", [])]
         assert require_admin not in asılılıqlar, f"{prefiks} səhvən qapıya salınıb"

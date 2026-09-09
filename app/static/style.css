@@ -1994,6 +1994,83 @@ code {
 }
 
 
+
+/* ============================================================================
+   REKLAM SLOTU (E19/E20/E23)
+   ============================================================================
+   FORMA QƏSDƏN ENDİRİM KARTINDAN FƏRQLİDİR. Endirim sətri nömrələnir, şəkli
+   solda, qiymət sütunları sağdadır. Reklam isə enli bir zolaqdır, qiymət
+   sütunu yoxdur və üstündə «Reklam» nişanı var. Oxşasaydılar, istifadəçi
+   sponsorlu kartı yoxlanmış endirim sanardı - saytın yeganə dəyəri budur.
+
+   Rəng SİQNAL DAŞIMIR: nə «ucuz» mavisi, nə «şübhəli» qırmızısı. Reklam
+   neytral səthdədir, çünki o, nə tövsiyədir, nə xəbərdarlıq. */
+
+/* Reklam forması: sifariş sətirlərindən nazik xətlə ayrılır - siyahı ilə
+   yaratma qarışmasın. */
+.ad-form { margin-top: var(--s3); padding-top: var(--s3); border-top: 1px solid var(--hairline); }
+
+.ad-slot { display: block; }
+
+.ad-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  background: var(--bg);
+  color: inherit;
+  text-decoration: none;
+  box-shadow: var(--shadow);
+}
+
+.ad-card:hover { box-shadow: var(--shadow-lift); }
+.ad-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* «Reklam» nişanı: kiçik, amma HƏMİŞƏ görünür və kartın içindədir - şəklin
+   üstünə düşsə, tünd kreativdə oxunmaz olardı. */
+.ad-flag {
+  position: absolute;
+  top: var(--s2);
+  right: var(--s2);
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.ad-image {
+  width: 220px;
+  max-height: 96px;
+  object-fit: contain;
+  border-radius: var(--r-md);
+  flex: none;
+}
+
+.ad-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ad-title { font-size: 17px; font-weight: 600; color: var(--text); }
+.ad-text { font-size: 14px; color: var(--text-secondary); }
+.ad-by { font-size: 12px; color: var(--text-tertiary); }
+
+/* BOŞ SLOT: kəsik çərçivə «hələ doldurulmayıb» mənasını rəngsiz çatdırır -
+   eyni dil market şəbəkəsindəki «Tezliklə» kartında da işlənir. */
+.ad-card.is-empty {
+  border-style: dashed;
+  background: var(--bg-subtle);
+  justify-content: space-between;
+}
+
+@media (max-width: 600px) {
+  .ad-card { flex-direction: column; align-items: flex-start; }
+  .ad-image { width: 100%; }
+}
+
 /* ============================================================================
    MƏHSUL LÖVHƏSİ (B6) — şəkil və ya kateqoriya ikonu
    ============================================================================

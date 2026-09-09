@@ -127,6 +127,15 @@
       </div>
     </section>
 
+    <!-- --- REKLAM SLOTU (E19) ---
+         Market şəbəkəsi ilə endirimlər ARASINDA. Yer qəsdən buradadır:
+         istifadəçi marketi seçib endirimlərə keçərkən ora onsuz da baxır,
+         amma axını kəsmir - pop-up deyil, sətir arası kartdır.
+
+         Boş qalanda gizlənmir: «Sizin reklamınız burada ola bilər» yazılır
+         (E20). Məzmunu `ads.js` doldurur. -->
+    <div id="adSlot" data-slot="home-banner" class="ad-slot"></div>
+
     <!-- --- BUGÜNÜN ƏN SƏRFƏLİ ENDİRİMLƏRİ ---
 
          Trolley-nin ana səhifəsindəki «Today's Top Deals» bölməsinin
@@ -450,6 +459,82 @@
       </div>
     </section>
 
+    <!-- --- Reklam meneceri (E22) ---
+         Sifariş yaradılır, dayandırılır, silinir; göstərim və klik rəqəmləri
+         elə burada görünür - reklamverənə hesabat vermək üçün başqa yerə
+         baxmaq lazım gəlmir. -->
+    <section class="card" aria-labelledby="adsTitle">
+      <div class="card-head">
+        <div class="head-row">
+          <svg aria-hidden="true"><use href="#icon-tag"></use></svg>
+          <h2 class="section-heading" id="adsTitle" data-i18n="adsAdmin.title">Reklam sifarişləri</h2>
+        </div>
+      </div>
+      <p class="section-sub" data-i18n="adsAdmin.sub">
+        Yalnız AKTİV və tarix aralığında olan sifariş göstərilir — müddəti
+        bitən reklam öz-özünə dayanır.
+      </p>
+
+      <div id="adsList">
+        <div class="row"><span class="row-label skeleton">Yüklənir</span></div>
+      </div>
+
+      <form id="adForm" class="ad-form">
+        <div class="form-row">
+          <label class="field">
+            <span data-i18n="adsAdmin.advertiser">Reklamverən</span>
+            <input type="text" id="adAdvertiser" required maxlength="120">
+          </label>
+          <label class="field">
+            <span data-i18n="adsAdmin.adTitle">Başlıq</span>
+            <input type="text" id="adTitle" required maxlength="200">
+          </label>
+        </div>
+
+        <div class="form-row">
+          <label class="field">
+            <span data-i18n="adsAdmin.body">Qısa mətn</span>
+            <input type="text" id="adBody" maxlength="400">
+          </label>
+          <label class="field">
+            <span data-i18n="adsAdmin.url">Hədəf ünvan</span>
+            <input type="url" id="adUrl" required placeholder="https://" maxlength="500">
+          </label>
+        </div>
+
+        <div class="form-row">
+          <label class="field small">
+            <span data-i18n="adsAdmin.slot">Yer</span>
+            <select id="adSlotSelect"></select>
+          </label>
+          <label class="field small">
+            <span data-i18n="adsAdmin.start">Başlanğıc</span>
+            <input type="date" id="adStart" required>
+          </label>
+          <label class="field small">
+            <span data-i18n="adsAdmin.end">Bitmə</span>
+            <input type="date" id="adEnd" required>
+          </label>
+        </div>
+
+        <div class="form-row">
+          <label class="field">
+            <span data-i18n="adsAdmin.creative">Kreativ (PNG/JPG/WEBP, max 2 MB)</span>
+            <input type="file" id="adCreative" accept=".png,.jpg,.jpeg,.webp">
+          </label>
+          <label class="check">
+            <input type="checkbox" id="adActive" checked>
+            <span data-i18n="adsAdmin.active">Aktiv</span>
+          </label>
+        </div>
+
+        <div class="actions flush">
+          <button class="btn" type="submit" id="adSubmit" data-i18n="adsAdmin.create">Sifarişi yarat</button>
+        </div>
+        <div id="adFormStatus"></div>
+      </form>
+    </section>
+
     <!-- --- Market əhatəsi (D15) ---
          «Hansı marketin datası var, nə qədər, nə vaxt gəlib?» sualının
          YEGANƏ yeri. Aktivləşdirmə düyməsi yoxdur: market datası düşən kimi
@@ -644,12 +729,14 @@
 <script src="/static/app.js"></script>
 <script src="/static/store-grid.js"></script>
 <script src="/static/deals.js"></script>
+<script src="/static/ads.js"></script>
 <script src="/static/advisor.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="/static/scrape.js"></script>
 <script src="/static/analytics.js"></script>
 <script src="/static/review.js"></script>
 <script src="/static/coverage.js"></script>
+<script src="/static/ads-admin.js"></script>
 <script src="/static/profile.js"></script>
 </body>
 </html>

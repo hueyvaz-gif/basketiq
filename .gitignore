@@ -22,3 +22,7 @@ data/cache/
 # Kataloqdan kesilen mehsul sekilleri generasiya olunur (tools/build_images.py)
 app/static/images/products/*
 !app/static/images/products/.gitkeep
+
+# Yuklenen reklam kreativleri generasiya olunur; numune banner repoda qalir
+app/static/images/ads/*
+!app/static/images/ads/sample-banner.svg

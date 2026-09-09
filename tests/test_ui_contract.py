@@ -243,10 +243,12 @@ SCRIPT_PAGES = {
         "app.js",
         "store-grid.js",
         "deals.js",
+        "ads.js",
         "advisor.js",
         "analytics.js",
         "review.js",
         "coverage.js",
+        "ads-admin.js",
         "scrape.js",
         "profile.js",
     ],
@@ -586,22 +588,31 @@ def test_hər_silmə_sorğusu_təsdiqin_arxasındadır():
     Bu test STATİKDİR — kodun formasını yoxlayır, davranışı yox. Davranış
     brauzerdə ayrıca yoxlanılıb (bax `logs/notes.md`).
     """
-    lines = read_static("app.js").splitlines()
-    silmələr = [i for i, line in enumerate(lines) if 'method: "DELETE"' in line]
-    assert len(silmələr) >= 3, f"3 silmə sorğusu gözlənilirdi, {len(silmələr)} tapıldı"
+    # BÜTÜN skriptlər yoxlanılır, təkcə `app.js` deyil.
+    #
+    # Əvvəl yalnız `app.js` oxunurdu və qayda yeni fayla KEÇMİRDİ: reklam
+    # meneceri (`ads-admin.js`) öz silmə düyməsini təsdiqsiz yaza bilərdi və
+    # test yenə yaşıl keçərdi.
+    tapılan = 0
+    for name in sorted(path.name for path in STATIC.glob("*.js")):
+        lines = read_static(name).splitlines()
+        silmələr = [i for i, line in enumerate(lines) if 'method: "DELETE"' in line]
+        tapılan += len(silmələr)
 
-    for i in silmələr:
-        qeydiyyat = None
-        for j in range(i, -1, -1):
-            if "armDeleteButton(" in lines[j]:
-                qeydiyyat = "armDeleteButton"
-                break
-            if 'addEventListener("click"' in lines[j]:
-                qeydiyyat = "addEventListener"
-                break
-        assert qeydiyyat == "armDeleteButton", (
-            f"{i + 1}-ci sətirdəki silmə təsdiqin arxasında deyil: {lines[i].strip()!r}"
-        )
+        for i in silmələr:
+            qeydiyyat = None
+            for j in range(i, -1, -1):
+                if "armDeleteButton(" in lines[j]:
+                    qeydiyyat = "armDeleteButton"
+                    break
+                if 'addEventListener("click"' in lines[j]:
+                    qeydiyyat = "addEventListener"
+                    break
+            assert qeydiyyat == "armDeleteButton", (
+                f"{name}:{i + 1} silmə təsdiqin arxasında deyil: {lines[i].strip()!r}"
+            )
+
+    assert tapılan >= 3, f"3 silmə sorğusu gözlənilirdi, {tapılan} tapıldı"
 
 
 def test_təsdiq_ikinci_kliki_gözləyir():

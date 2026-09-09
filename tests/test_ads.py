@@ -1,0 +1,288 @@
+"""
+REKLAM SİSTEMİ (E19-E24).
+
+BU BÖLMƏDƏ SƏHVİN QİYMƏTİ ADİDƏN BAHADIR, çünki iki tərəfə birdən dəyir:
+
+  - İSTİFADƏÇİYƏ: reklam endirim kimi görünsə, sayt öz yeganə vədini -
+    «qiymətlər yoxlanılıb» - pozur;
+  - REKLAMVERƏNƏ: müddəti bitmiş sifariş göstərilsə və ya klik sayılmasa,
+    hesabat yalan olur.
+
+Ona görə testlərin yarısı VAXT şərtinə, yarısı isə sayğaclara baxır.
+"""
+
+import uuid
+from datetime import date, timedelta
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app.ads import (
+    SLOTS,
+    create_ad,
+    current_ad,
+    delete_ad,
+    list_ads,
+    record_click,
+    record_impression,
+    seed_sample_ad,
+    update_ad,
+)
+from app.config import settings
+from app.db import db_cursor
+from app.main import app
+
+client = TestClient(app)
+
+BUGÜN = date.today()
+DÜNƏN = (BUGÜN - timedelta(days=1)).isoformat()
+SABAH = (BUGÜN + timedelta(days=1)).isoformat()
+KEÇƏN_HƏFTƏ = (BUGÜN - timedelta(days=7)).isoformat()
+GƏLƏN_HƏFTƏ = (BUGÜN + timedelta(days=7)).isoformat()
+
+
+@pytest.fixture(autouse=True)
+def təmiz_lövhə():
+    """Hər test öz sifarişləri ilə işləyir - başqasının qalığı nəticəni pozmasın."""
+    with db_cursor() as cur:
+        cur.execute("DELETE FROM ads")
+    yield
+    with db_cursor() as cur:
+        cur.execute("DELETE FROM ads")
+
+
+def _sifariş(**fərq) -> int:
+    sahələr = {
+        "advertiser": "Test Reklamverən",
+        "title": f"Sifariş {uuid.uuid4().hex[:6]}",
+        "target_url": "https://example.com/kampaniya",
+        "slot": "home-banner",
+        "starts_at": DÜNƏN,
+        "ends_at": SABAH,
+    }
+    sahələr.update(fərq)
+    return create_ad(**sahələr)
+
+
+# ------------------------------------------------------- vaxt və vəziyyət
+
+
+def test_aktiv_və_vaxtında_olan_reklam_göstərilir():
+    _sifariş()
+    assert current_ad("home-banner") is not None
+
+
+def test_müddəti_bitmiş_reklam_göstərilmir():
+    """
+    ƏSAS QAYDA (E21). Admin söndürməyi unutsa belə, ödənilməyən günlərdə
+    reklam ekranda qalmamalıdır - bu, reklamverənə verilən sözün texniki
+    təminatıdır.
+    """
+    _sifariş(starts_at=KEÇƏN_HƏFTƏ, ends_at=DÜNƏN)
+    assert current_ad("home-banner") is None
+
+
+def test_hələ_başlamamış_reklam_göstərilmir():
+    _sifariş(starts_at=SABAH, ends_at=GƏLƏN_HƏFTƏ)
+    assert current_ad("home-banner") is None
+
+
+def test_söndürülmüş_reklam_göstərilmir():
+    _sifariş(active=False)
+    assert current_ad("home-banner") is None
+
+
+def test_vaxt_şərti_ilə_aktivlik_şərti_AYRI_AYRI_işləyir():
+    """
+    İki şərt VƏ ilə birləşir. Biri unudulsaydı, ya söndürülmüş reklam
+    görünərdi, ya müddəti bitmiş - hər ikisi səssiz səhvdir.
+    """
+    _sifariş(active=False, starts_at=DÜNƏN, ends_at=SABAH)   # yalnız vaxt uyğun
+    _sifariş(active=True, starts_at=KEÇƏN_HƏFTƏ, ends_at=DÜNƏN)  # yalnız aktivlik uyğun
+    assert current_ad("home-banner") is None
+
+
+def test_bir_neçə_uyğun_sifarişdən_ən_yenisi_seçilir():
+    """Admin yeni sifariş yazanda onun dərhal işə düşməsini gözləyir."""
+    _sifariş(title="köhnə")
+    yeni = _sifariş(title="yeni")
+    assert current_ad("home-banner")["id"] == yeni
+
+
+def test_naməlum_slot_reklam_qaytarmır():
+    """
+    Slot adları KODDA sabitdir. Bazadan gələn sərbəst mətn səhifədə yeni yer
+    aça bilməz - əks halda səhv yazılmış slot reklamı gözlənilməz yerdə
+    göstərərdi.
+    """
+    with pytest.raises(ValueError):
+        _sifariş(slot="uydurma-yer")
+    assert current_ad("uydurma-yer") is None
+
+
+def test_bitmə_tarixi_başlanğıcdan_əvvəl_ola_bilməz():
+    with pytest.raises(ValueError):
+        _sifariş(starts_at=SABAH, ends_at=DÜNƏN)
+
+
+# ----------------------------------------------------------------- sayğaclar
+
+
+def test_göstərim_endpoint_də_sayılır():
+    """Hesabat rəqəmi serverdə artır: JS sönük olsa da hesabat işləyir."""
+    ad_id = _sifariş()
+    client.get("/api/ads/slot/home-banner")
+    client.get("/api/ads/slot/home-banner")
+    sifarişlər = {a["id"]: a for a in list_ads()}
+    assert sifarişlər[ad_id]["impressions"] == 2
+
+
+def test_boş_slot_göstərim_saymır():
+    """Sayılacaq reklam yoxdursa, rəqəm də yaranmamalıdır."""
+    client.get("/api/ads/slot/home-banner")
+    assert list_ads() == []
+
+
+def test_klik_sayılır_və_yönləndirir():
+    ad_id = _sifariş(target_url="https://example.com/hedef")
+    res = client.get(f"/api/ads/{ad_id}/click", follow_redirects=False)
+    assert res.status_code == 307
+    assert res.headers["location"] == "https://example.com/hedef"
+    assert {a["id"]: a for a in list_ads()}[ad_id]["clicks"] == 1
+
+
+def test_veb_olmayan_hədəf_yönləndirilmir():
+    """
+    `javascript:` sxemi bazaya düşsəydi, klik keçidi skript icrasına
+    çevrilərdi. Sayğac artır (klik həqiqətən baş verib), yönləndirmə isə yox.
+    """
+    ad_id = _sifariş(target_url="javascript:alert(1)")
+    assert client.get(f"/api/ads/{ad_id}/click", follow_redirects=False).status_code == 400
+
+
+def test_olmayan_reklama_klik_404_verir():
+    assert client.get("/api/ads/999999/click", follow_redirects=False).status_code == 404
+
+
+def test_sayğaclar_əl_ilə_redaktə_oluna_bilmir():
+    """
+    Hesabat rəqəmini admin panelindən dəyişmək mümkün olsaydı, hesabatın
+    özü mənasız olardı - rəqəm ölçmə deyil, iddia olardı.
+    """
+    ad_id = _sifariş()
+    with pytest.raises(ValueError):
+        update_ad(ad_id, impressions=1000)
+    with pytest.raises(ValueError):
+        update_ad(ad_id, clicks=1000)
+
+
+# --------------------------------------------------------------- admin səthi
+
+
+def test_admin_səthi_qapının_arxasındadır():
+    """Sifariş yaratmaq saytın inventarını dəyişir - ictimai ola bilməz."""
+    əvvəlki = settings.admin_enabled
+    settings.admin_enabled = False
+    try:
+        assert client.get("/api/admin/ads").status_code == 404
+        assert client.post("/api/admin/ads", json={}).status_code == 404
+    finally:
+        settings.admin_enabled = əvvəlki
+
+
+def test_ictimai_slot_qapıdan_asılı_deyil():
+    """
+    Reklam admin bağlı olanda da göstərilməlidir - əks halda istehsalda
+    (`ADMIN_ENABLED=0`) bütün reklamlar yox olardı.
+    """
+    _sifariş()
+    əvvəlki = settings.admin_enabled
+    settings.admin_enabled = False
+    try:
+        res = client.get("/api/ads/slot/home-banner")
+        assert res.status_code == 200 and res.json()["ad"] is not None
+    finally:
+        settings.admin_enabled = əvvəlki
+
+
+def test_sifariş_endpoint_ilə_yaradılır_və_silinir():
+    res = client.post(
+        "/api/admin/ads",
+        json={
+            "advertiser": "Endpoint Reklamverən",
+            "title": "Endpoint sifarişi",
+            "target_url": "https://example.com",
+            "slot": "home-banner",
+            "starts_at": DÜNƏN,
+            "ends_at": SABAH,
+        },
+    )
+    assert res.status_code == 200
+    ad_id = res.json()["id"]
+    assert current_ad("home-banner")["id"] == ad_id
+
+    assert client.delete(f"/api/admin/ads/{ad_id}").status_code == 200
+    assert current_ad("home-banner") is None
+
+
+def test_dayandırma_reklamı_ekrandan_çıxarır():
+    ad_id = _sifariş()
+    client.patch(f"/api/admin/ads/{ad_id}", json={"active": False})
+    assert current_ad("home-banner") is None
+
+    client.patch(f"/api/admin/ads/{ad_id}", json={"active": True})
+    assert current_ad("home-banner") is not None
+
+
+def test_naməlum_slota_redaktə_qəbul_edilmir():
+    ad_id = _sifariş()
+    assert client.patch(f"/api/admin/ads/{ad_id}", json={"slot": "uydurma"}).status_code == 400
+
+
+def test_olmayan_sifarişin_silinməsi_404_verir():
+    assert client.delete("/api/admin/ads/999999").status_code == 404
+    assert delete_ad(999999) is False
+
+
+def test_slot_reyestri_cavabda_gəlir():
+    """Admin forması slot siyahısını KODDAN alır, HTML-də sabit saxlamır."""
+    slots = {s["key"] for s in client.get("/api/admin/ads").json()["slots"]}
+    assert slots == set(SLOTS)
+
+
+# ------------------------------------------------------------ nümunə sifariş
+
+
+def test_nümunə_sifariş_boş_bazada_yaranır():
+    """E24: slot canlı nümunə ilə gəlir ki, yer boş görünməsin."""
+    assert seed_sample_ad() is not None
+    ad = current_ad("home-banner")
+    assert ad["advertiser"] == "Araz Market"
+    assert ad["is_sample"] is True
+
+
+def test_nümunə_sifariş_təkrar_yaranmır():
+    """
+    İdempotentlik: admin nümunəni silsə, o, növbəti başlanğıcda geri
+    qayıtmamalıdır - əks halda silmək mümkünsüz görünərdi.
+    """
+    seed_sample_ad()
+    assert seed_sample_ad() is None
+    assert len(list_ads()) == 1
+
+
+def test_nümunə_real_sifarişdən_ayrılır():
+    """
+    Nişan olmasaydı, hesabatda nümunə ödənişli müştəri kimi sayılardı və
+    «reklamımız neçə klik aldı?» sualının cavabı yanlış çıxardı.
+    """
+    seed_sample_ad()
+    real = _sifariş()
+    sifarişlər = {a["id"]: a for a in list_ads()}
+    assert sifarişlər[real]["is_sample"] is False
+    assert any(a["is_sample"] for a in sifarişlər.values())
+
+
+def test_sayğac_funksiyaları_olmayan_sifarişə_toxunmur():
+    record_impression(999999)      # xəta atmamalıdır
+    assert record_click(999999) is None
