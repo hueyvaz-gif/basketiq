@@ -442,6 +442,27 @@
       </div>
     </section>
 
+    <!-- --- Karantin növbəsi (C12) ---
+         Sağlamlıq yoxlaması şübhəli qiyməti istifadəçidən gizlədir. Gizlətmək
+         isə tək başına kifayət deyil: yanlış-müsbət (real bahalı məhsul) yalnız
+         insan baxışı ilə üzə çıxır. Ona görə növbə burada açılır — nə tutulub,
+         hansı səbəbdən, hansı sətirdən. -->
+    <section class="card" aria-labelledby="reviewTitle">
+      <div class="card-head">
+        <div class="head-row">
+          <svg aria-hidden="true"><use href="#icon-shield"></use></svg>
+          <h2 class="section-heading" id="reviewTitle" data-i18n="review.title">Karantin növbəsi</h2>
+        </div>
+      </div>
+      <p class="section-sub" data-i18n="review.sub">
+        Sağlamlıq yoxlamasından keçməyən qiymətlər. Bu sətirlər istifadəçiyə
+        göstərilmir; baxıb təsdiqləsən, yenidən ekrana qayıdır.
+      </p>
+      <div id="reviewList">
+        <div class="row"><span class="row-label skeleton">Yüklənir</span></div>
+      </div>
+    </section>
+
     <!-- --- Mənbədən çəkmə --- -->
     <section class="card" aria-labelledby="sourceTitle">
       <div class="card-head">
@@ -598,6 +619,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="/static/scrape.js"></script>
 <script src="/static/analytics.js"></script>
+<script src="/static/review.js"></script>
 <script src="/static/profile.js"></script>
 </body>
 </html>

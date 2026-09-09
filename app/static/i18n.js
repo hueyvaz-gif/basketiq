@@ -236,6 +236,54 @@
       en: "The user panel above is fed by the catalogues here: fetch from a source or upload manually, then process with AI.",
       ru: "Пользовательская панель выше питается этими каталогами: загрузите из источника или вручную, затем обработайте ИИ.",
     },
+    // ------------------------------------------------- KARANTİN NÖVBƏSİ (C12)
+    // Bayraq adları bazada İNGİLİS açarları kimi saxlanılır
+    // (`ingestion/quality.py`); ekranda görünən mətn yalnız burada yaşayır.
+    "flag.deepDiscount": {
+      az: "Dərin endirim",
+      en: "Deep discount",
+      ru: "Глубокая скидка",
+    },
+    "flag.priceOutlier": {
+      az: "Qiymət tarixçədən kənar",
+      en: "Price outlier",
+      ru: "Цена вне истории",
+    },
+    "flag.unitOutlier": {
+      az: "Vahid qiyməti normadan kənar",
+      en: "Unit price outlier",
+      ru: "Цена за единицу вне нормы",
+    },
+
+    "review.title": {
+      az: "Karantin növbəsi",
+      en: "Quarantine queue",
+      ru: "Очередь на проверку",
+    },
+    "review.sub": {
+      az: "Sağlamlıq yoxlamasından keçməyən qiymətlər. Bu sətirlər istifadəçiyə göstərilmir; baxıb təsdiqləsən, yenidən ekrana qayıdır.",
+      en: "Prices that failed the sanity check. They are hidden from users; approve one and it returns to the site.",
+      ru: "Цены, не прошедшие проверку. Пользователям они не показываются; после подтверждения возвращаются на сайт.",
+    },
+    "review.empty": {
+      az: "Baxış gözləyən sətir yoxdur.",
+      en: "Nothing is waiting for review.",
+      ru: "Нет строк, ожидающих проверки.",
+    },
+    "review.total": {
+      az: "{n} sətir baxış gözləyir",
+      en: "{n} rows awaiting review",
+      ru: "{n} строк ожидают проверки",
+    },
+    "review.approve": { az: "Təsdiqlə", en: "Approve", ru: "Подтвердить" },
+    "review.approved": { az: "Təsdiqləndi", en: "Approved", ru: "Подтверждено" },
+    "review.loadError": {
+      az: "Növbə yüklənmədi.",
+      en: "Could not load the queue.",
+      ru: "Не удалось загрузить очередь.",
+    },
+    "review.was": { az: "əvvəl", en: "was", ru: "было" },
+
     "admin.statusTitle": { az: "Sistem statusu", en: "System status", ru: "Состояние системы" },
     "admin.scrapeTitle": { az: "Mənbədən avtomatik çək", en: "Fetch automatically from a source", ru: "Автоматическая загрузка из источника" },
     "admin.scrapeSub": {

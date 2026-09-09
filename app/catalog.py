@@ -264,6 +264,10 @@ def todays_deals(limit: int = 12) -> dict:
             WHERE pr.store_id IN ({store_marks})
               AND pr.old_price IS NOT NULL
               AND pr.old_price > pr.price
+              -- KARANTİN (C12): sağlamlıq yoxlamasından keçməyən sətir
+              -- «bugünün endirimləri» siyahısına BURAXILMIR. Sətir bazada
+              -- qalır və admin panelində görünür - orada insan qərar verir.
+              AND (pr.flags IS NULL OR pr.flags = '')
             ORDER BY pr.seen_at, pr.id
             """,
             tuple(markets),

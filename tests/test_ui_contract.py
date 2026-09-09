@@ -194,6 +194,7 @@ SCRIPT_PAGES = {
         "deals.js",
         "advisor.js",
         "analytics.js",
+        "review.js",
         "scrape.js",
         "profile.js",
     ],
@@ -766,3 +767,55 @@ def test_backend_azərbaycanca_mətni_də_göndərir():
     açarlar = [p["key"] for p in profil.summary_keys()]
     assert "sum.household" in açarlar
     assert len(açarlar) >= 3
+
+
+# ============================================================================
+# MARKET LOQOLARI (C13)
+# ============================================================================
+
+LOQO_SINIFLƏRI = (".store-logo-box", ".pricecol-logo", ".wtb-logo")
+
+
+def test_loqo_qutuları_tək_nisbətdən_qidalanır():
+    """
+    Loqo dörd yerdə görünür: market şəbəkəsi, market səhifəsinin başlığı,
+    endirim kartının qiymət sütunu, «harada almalı» cədvəli. Əvvəl dördünün
+    də nisbəti fərqli idi (3.5:1, 1.3:1, 3.4:1, 3.8:1) və eyni loqo bir
+    yerdə enli, başqa yerdə kvadrat görünürdü.
+
+    Qayda: ölçü YALNIZ hündürlükdən gəlir, eni `--logo-ratio` hesablayır.
+    Hər hansı qaydaya bərk `width` qayıtsa, nisbət yenidən ayrılar.
+    """
+    css = read_static("style.css")
+    assert "--logo-ratio:" in css, "loqo nisbəti tokeni yoxdur"
+
+    for sinif in LOQO_SINIFLƏRI:
+        blok = re.search(rf"\n{re.escape(sinif)}\s*\{{(.*?)\}}", css, re.S)
+        assert blok, f"{sinif} qaydası tapılmadı"
+        gövdə = blok.group(1)
+        assert "aspect-ratio: var(--logo-ratio)" in gövdə, f"{sinif} ümumi nisbəti işlətmir"
+        # `(?<![-\w])` olmasa `max-width: 100%` da «bərk en» kimi oxunur —
+        # halbuki o, əksinə, qutunun dar ekranda kiçilməsini təmin edir.
+        assert not re.search(r"(?<![-\w])width:\s*\d", gövdə), (
+            f"{sinif} bərk en yazır — nisbət qırılır"
+        )
+
+
+def test_loqo_faylları_eyni_nisbətdədir():
+    """
+    CSS qutunu bərabərləşdirir, faylların özü isə bərabər olmasa fayda yoxdur:
+    `object-fit: contain` boşluğu da şəkil sayır. Əvvəl `rahat.png`-in ~78%-i
+    boş ağ sahə idi və eyni qutuda o, `bazar.png`-dən iki dəfə kiçik görünürdü.
+
+    `tools/normalize_logos.py` hamısını 4:1 kətana, BƏRABƏR MÜRƏKKƏB SAHƏSİ
+    ilə yerləşdirir. Yeni market əlavə edən həmin aləti işlətməlidir.
+    """
+    from PIL import Image
+
+    qovluq = Path(__file__).resolve().parent.parent / "app" / "static" / "images"
+    fayllar = sorted(qovluq.glob("*.png"))
+    assert len(fayllar) >= 4, "market loqoları tapılmadı"
+
+    for f in fayllar:
+        en, hünd = Image.open(f).size
+        assert abs(en / hünd - 4.0) < 0.02, f"{f.name} nisbəti 4:1 deyil ({en}x{hünd})"

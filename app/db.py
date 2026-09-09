@@ -255,6 +255,15 @@ def _migrate(conn: sqlite3.Connection) -> None:
         if column not in columns:
             conn.execute(ddl)
 
+    # --- prices.flags: sağlamlıq yoxlamasının nəticəsi (C12) ---
+    #
+    # Şübhəli sətir SİLİNMİR, nişanlanır: silinsəydi səhvi araşdırmaq mümkün
+    # olmazdı. Sütun JSON siyahı saxlayır (`["deepDiscount"]`); boş və ya NULL
+    # = sətir təmizdir. Bayraqların mənası `ingestion/quality.py`-dədir.
+    price_columns = {r[1] for r in conn.execute("PRAGMA table_info(prices)")}
+    if "flags" not in price_columns:
+        conn.execute("ALTER TABLE prices ADD COLUMN flags TEXT")
+
     # Sütun mövcud olduqdan SONRA indeks
     conn.execute("CREATE INDEX IF NOT EXISTS idx_products_group ON products(group_key)")
     # Barkod UNİKAL DEYİL: eyni barkod fərqli marketlərdə ayrı `products`

@@ -10,6 +10,7 @@ sətirləri BİR-BİR göndəririk - qruplaşdırsaq, cavabların sırası pozul
 və qiymət səhv məhsula yapışar.
 """
 
+import json
 import re
 from dataclasses import dataclass
 
@@ -18,6 +19,7 @@ from app.db import db_cursor, get_connection
 from app.models import ExtractedProduct
 from ingestion.cleaner import clean_text
 from ingestion.normalize import canonical_key, unit_price
+from ingestion.quality import check_price
 
 
 @dataclass
@@ -169,10 +171,19 @@ def save_products(products: list[ExtractedProduct], store_id: int, catalog_id: i
             )
             product_id = cur.fetchone()[0]
 
+            # SAĞLAMLIQ YOXLAMASI (C12): şübhəli sətir bazaya DÜŞÜR, amma
+            # nişanlanır. Atsaydıq, səhvi araşdırmaq mümkün olmazdı; nişansız
+            # buraxsaydıq, zibil «bugünün endirimləri» siyahısına çıxardı.
+            # Hədlər və izahları: `ingestion/quality.py`.
+            flags = check_price(
+                price=product.price,
+                old_price=product.old_price,
+                unit_price=product.unit_price,
+            )
             cur.execute(
                 "INSERT INTO prices (product_id, store_id, catalog_id, price, old_price, "
-                "                    unit_price, raw_line) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "                    unit_price, raw_line, flags) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     product_id,
                     store_id,
@@ -181,6 +192,7 @@ def save_products(products: list[ExtractedProduct], store_id: int, catalog_id: i
                     product.old_price,
                     product.unit_price,
                     product.raw_line,
+                    json.dumps(flags) if flags else None,
                 ),
             )
 

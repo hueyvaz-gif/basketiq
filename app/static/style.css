@@ -121,6 +121,24 @@
   --content: 1024px;
   --measure: 68ch;
 
+  /* --- Market loqoları: TƏK ölçü sistemi -------------------------------
+     Əvvəl dörd müstəqil qayda vardı və hər birinin nisbəti fərqli idi:
+     kart qutusu 100%x72 (~3.5:1), market səhifəsi 120x90 (1.3:1), qiymət
+     sütunu 62x18 (3.4:1), «harada almalı» sətri 100x26 (3.8:1). Nəticə:
+     eyni loqo bir yerdə enli, başqa yerdə kvadrat görünürdü.
+
+     İndi qutu HƏMİŞƏ 4:1-dir, dəyişən yalnız hündürlükdür. Fayllar da
+     eyni nisbətə gətirilib (`tools/normalize_logos.py`), yəni `contain`
+     hamısını qutunun tam ölçüsündə çəkir - boşluq qalmır.
+
+     Eni yazmırıq, `aspect-ratio` hesablayır: gələcəkdə hündürlüyü
+     dəyişmək bir yerdə kifayətdir. */
+  --logo-ratio: 4 / 1;
+  --logo-h-sm: 18px;    /* endirim kartının qiymət sütunu */
+  --logo-h-md: 26px;    /* «harada almalı» cədvəli */
+  --logo-h-lg: 52px;    /* market şəbəkəsindəki kart */
+  --logo-h-xl: 64px;    /* market səhifəsinin başlığı */
+
   /* SF ailəsi sistemdən gəlir - şəbəkədən şrift YÜKLƏNMİR.
      Apple saytı da məhz belə edir: San Francisco əməliyyat sistemindədir,
      olmayan yerdə Helvetica Neue -> Arial zəncirinə düşür. */
@@ -1086,6 +1104,36 @@ a.btn { text-decoration: none; }
 .row-label { font-size: 14px; }
 .row-value { font-size: 14px; font-weight: 700; color: var(--text-2); text-align: right; }
 
+/* --- Karantin növbəsi (C12) ---
+   Sətrin sağ tərəfi burada üç element daşıyır: qiymət, səbəb nişanları və
+   təsdiq düyməsi. Ümumi `.row` bir sətir mətn üçün qurulub, ona görə dar
+   ekranda bu hissə sarınmalıdır - əks halda düymə kartdan kənara çıxır. */
+.row.is-review { align-items: flex-start; }
+.row.is-review .row-value {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--s2);
+}
+
+/* Xam OCR sətri - səbəbin YEGANƏ sübutudur: admin «129 ₼» rəqəmini görəndə
+   kataloqda əslində nə yazıldığını yoxlaya bilir. Ona görə kəsilmir,
+   sadəcə sakit rənglə və monospace ilə verilir. */
+.row-raw {
+  display: block;
+  margin-top: 4px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--text-3);
+  word-break: break-word;
+}
+
+.row-note { color: var(--text-3); font-weight: 400; }
+
+/* Təsdiqlənmiş sətir yerində qalır (siyahı sürüşməsin), amma sönükləşir. */
+.row.is-done { opacity: .55; }
+
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: var(--r-pill); margin-right: var(--s2); background: var(--text-3); }
 .dot.ok { background: var(--ok); }
 .dot.warn { background: var(--info); }
@@ -1523,13 +1571,21 @@ code {
 .store-logo-box {
   display: grid;
   place-items: center;
-  width: 100%;
-  height: 72px;
-  margin-bottom: var(--s2);
+  /* Eni MƏHDUDLAŞDIRICIDIR, hündürlük ondan çıxır.
+     Əvvəl əksi idi (`height` + `aspect-ratio`) və ölçüldü ki, dar kartda
+     `max-width` eni 160px-ə salsa da hündürlük 52px qalırdı: qutu 160x52,
+     içindəki loqo isə 160x40 - 12px ölü boşluq. `width` + `aspect-ratio`
+     bu boşluğu tamamilə silir. */
+  width: min(100%, calc(var(--logo-h-lg) * var(--logo-ratio)));
+  aspect-ratio: var(--logo-ratio);
+  margin: 0 auto var(--s2);
   overflow: hidden;
 }
 
-.store-logo-box.is-lg { width: 120px; height: 90px; margin-bottom: 0; }
+.store-logo-box.is-lg {
+  width: min(100%, calc(var(--logo-h-xl) * var(--logo-ratio)));
+  margin: 0;
+}
 
 /* `max-width/max-height: 100%` BURADA KİFAYƏT ETMİR — real səhvdən çıxıb.
    Şəkil grid elementidir, grid elementinin isə `min-height` defoltu `auto`-dur:
@@ -1577,10 +1633,13 @@ code {
 
 .store-card-meta.is-soon-text { font-style: italic; }
 
-/* Mobil ekranda kartlar alt-alta düzülür: 2 sütunda loqo çox kiçilir. */
+/* Mobil ekranda kartlar alt-alta düzülür: 2 sütunda loqo çox kiçilir.
+
+   Loqo qutusuna AYRICA mobil ölçü lazım deyil: qutu artıq sabit 4:1-dir və
+   `max-width: 100%` onu dar ekranda özü kiçildir. Əvvəl `height: 60px`
+   yazılırdı, çünki qutunun eni kartın eninə bağlı idi - o bağlılıq getdi. */
 @media (max-width: 600px) {
   .store-grid { grid-template-columns: 1fr; }
-  .store-logo-box { height: 60px; }
 }
 
 
@@ -1938,9 +1997,14 @@ code {
 /* Market qiymət sütunları: loqo üstdə, qiymət altda - yan-yana. */
 .pricecols { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: 5px; }
 
-.pricecol { display: flex; flex-direction: column; gap: 3px; min-width: 62px; }
+.pricecol { display: flex; flex-direction: column; gap: 3px; min-width: 72px; }
 
-.pricecol-logo { width: 62px; height: 18px; object-fit: contain; object-position: left center; }
+.pricecol-logo {
+  height: var(--logo-h-sm);
+  aspect-ratio: var(--logo-ratio);
+  object-fit: contain;
+  object-position: left center;
+}
 
 .pricecol-name { font-size: 12px; font-weight: 700; color: var(--text-2); }
 
@@ -1960,8 +2024,8 @@ code {
   .deal-row { grid-template-columns: 22px 88px minmax(0, 1fr); gap: var(--s2); }
   .deal-photo { width: 88px; height: 88px; }
   .pricecols { gap: var(--s2); }
-  .pricecol { min-width: 54px; }
-  .pricecol-logo { width: 54px; }
+  .pricecol { min-width: 64px; }
+  .pricecol-logo { height: 16px; }   /* nisbət qorunur, yalnız hündürlük */
 }
 
 
@@ -2070,7 +2134,12 @@ code {
 
 .wtb-row:first-child { border-top: 0; }
 
-.wtb-logo { width: 100px; height: 26px; object-fit: contain; object-position: left center; }
+.wtb-logo {
+  height: var(--logo-h-md);
+  aspect-ratio: var(--logo-ratio);
+  object-fit: contain;
+  object-position: left center;
+}
 .wtb-name { font-size: 15px; font-weight: 700; }
 
 .wtb-now {
@@ -2249,7 +2318,7 @@ code {
   .wtb-store { grid-area: store; }
   .wtb-price { grid-area: price; }
   .wtb-tags { grid-area: tags; justify-content: flex-start; }
-  .wtb-logo { width: 76px; }
+  .wtb-logo { height: 20px; }        /* 80x20 - sütun 84px-dir */
   .searchbar.is-compact { display: none; }
 }
 
