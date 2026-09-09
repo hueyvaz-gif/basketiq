@@ -10,9 +10,10 @@ Emal məntiqi özü burada DEYİL - `ingestion/ingest.py`-dədir, çünki eyni
 məntiqi scraper də işlədir. Bu fayl yalnız HTTP qatıdır.
 """
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from app.config import settings
+from app.security import require_admin
 from app.db import db_cursor, get_connection
 from ingestion.cleaner import clean_text
 from ingestion.ingest import (  # noqa: F401  (slugify/get_or_create_store xaricdən də işlənir)
@@ -26,7 +27,10 @@ from ingestion.ingest import (  # noqa: F401  (slugify/get_or_create_store xaric
 )
 from ingestion.pipeline import extract_catalog
 
-router = APIRouter(prefix="/api/catalogs", tags=["catalogs"])
+# ADMİN SƏTHİ (B11): panel bağlı olanda bütün endpoint-lər 404 qaytarır.
+# Qapı ROUTER səviyyəsindədir - yeni endpoint əlavə edən onu ayrıca
+# qorumağı unuda bilməz.
+router = APIRouter(prefix="/api/catalogs", tags=["catalogs"], dependencies=[Depends(require_admin)])
 
 
 # ------------------------------------------------------------------ endpoint-lər

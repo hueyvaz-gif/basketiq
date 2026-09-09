@@ -99,6 +99,19 @@ class Settings:
     app_port: int = _int("APP_PORT", 8000)
     ingest_api_key: str = _str("INGEST_API_KEY", "dev-secret-change-me")
 
+    # ADMİN PANELİ (B11) — istehsalda BAĞLIDIR.
+    #
+    # Panel kataloq yükləyir, mənbədən çəkir, kataloq silir və karantin
+    # qərarı verir. Bunlar saytın datasını dəyişən əməliyyatlardır; ictimai
+    # keçid arxasında qalması o deməkdir ki, ünvanı bilən hər kəs onları
+    # işlədə bilər. Layihədə istifadəçi hesabı yoxdur, ona görə qapı ən
+    # sadə formadadır: mühit dəyişəni.
+    #
+    # DEFOLT MÜHİTDƏN ASILIDIR: developmentdə açıq (yerli iş dayanmasın),
+    # productionda bağlı. `ADMIN_ENABLED=1` istehsalda da açır - bu, ŞÜURLU
+    # qərar tələb edir.
+    admin_enabled: bool = _bool("ADMIN_ENABLED", _str("APP_ENV", "development") != "production")
+
     # --- Yollar ---
     # Yazılan hər şey DATA_DIR altındadır: baza, xam kataloqlar, OCR mətni, keş.
     # Deployment-də bu, tək volume kimi bağlanır (bax: deploy/README.md).

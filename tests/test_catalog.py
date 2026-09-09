@@ -109,6 +109,30 @@ def test_reyestr_dörd_marketdən_ibarətdir():
     assert names == {"Araz Market", "Bravo Market", "Bazar Store", "Rahat Market"}
 
 
+
+def test_datası_olan_market_şəbəkənin_başındadır(markets):
+    """
+    B9: ana səhifədəki market şəbəkəsində dolu marketlər öndə gəlir.
+
+    Sıra əvvəl reyestrdən gəlirdi və TƏSADÜFƏN doğru idi (Araz və Bravo
+    reyestrdə onsuz da birinci iki yerdədir). Bazar Store əvvəl dolsaydı,
+    şəbəkənin ilk kartı «Tezliklə» olardı - istifadəçi ilk gördüyü kartı
+    saytın ümumi vəziyyəti kimi oxuyur.
+    """
+    sıra = [m["available"] for m in market_status()]
+    assert sıra == sorted(sıra, reverse=True), "boş market dolu marketdən əvvəl gəlir"
+
+
+def test_eyni_qrupda_reyestr_sırası_qorunur(markets):
+    """
+    Sıralama STABİL olmalıdır: eyni vəziyyətdəki marketlər hər açılışda
+    yerini dəyişsə, istifadəçi kartları əzbərləyə bilməzdi.
+    """
+    reyestr = [m.slug for m in MARKETS]
+    dolu = [m["slug"] for m in market_status() if m["available"]]
+    assert dolu == [s for s in reyestr if s in dolu]
+
+
 def test_datası_olmayan_market_siyahıda_qalır(markets):
     """
     Bazar Store və Rahat Market üçün mənbə hələ yoxdur.

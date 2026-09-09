@@ -190,8 +190,13 @@
       </details>
     </section>
 
-<!-- --- Məhsul üzrə müqayisə + axtarış --- -->
-    <section class="card">
+<!-- --- Məhsul üzrə müqayisə + axtarış ---
+
+         `is-wide` (B8): BU kart geniş ekranda 1024px-lik sütundan kənara
+         çıxır. Səbəb yalnız burada var - cədvəlin eni məhsul adından ƏLAVƏ
+         dörd market sütunu daşıyır. Qalan bölmələr (mətn, siyahı) enə
+         ehtiyac duymur və oxunaqlıq üçün dar qalır. -->
+    <section class="card is-wide">
       <div class="card-head">
         <div class="head-row">
           <svg aria-hidden="true"><use href="#icon-package"></use></svg>
@@ -213,7 +218,7 @@
 
     <!-- --- AI tövsiyəsi + qiymət tarixçəsi yan-yana (geniş ekranda) --- -->
     <div class="duo">
-    <details class="card ai-card fold">
+    <details class="card ai-card fold is-secondary">
       <summary class="fold-head">
         <svg aria-hidden="true"><use href="#icon-sparkle"></use></svg>
         <h2 class="section-heading" id="aiTitle" data-i18n="ai.title">AI tövsiyəsi</h2>
@@ -246,8 +251,11 @@
       </div>
     </details>
 
-    <!-- --- Qiymət tarixçəsi --- -->
-    <details class="card fold">
+    <!-- --- Qiymət tarixçəsi ---
+         `is-primary` (B10): bu bölmə saytın öz vədini - «qiymət həqiqətən
+         ucuzlaşıb?» - yoxlayan yeganə alətdir. Qalan açılan bölmələr
+         köməkçidir və başlıqları kiçikdir. -->
+    <details class="card fold is-primary">
       <summary class="fold-head">
         <svg aria-hidden="true"><use href="#icon-chart"></use></svg>
         <h2 class="section-heading" id="historyTitle" data-i18n="history.title">Qiymət tarixçəsi</h2>
@@ -282,7 +290,7 @@
     </div>
 
     <!-- --- Endirim yoxlaması --- -->
-    <details class="card fold">
+    <details class="card fold is-secondary">
       <summary class="fold-head">
         <svg aria-hidden="true"><use href="#icon-shield"></use></svg>
         <h2 class="section-heading" id="discountTitle" data-i18n="discount.title">Endirim yoxlaması</h2>
@@ -303,7 +311,7 @@
     </details>
 
     <!-- --- Profil --- -->
-    <details class="card fold">
+    <details class="card fold is-secondary">
       <summary class="fold-head">
         <svg aria-hidden="true"><use href="#icon-gear"></use></svg>
         <h2 class="section-heading" id="profileTitle" data-i18n="profile.title">Profil və parametrlər</h2>

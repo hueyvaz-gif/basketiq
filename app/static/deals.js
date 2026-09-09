@@ -11,8 +11,8 @@
 // başlayır və nömrə bunu göz üçün təsdiqləyir.
 //
 // ŞƏKİL: `products.image_path` kataloq səhifəsindən kəsilir
-// (`ingestion/images.py`). Şəkli olmayan məhsul neytral placeholder alır -
-// uydurma foto qoyulmur.
+// (`ingestion/images.py`). Şəkli olmayan məhsul KATEQORİYA lövhəsi alır
+// (`productThumb`, ui.js) - uydurma foto qoyulmur.
 
 (() => {
   const grid = document.getElementById("dealsGrid");
@@ -101,7 +101,7 @@
       `<a class="deal-row" href="/product/${deal.product_id}">` +
       `<span class="deal-rank">${rank}</span>` +
       `<span class="deal-photo">` +
-      `<img src="${esc(deal.image)}" alt="" loading="lazy">` +
+      productThumb(deal) +
       `<span class="deal-flag">−${deal.discount_pct.toFixed(0)}%</span>` +
       `</span>` +
       `<span class="deal-body">` +

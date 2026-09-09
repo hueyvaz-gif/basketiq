@@ -182,7 +182,7 @@ def market_status(conn: Connection | None = None) -> list[dict]:
             # Aliaslar birləşdirilir: «araz» və «araz-market» eyni marketdir.
             counts[market.slug] = counts.get(market.slug, 0) + (row["products"] or 0)
 
-        return [
+        items = [
             {
                 "slug": market.slug,
                 "name": market.name,
@@ -194,6 +194,18 @@ def market_status(conn: Connection | None = None) -> list[dict]:
             }
             for market in MARKETS
         ]
+
+        # DATASI OLAN MARKET ÖNDƏ (B9).
+        #
+        # Sıra reyestrdən gəlirdi və hazırda təsadüfən doğru çıxırdı (Araz,
+        # Bravo dolu; Bazar, Rahat boş). Bazar Store əvvəl dolsaydı, şəbəkənin
+        # ilk kartı «Tezliklə» yazısı olardı - istifadəçi ilk gördüyü şeyi
+        # saytın vəziyyəti kimi oxuyur.
+        #
+        # SIRALAMA SABİTDİR (`sorted` stabil olduğu üçün): eyni qrup daxilində
+        # reyestr sırası qorunur, yəni kartlar hər açılışda yerini dəyişmir.
+        items.sort(key=lambda m: not m["available"])
+        return items
     finally:
         if own:
             conn.close()

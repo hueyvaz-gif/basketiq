@@ -40,7 +40,7 @@
         ? `<span class="coverage-pill">${t("coverage.stores", { n: data.coverage.available, total: data.coverage.total })}</span>`
         : "") +
       `</div>` +
-      `<div class="product-photo"><img src="${esc(product.image)}" alt="${esc(product.label)}"></div>` +
+      `<div class="product-photo">${productThumb(product)}</div>` +
       (cheapest
         ? `<div class="product-best">` +
           `<span class="eyebrow">${t("product.lowestPrice")}</span>` +
@@ -169,7 +169,7 @@
     const size = item.size ? `<span class="size-pill">${esc(item.size)}</span>` : "";
     return (
       `<a class="pcard" href="/product/${item.product_id}">` +
-      `<span class="pcard-photo"><img src="${esc(item.image)}" alt="" loading="lazy"></span>` +
+      `<span class="pcard-photo">${productThumb(item)}</span>` +
       `<span class="pcard-body">` +
       (item.brand ? `<span class="pcard-brand">${esc(item.brand)}</span>` : "") +
       `<span class="pcard-name">${esc(item.label)}</span>` +

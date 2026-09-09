@@ -48,7 +48,6 @@ IMAGE_URL_PREFIX = "/static/images/products"
 
 # Şəkli olmayan məhsul üçün neytral fayl. Uydurma məhsul şəkli çəkmirik -
 # istifadəçi «bu, həmin məhsuldur» deyə düşünərdi.
-PLACEHOLDER_URL = "/static/images/product-placeholder.svg"
 
 # Uyğunluq bundan aşağıdırsa kart məhsula AİD SAYILMIR.
 # Səhv şəkil placeholder-dən pisdir: istifadəçi başqa məhsulu görüb qiyməti
@@ -336,8 +335,20 @@ def catalog_pages(file_path: Path, max_pages: int = 20):
             yield img.convert("RGB")
 
 
-def image_url(image_path: str | None) -> str:
-    """Bazadakı fayl adı -> brauzer ünvanı. Boşdursa placeholder."""
+def image_url(image_path: str | None) -> str | None:
+    """
+    Bazadakı fayl adı -> brauzer ünvanı. Şəkil yoxdursa `None`.
+
+    ƏVVƏL BURADA PLACEHOLDER ÜNVANI QAYTARILIRDI və nəticədə 188 məhsuldan
+    127-si EYNİ boz kubu göstərirdi - səhifə «yüklənməmiş» kimi görünürdü.
+    İndi qərar UI-ya keçir: şəkil yoxdursa, məhsul öz KATEQORİYASININ
+    ikonunu və rəngini alır (`productThumb()`, `ui.js`). Beləliklə süd,
+    ət və təmizlik məhsulu bir-birindən uzaqdan seçilir.
+
+    `None` qaytarmaq qəsdəndir: boş sətir və ya placeholder ünvanı
+    qaytarsaydıq, UI «şəkil varmı?» sualına ünvanı YOXLAYARAQ cavab
+    verməli olardı - yəni fayl adı sınaqdan keçirilərdi.
+    """
     if not image_path:
-        return PLACEHOLDER_URL
+        return None
     return f"{IMAGE_URL_PREFIX}/{image_path}"

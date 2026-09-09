@@ -100,6 +100,30 @@
   --store-5: #8e8e93;   /* gray */
   --store-6: #b25000;   /* dark orange */
 
+
+  /* --- Kateqoriya tonları (B6) ---
+     Şəkli olmayan məhsul boz kub əvəzinə ÖZ KATEQORİYASININ lövhəsini alır.
+     Bazada 188 məhsul var, şəkli 61-inin (≈32%) - yəni əvvəllər səhifənin
+     üçdə ikisi eyni boz kvadrat idi.
+
+     BU RƏNGLƏR STATUS DEYİL. Lövhədə həmişə həm ton, həm də AYRI İKON var,
+     yəni məlumat təkcə rəngdə oturmur. Ton həmişə çox açıqdır (16% qarışıq),
+     ona görə doymuş vurğu mavisi ilə - «ən ucuz» siqnalı ilə - yarışmır.
+
+     Market palitrası ilə bəzi tonlar yaxındır; problem deyil, çünki market
+     rəngi yalnız hərf avatarında və qrafik xəttində görünür, kateqoriya
+     tonu isə yalnız məhsul lövhəsində - ikisi eyni yerdə heç vaxt olmur. */
+  --cat-dairy: #5ac8fa;     /* süd məhsulları */
+  --cat-bread: #ff9500;     /* çörək və taxıl */
+  --cat-meat: #ff375f;      /* ət və balıq */
+  --cat-produce: #34c759;   /* meyvə-tərəvəz */
+  --cat-drinks: #5856d6;    /* içkilər */
+  --cat-oil: #ffcc00;       /* yağ və souslar */
+  --cat-sweets: #af52de;    /* şirniyyat */
+  --cat-dry: #a2845e;       /* quru ərzaq */
+  --cat-clean: #30b0c7;     /* təmizlik və gigiyena */
+  --cat-other: #8e8e93;     /* digər / tanınmayan */
+
   /* --- Sərhəd və kölgə (Apple: nazik xətt + yumşaq, az kontrastlı kölgə) --- */
   --hairline: #d2d2d7;
   --line: #d2d2d7;      /* köhnə ad */
@@ -181,6 +205,12 @@ table.lines .num, .row-value {
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
 
 .hidden { display: none !important; }
+
+/* `hidden` ATRİBUTU da gizlətməlidir. Brauzerin defoltu `display: none`-dur,
+   amma `display: flex` təyin edən qaydalar (məsələn seqment düymələri)
+   onu üstələyir - element
+   «gizlədilib» görünür, ekranda isə qalır (B11-də admin tabı belə qalırdı). */
+[hidden] { display: none !important; }
 .sr-only {
   position: absolute; width: 1px; height: 1px;
   padding: 0; margin: -1px; overflow: hidden;
@@ -337,17 +367,26 @@ a.brand:hover .brand-name { color: var(--text-secondary); }
    SƏHİFƏ ÇƏRÇİVƏSİ
    ============================================================================ */
 
-.wrap { max-width: var(--content); margin: 0 auto; padding: var(--s4) var(--s4) var(--s6); }
+/* B7: üst boşluq 32 -> 24. Səhifənin başı ilə başlıq arasındakı fərq
+   burada başlayır və hər bölmə onu aşağı ötürür. */
+.wrap { max-width: var(--content); margin: 0 auto; padding: var(--s3) var(--s4) var(--s6); }
 
 /* Bölmələr arasında SABİT məsafə - hər karta ayrıca margin yazılmır */
 /* Bölmələr arası məsafə v2-də sıxıldı (8.4): 24px -> 15px.
    Kart daxili boşluq trolley spesifikasiyasındakı 20px-də qalır. */
-.panel { display: flex; flex-direction: column; gap: var(--s4); }
+/* B7: bölmələr arası 32 -> 24. Kartların öz daxili boşluğu dəyişmir -
+   sıxılan yalnız kartlar ARASINDAKI havadır. */
+.panel { display: flex; flex-direction: column; gap: var(--s3); }
 
-/* Hero: Apple şkalası - iri, 600 çəki, çox sıx hərf aralığı, dar sətir.
-   `clamp()` kiçik ekranda 32px-ə enir, geniş ekranda 56px-də dayanır. */
+/* Hero: Apple şkalası - 600 çəki, sıx hərf aralığı, dar sətir.
+
+   B7-də KİÇİLDİ: 32-56px -> 22-36px (təxminən 35% aşağı).
+   SƏBƏB ÖLÇÜLƏBİLƏNDİR: başlıq + alt yazı + boşluq ilk ekranın yuxarı
+   üçdə birini tuturdu və axtarış sahəsi - səhifənin YEGANƏ sualı - onun
+   altına sıxılırdı. Başlıq izahdır, alət isə axtarışdır; ilk ekranda alət
+   görünməlidir. */
 .page-title {
-  font-size: clamp(32px, 5vw, 56px);
+  font-size: clamp(22px, 3.2vw, 36px);
   font-weight: 600;
   letter-spacing: -.02em;
   line-height: 1.05;
@@ -356,10 +395,10 @@ a.brand:hover .brand-name { color: var(--text-secondary); }
 
 .page-sub {
   color: var(--text-secondary);
-  font-size: 19px;
+  font-size: 16px;      /* B7: 19 -> 16, başlıqla birlikdə */
   font-weight: 400;
-  line-height: 1.42;
-  margin-top: var(--s2);
+  line-height: 1.45;
+  margin-top: var(--s1);
   max-width: var(--measure);
 }
 
@@ -794,6 +833,34 @@ table.lines td {
   padding: 14px var(--s3);
   border-bottom: 1px solid var(--hairline);
   vertical-align: middle;
+}
+
+
+/* --- B8: SIX CƏDVƏL ---
+   Müqayisə cədvəli ekranın əsas alətidir və məzmunu tək sətirlik xanalardır:
+   qiymət, tire, nişan. 14px şaquli boşluq belə xanada havanı məzmundan çox
+   edir. 9px eyni ekranda daha çox məhsul göstərir - siyahını qaldırıb-endirmək
+   müqayisəni pozur, çünki müqayisə eyni anda görünən sətirlər arasında olur.
+
+   YALNIZ BU CƏDVƏLDƏ: `is-dense` sinfi tələb olunur. Admin cədvəlləri
+   (OCR sətirləri, kataloq siyahısı) uzun mətn daşıyır və orada sıxlıq
+   oxunaqlığı əskildərdi. */
+table.lines.is-dense th { padding: 10px var(--s2); }
+table.lines.is-dense td { padding: 9px var(--s2); }
+
+/* --- B8: GENİŞ KART ---
+   `--content` 1024px-dir və mətn üçün doğru endir. Cədvəl isə fərqli
+   ölçüdədir: dörd market sütunu + məhsul adı. 1024px-də sütunlar sıxılır
+   və qiymətlər bir-birinə yaxınlaşır.
+
+   1200px-dən BAŞLAYIR: aşağıda pəncərədə kənara çıxmaq üçün yer yoxdur -
+   kart üfüqi sürüşmə yaradardı. Yuxarıda isə hər tərəfə 48px əlavə olunur
+   (1024 -> 1120), yəni cədvəl genişlənir, mətn bölmələri isə yerində qalır. */
+@media (min-width: 1200px) {
+  .card.is-wide {
+    width: calc(100% + var(--s5) * 2);
+    margin-left: calc(var(--s5) * -1);
+  }
 }
 
 /* Zebra zolağı YOXDUR - trolley qaydası: sətirlər sərhədlə ayrılır, fonla yox. */
@@ -1452,7 +1519,7 @@ code {
   .brand-mark svg { width: 18px; height: 18px; }
 
   .stat-grid { grid-template-columns: 1fr; }
-  .page-title { font-size: 24px; }
+  .page-title { font-size: 22px; }
 }
 
 
@@ -1503,6 +1570,25 @@ code {
 /* Panel məzmunu başlıqla eyni sol kənardan başlayır */
 .fold > *:not(.fold-head) { padding-left: var(--s4); padding-right: var(--s4); }
 .fold > *:last-child { padding-bottom: var(--s4); }
+
+
+/* --- B10: AÇILAN BÖLMƏLƏRİN İYERARXİYASI ---
+   Dörd bölmə eyni ölçüdə olanda səhifə «dörd bərabər qutu» kimi oxunurdu və
+   istifadəçi hansının vacib olduğunu bilmirdi. İndi başlıq ölçüsü qərarı
+   özü verir:
+
+     is-primary    24px - qiymət tarixçəsi (səhifənin əsas vədi)
+     is-secondary  17px - AI qeydi, endirim yoxlaması, profil (köməkçi alətlər)
+
+   İKİNCİ DƏRƏCƏLİ BÖLMƏ GİZLƏDİLMİR və mətni solğunlaşdırılmır - yalnız
+   başlığı kiçilir və zolağı nazikləşir. Məzmun eyni qalır; dəyişən yalnız
+   gözün onları hansı ardıcıllıqla tutmasıdır. */
+.fold.is-secondary > .fold-head { padding: var(--s2) var(--s4); }
+.fold.is-secondary > .fold-head .section-heading { font-size: 17px; }
+.fold.is-secondary > .fold-head svg { width: 17px; height: 17px; }
+
+.fold.is-primary > .fold-head { padding: var(--s3) var(--s4); }
+.fold.is-primary > .fold-head .section-heading { font-size: 24px; }
 
 /* Hero-nun içindəki «Market üzrə ətraflı» - kart deyil, sadə açılan sətir */
 .fold-inline {
@@ -1630,6 +1716,13 @@ code {
    tələbinə uyğundur - siqnal onsuz da kəsik çərçivə və «Tezliklə»
    yazısındadır, fonda deyil. */
 .store-card.is-soon { border-style: dashed; }
+
+/* B9: hazır olmayan market GERİ ÇƏKİLİR, amma oxunaqlı qalır.
+   Sönükləşən yalnız LOQODUR - mətn tam kontrastda saxlanılır (yuxarıdakı
+   `opacity` qadağasının səbəbi elə budur). Brendin rəngi kartın ən güclü
+   siqnalıdır; onu boza salmaq «hələ işləmir» mesajını mətnə toxunmadan
+   çatdırır. */
+.store-card.is-soon .store-logo { filter: grayscale(1); }
 
 .store-card-meta.is-soon-text { font-style: italic; }
 
@@ -1891,6 +1984,41 @@ code {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+
+
+/* ============================================================================
+   MƏHSUL LÖVHƏSİ (B6) — şəkil və ya kateqoriya ikonu
+   ============================================================================
+   `.thumb` qabını TAM doldurur, ona görə mövcud qutular (.deal-photo,
+   .pcard-photo, .product-photo) ölçünü öz üzərində saxlayır - lövhə isə
+   yalnız məzmunu qərarlaşdırır. Beləcə eyni komponent dörd fərqli ölçüdə
+   işləyir və hər yerdə ayrıca CSS yazılmır. */
+.thumb { display: block; width: 100%; height: 100%; }
+.thumb img { width: 100%; height: 100%; object-fit: contain; }
+
+.thumb.is-cat {
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--cat-hue) 16%, var(--bg));
+}
+
+/* İkon tonun TÜNDLƏŞDİRİLMİŞ variantıdır: eyni ailədən gəlir (kateqoriya
+   tanınır), amma mətnlə qarışdırılan qədər tünddür (kontrast). */
+.thumb.is-cat svg {
+  width: 42%; height: 42%;
+  color: color-mix(in srgb, var(--cat-hue) 65%, var(--text));
+}
+
+.thumb.is-cat-dairy   { --cat-hue: var(--cat-dairy); }
+.thumb.is-cat-bread   { --cat-hue: var(--cat-bread); }
+.thumb.is-cat-meat    { --cat-hue: var(--cat-meat); }
+.thumb.is-cat-produce { --cat-hue: var(--cat-produce); }
+.thumb.is-cat-drinks  { --cat-hue: var(--cat-drinks); }
+.thumb.is-cat-oil     { --cat-hue: var(--cat-oil); }
+.thumb.is-cat-sweets  { --cat-hue: var(--cat-sweets); }
+.thumb.is-cat-dry     { --cat-hue: var(--cat-dry); }
+.thumb.is-cat-clean   { --cat-hue: var(--cat-clean); }
+.thumb.is-cat-other   { --cat-hue: var(--cat-other); }
 
 .deal-photo {
   position: relative;

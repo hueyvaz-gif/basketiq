@@ -740,7 +740,7 @@ function renderCompareTable(data) {
 
   $("#compareTableWrap").innerHTML = `
     <div class="table-scroll">
-      <table class="lines">
+      <table class="lines is-dense">
         <caption class="sr-only">${t("compare.caption")}</caption>
         <thead>
           <tr>

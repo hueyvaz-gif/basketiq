@@ -6,11 +6,15 @@ NİYƏ ADMİN TƏRƏFİNDƏDİR? Bu sətirlər istifadəçiyə QƏSDƏN göstər
 qərar verən üçündür — nə tutulub, hansı səbəbdən, yanlış-müsbətdirmi.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.review import approve_price, flagged_prices
+from app.security import require_admin
 
-router = APIRouter(prefix="/api/review", tags=["review"])
+# ADMİN SƏTHİ (B11): panel bağlı olanda bütün endpoint-lər 404 qaytarır.
+# Qapı ROUTER səviyyəsindədir - yeni endpoint əlavə edən onu ayrıca
+# qorumağı unuda bilməz.
+router = APIRouter(prefix="/api/review", tags=["review"], dependencies=[Depends(require_admin)])
 
 
 @router.get("/flagged")

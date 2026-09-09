@@ -10,12 +10,16 @@ tədris dəyəri qatmazdı. Bunun əvəzinə `max_pages` limiti qoyulub: 3 səhi
 ~1 dəqiqədir, brauzer də, n8n də bunu gözləyə bilir.
 """
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 
 from app.config import settings
+from app.security import require_admin
 from ingestion.scraper import SOURCES, ScrapeError, robots_allows, scrape_source
 
-router = APIRouter(prefix="/api/scrape", tags=["scrape"])
+# ADMİN SƏTHİ (B11): panel bağlı olanda bütün endpoint-lər 404 qaytarır.
+# Qapı ROUTER səviyyəsindədir - yeni endpoint əlavə edən onu ayrıca
+# qorumağı unuda bilməz.
+router = APIRouter(prefix="/api/scrape", tags=["scrape"], dependencies=[Depends(require_admin)])
 
 
 def check_api_key(x_api_key: str | None) -> None:

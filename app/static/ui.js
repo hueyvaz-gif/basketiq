@@ -53,6 +53,71 @@ const CATEGORY_ICON = {
 const categoryIcon = (category) => CATEGORY_ICON[category] || "package";
 
 /**
+ * MƏHSULUN LÖVHƏSİ: şəkil, yoxdursa KATEQORİYA lövhəsi.
+ *
+ * NİYƏ DƏYİŞDİ? Əvvəl şəkli olmayan hər məhsul eyni boz kubu (placeholder
+ * SVG) alırdı. Bazada 188 məhsul var, şəkli isə 61-inin (≈32%) - yəni
+ * səhifənin üçdə ikisi eyni boz kvadratdan ibarət idi və «yüklənməyib»
+ * kimi oxunurdu.
+ *
+ * İndi şəkli olmayan məhsul öz kateqoriyasının İKONUNU və RƏNGİNİ alır:
+ * süd mavi, ət çəhrayı, təmizlik firuzəyi. Uydurma foto qoyulmur - ikon
+ * heç nə iddia etmir, sadəcə növü bildirir.
+ *
+ * RƏNG TƏK SİQNAL DEYİL: hər kateqoriyanın həm rəngi, həm də ayrı ikonu
+ * var, yəni rəngi ayırd etməyən istifadəçi də formanı görür.
+ */
+function productThumb(item, cls = "") {
+  const sinif = ["thumb", cls].filter(Boolean).join(" ");
+  // `cat-dairy` -> `is-cat-dairy`; tanınmayan kateqoriya `package` ikonunu
+  // alır və neytral boz lövhədə qalır.
+  const ikon = categoryIcon(item.category);
+  // Kateqoriya lövhəsi ŞƏKİLLİ məhsulda da qutuya yazılır (`data-cat`):
+  // fayl tapılmasa ehtiyat qatı onu oradan oxuyur - məhsulun kateqoriyası
+  // o anda əlçatan olmur.
+  if (item.image) {
+    return (
+      `<span class="${sinif}" data-cat="${esc(ikon)}">` +
+      `<img src="${esc(item.image)}" alt="" loading="lazy"></span>`
+    );
+  }
+  return (
+    `<span class="${sinif} is-cat ${categoryTone(ikon)}" data-cat="${esc(ikon)}">` +
+    `${icon(ikon)}</span>`
+  );
+}
+
+const categoryTone = (ikon) => (ikon === "package" ? "is-cat-other" : `is-${ikon}`);
+
+/**
+ * ŞƏKİL FAYLI YOXDURSA — kateqoriya lövhəsinə keçir.
+ *
+ * REAL HAL: `app/static/images/products/` qovluğu `.gitignore`-dadır və
+ * `tools/build_images.py` ilə bərpa olunur. Yəni təzə klonda BAZADA şəkil
+ * yolu var, DİSKDƏ isə fayl yoxdur. Ehtiyat olmasa, istifadəçi qırıq şəkil
+ * nişanları görərdi - səhifə sınmış kimi.
+ *
+ * NİYƏ TƏK DİNLƏYİCİ, HƏR ŞƏKİLDƏ AYRI YOX?
+ * `error` hadisəsi qabarmır (bubble), amma TUTMA (capture) mərhələsində
+ * sənədə çatır. Bir dinləyici bütün səhifələri, hətta sonradan çəkilən
+ * kartları da əhatə edir - hər renderdən sonra yenidən bağlamaq lazım gəlmir.
+ */
+document.addEventListener(
+  "error",
+  (e) => {
+    const img = e.target;
+    if (!(img instanceof HTMLImageElement)) return;
+    const thumb = img.closest(".thumb");
+    if (!thumb || thumb.classList.contains("is-cat")) return;
+
+    const ikon = thumb.dataset.cat || "package";
+    thumb.classList.add("is-cat", categoryTone(ikon));
+    thumb.innerHTML = icon(ikon);
+  },
+  true
+);
+
+/**
  * Marketin görsəl nişanı: RƏNGLİ DAİRƏ + adın ilk hərfi.
  *
  * Hərf marketi, rəng isə sabit kimliyi bildirir (rəngi `store-colors.js`

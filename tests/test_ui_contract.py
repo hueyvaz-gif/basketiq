@@ -60,6 +60,57 @@ def test_hər_kateqoriyanın_ikonu_var():
     )
 
 
+
+def test_hər_kateqoriyanın_öz_tonu_var():
+    """
+    B6: şəkli olmayan məhsul boz kub yerinə KATEQORİYA lövhəsi alır.
+
+    Lövhənin rəngi `--cat-*` tokenindən, `.thumb.is-cat-*` qaydası ilə gəlir.
+    Kateqoriya siyahısına yeni ad düşsə və ton unudulsa, səhv SƏSSİZ olardı:
+    `--cat-hue` təyin olunmadığı üçün `color-mix()` etibarsız çıxar və lövhə
+    ŞƏFFAF qalar - yəni ikon ağ fonda tək dayanar, heç bir xəta görünmədən.
+    """
+    css = read_static("style.css")
+    for category, ikon in parse_category_icons().items():
+        ton = "is-cat-other" if ikon == "package" else f"is-{ikon}"
+        assert f".thumb.{ton}" in css, f"«{category}» üçün .thumb.{ton} qaydası yoxdur"
+
+        token = re.search(rf"\.thumb\.{re.escape(ton)}\s*\{{[^}}]*--cat-hue:\s*var\((--cat-[\w-]+)\)", css)
+        assert token, f"«{category}» tonu --cat-hue təyin etmir"
+        assert f"{token.group(1)}:" in css, f"{token.group(1)} :root-da yoxdur"
+
+
+def test_şəkilsiz_məhsul_ünvan_almır():
+    """
+    Lövhə qərarı UI-dadır, ona görə backend «şəkil yoxdur» halını AÇIQ
+    bildirməlidir. Əvvəl burada placeholder ünvanı qaytarılırdı və UI
+    «şəkil varmı?» sualına fayl adına baxaraq cavab verməli olardı.
+    """
+    from ingestion.images import image_url
+
+    assert image_url(None) is None
+    assert image_url("") is None
+    assert image_url("araz-12.png") == "/static/images/products/araz-12.png"
+
+
+def test_lövhə_ikonu_şəkil_ilə_birlikdə_yazılır():
+    """
+    Şəkil faylı diskdə olmaya bilər (`products/` qovluğu gitignore-dadır və
+    `tools/build_images.py` ilə bərpa olunur). Ehtiyat qatı kateqoriyanı
+    `data-cat` atributundan oxuyur - yəni atribut ŞƏKİLLİ halda da yazılmalıdır,
+    əks halda fayl tapılmayanda lövhə boş qalar.
+    """
+    ui = read_static("ui.js")
+    gövdə = re.search(r"function productThumb\(.*?\n\}", ui, re.S)
+    assert gövdə, "productThumb tapılmadı"
+
+    # Funksiyanın İKİ qolu var (şəkil / lövhə) və HƏR İKİSİ `data-cat` yazmalıdır.
+    qollar = re.findall(r'<span class="\$\{[^"]*"([^>]*)>', gövdə.group(0))
+    assert len(qollar) == 2, f"gözlənilən iki qol, tapıldı {len(qollar)}"
+    for qol in qollar:
+        assert "data-cat=" in qol, "lövhə qollarından biri data-cat yazmır"
+
+
 def sprite_symbols() -> set[str]:
     """İkon kitabxanasındakı bütün `#icon-*` adları."""
     return set(re.findall(r'<symbol id="icon-([\w-]+)"', read_static("icons.svg")))
@@ -276,6 +327,31 @@ def test_hər_skript_bir_səhifədə_qoşulub():
 
 # ------------------------------------------------------------ dizayn sistemi
 
+
+
+def test_hər_açılan_bölmənin_dərəcəsi_var():
+    """
+    B10: açılan bölmələr iki dərəcəyə bölünür - `is-primary` (qiymət
+    tarixçəsi) və `is-secondary` (AI qeydi, endirim yoxlaması, profil).
+
+    Yeni bölmə dərəcəsiz əlavə olunsa, o, DEFOLT ölçüdə - yəni əsas bölmə
+    kimi - görünər və iyerarxiya səssizcə pozular. Səhv gözlə görünməzdi:
+    dörd bölmənin üçü kiçik, biri böyükdür, beşincisi də böyük çıxsa,
+    «yəqin belə nəzərdə tutulub» deyilər.
+    """
+    html = read_static("index.html")
+    foldlar = re.findall(r'<details class="([^"]*fold[^"]*)"', html)
+    # `fold-inline` səhifə içindəki kiçik açılan sətirdir, kart deyil.
+    kartlar = [c for c in foldlar if "fold-inline" not in c]
+    assert kartlar, "açılan kart tapılmadı"
+
+    for sinif in kartlar:
+        assert "is-primary" in sinif or "is-secondary" in sinif, (
+            f"dərəcəsiz açılan bölmə: class=\"{sinif}\""
+        )
+
+    css = read_static("style.css")
+    assert ".fold.is-primary" in css and ".fold.is-secondary" in css
 
 def test_dark_mode_bloku_yoxdur():
     """Layihə həmişə işıq rejimindədir - sistem ayarı UI-ı dəyişməməlidir."""

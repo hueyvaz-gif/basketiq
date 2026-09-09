@@ -115,8 +115,7 @@
 
     return (
       `<a class="pcard" href="/product/${item.product_id}">` +
-      `<span class="pcard-photo">${off}` +
-      `<img src="${esc(item.image)}" alt="" loading="lazy"></span>` +
+      `<span class="pcard-photo">${off}${productThumb(item)}</span>` +
       `<span class="pcard-body">` +
       (item.brand ? `<span class="pcard-brand">${esc(item.brand)}</span>` : "") +
       `<span class="pcard-name">${esc(item.label)}</span>` +

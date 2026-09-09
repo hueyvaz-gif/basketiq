@@ -50,4 +50,32 @@
 
   // Defolt İSTİFADƏÇİ panelidir. Admin yalnız açıq şəkildə soruşulanda açılır.
   show(location.hash.slice(1) === "admin" ? "admin" : "user");
+
+  /**
+   * ADMİN TABI SERVERİN QƏRARINA TABEDİR (B11).
+   *
+   * `ADMIN_ENABLED` bağlıdırsa, admin endpoint-ləri onsuz da 404 verir -
+   * tab isə qalsaydı, istifadəçi açıb yalnız xəta mesajları görərdi.
+   *
+   * BU, TƏHLÜKƏSİZLİK QATI DEYİL. Statik HTML hər halda brauzerə gedir;
+   * gizlətmək səliqədir, qapı isə serverdədir (`app/security.py`). Ona görə
+   * sorğu uğursuz olsa da heç nə pozulmur: tab qalır, arxasındakı endpoint
+   * yenə bağlıdır.
+   *
+   * PANEL DOM-DAN SİLİNMİR - yuxarıdakı səbəb: digər skriptlər yükləndiyi
+   * anda öz elementlərini axtarır və `null` üzərində qırılardı.
+   */
+  async function gateAdmin() {
+    try {
+      const { enabled } = await (await fetch("/api/admin/state")).json();
+      if (enabled) return;
+      const tab = document.getElementById("tabAdmin");
+      if (tab) tab.hidden = true;
+      if (location.hash.slice(1) === "admin") show("user");
+    } catch {
+      /* cavab gəlmədi - tab olduğu kimi qalır */
+    }
+  }
+
+  gateAdmin();
 })();
