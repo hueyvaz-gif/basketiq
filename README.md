@@ -420,8 +420,12 @@ cavabı deyil**. Alış-veriş edən adam onları görməməlidir — amma devel
 onlar bir klik uzaqdadır (`#admin`).
 
 **v4-də bu ayrılıq qapı ilə gücləndi:** istehsalda admin səthi bağlıdır
-(`ADMIN_ENABLED`, bax «v4» bölməsi). Tabın gizlədilməsi yalnız səliqədir —
-əsl qoruma serverdə, router səviyyəsindədir.
+(`ADMIN_ENABLED`, bax «v4» bölməsi).
+
+**v5-də (P6) tab ÜMUMİYYƏTLƏ SİLİNDİ:** admin paneli `/admin` ayrıca
+səhifəsidir və istifadəçi interfeysində heç bir izi yoxdur. Aşağıdakı cədvəl
+tarixi vəziyyəti göstərir — bu gün iki panel bir səhifədə deyil, iki ayrı
+ünvandadır.
 
 **Hər iki panel DOM-dadır**, yalnız biri `display:none`-dur. Panel DOM-da
 olmasaydı, digər skriptlərin `getElementById(...).addEventListener(...)`
@@ -1424,6 +1428,99 @@ uğursuz sorğu yoxdur.
 > asılılığı ilə aparıldı. Skript `logs/`-da saxlanmır — birdəfəlik ölçmədir;
 > nəticələr yuxarıdadır.
 
+## v5 — səbət real oldu, «oxşar» sözü doğruldu, admin ayrıldı
+
+Altı prioritetdən ibarət blok. Hər biri eyni sualdan çıxır: **istifadəçi vəd
+olunan cavabı ala bilirmi?**
+
+### P1 — səbət artıq bir səhifədir
+
+Səbət ana səhifənin ortasında blok idi: istifadəçi məhsul səhifəsinə keçəndə
+onu bir daha görmürdü. İndi `/basket` ayrıca ünvandır, üst paneldəki nişan
+məhsul sayını daşıyır və hər səhifədən ora aparır. «Səbətə» düyməsi axtarış
+kartlarında, məhsul səhifəsində və oxşar/brend kartlarındadır.
+
+**İki səssiz qüsur tapıldı və düzəldildi:**
+
+1. **Tək market planının məzmunu boş idi.** `assignments` yalnız BÖLÜNMÜŞ
+   planda doldurulurdu — tək market tövsiyə olunanda başlıq və cəm görünür,
+   «hansı məhsul haradan?» cavabsız qalırdı. Rəqəmlər onsuz da hazır idi.
+2. **Qiymətsiz bir məhsul bütün planı öldürürdü.** «Tam əhatə» şərti səbətdəki
+   BÜTÜN məhsullar üzrə hesablanırdı; heç bir marketdə qiyməti olmayan bir
+   sətir olan kimi heç bir market tam sayılmır, `best` boş qalır və plan
+   ümumiyyətlə qurulmurdu. İndi məxrəc «ən azı bir marketdə qiyməti olan»
+   məhsullardır; qiymətsiz sətir plandan **atılmır**, ayrıca yazılır.
+
+### P2 — ağ ekran anı yoxdur
+
+Səhifələr statikdir, data JS ilə gəlir: qutular boş başlayırdı. İndi hər
+dinamik qutu **ilk render-də** skelet göstərir — həm HTML-in içində (JS hələ
+işləməmiş), həm də yenidən yükləmədə. Skelet gələcək məzmunun ölçüsünü tutur,
+yəni data gələndə səhifə **sıçramır**. `prefers-reduced-motion`-da parıltı
+dayanır, forma qalır.
+
+### P3 — «oxşar məhsullar» sözü artıq yalan deyil
+
+Şərt tək idi: eyni kateqoriya. «Təmizlik və gigiyena» qabında 41 məhsul var —
+diş məcunu, pişik tualeti, uşaq bezi. Südün altında salfet görünürdü.
+
+İndi iki mərhələ: SQL namizədləri verir, `app/similar.py` qərar verir. Bal üç
+siqnaldan qurulur — ortaq söz (0.6), brend (0.2), hərf oxşarlığı (0.2).
+Şəkilçi nəzərə alınır («şokolad» ~ «şokoladlı»), kökə alt hədd 4 hərfdir
+(«su» ilə «sup» ortaq sayılmasın).
+
+**Hədd ölçüldü** (188 məhsul, 2341 eyni-kateqoriya cütü):
+
+| Zolaq | Bal | Nümunə |
+|---|---|---|
+| real oxşarlar | 0.69–1.00 | «süd məhsulu»/«süd» 0.69 |
+| yaxın rəflər | 0.43–0.61 | «yuyucu maye»/«yuyucu toz» 0.43 |
+| qarışıq zolaq | 0.38–0.39 | «mineral su»/«qazsız su» ilə «su qabı»/«dondurma qabı» yan-yana |
+| əlaqəsizlər | 0.00–0.11 | «süd məhsulu»/«kərə yağı» 0.04 |
+
+0.40 seçildi (dəqiqlik üstündür), dörddən az uyğunluqda bölmə **gizlənir**:
+188 məhsuldan 22-si bölmə göstərir. Az görünür — doğrusu budur.
+
+### P4 — dərinlik özü şübhə deyil
+
+Üç qayda dəyişdi:
+
+1. **Üç müşahidədən azdırsa hökm verilmir.** Yeni hal: «hələ az müşahidə».
+   Əvvəl belə sətirlər «təsdiqlənməyib» adlanırdı — söz düzgün idi, amma
+   istifadəçi onu «yəqin saxtadır» kimi oxuyurdu.
+2. **Sabit dərinlik həddi hökm vermir.** Əvvəl 55%-dən dərin hər endirim
+   avtomatik şübhəli sayılırdı. Son istifadə tarixi yaxınlaşan məhsul, mövsüm
+   sonu və anbar boşaltma REAL olaraq 70%+ ucuzlaşır — sayt belə endirimi
+   saxta elan edəndə istifadəçini ən sərfəli təklifdən uzaqlaşdırırdı.
+3. **Təsdiqlənmiş dərin endirim artıq atılmır.** Siyahı 70%-dən dərin sətri
+   yoxlamadan əvvəl atırdı; indi yoxlayır və yalnız təsdiqlənməyəni atır.
+
+`SUSPICIOUS_DEPTH` sabiti qalır, mənası dəyişdi: yalnız **karantin
+triggeridir** (insan baxışı üçün), istifadəçiyə göstərilən hökm deyil. Bir
+sətir eyni anda karantində və ekranda «təsdiqlənib» ola bilər — ziddiyyət
+deyil: biri data keyfiyyəti, digəri iddianın doğruluğudur.
+
+### P5 — bütün lövhələr eyni formadadır
+
+Kataloqdan kəsilmiş şəkillər **istifadəçiyə göstərilmir**: nisbətləri
+müxtəlifdir, kənarlarında qonşu kartın parçası qalır, fonları kataloqun öz
+rəngidir. Emal zənciri saxlanılır (admin üçün faydalıdır və real foto mənbəyi
+tapılsa qat hazırdır), amma UI onları çəkmir. Praktikada bütün şəkillər
+kəsikdir, yəni indi hər kart kateqoriya lövhəsi alır — və ilk dəfə vahid
+görünür. `.deal-photo`, `.pcard-photo`, `.product-photo` üçü də kvadrat və
+eyni fondadır.
+
+### P6 — admin istifadəçi interfeysindən yoxa çıxdı
+
+Admin paneli ana səhifənin ikinci tabı idi. İndi `/admin` ayrıca səhifədir və
+`ADMIN_ENABLED` bağlı olanda **404** verir — istehsalda gizli deyil, mövcud
+deyil. Üst paneldə heç bir iz yoxdur.
+
+`app.js` ikiyə bölündü və bu, məcburi idi: admin işarələməsi səhifədən çıxanda
+`app.js` yükləndiyi anda yükləmə sahəsini axtarır, `null`-a düşür və **bütün
+fayl qırılırdı** — yəni istifadəçi səhifəsi admin markup-ından asılı idi.
+Admin skriptləri artıq adi ziyarətçiyə ümumiyyətlə göndərilmir.
+
 ## Status
 
 - [x] Həftə 1 — skelet, konfiqurasiya, DB sxemi, mənbə yoxlayıcı
@@ -1478,5 +1575,14 @@ uğursuz sorğu yoxdur.
 - [x] v4 — brauzer yoxlaması (390/768/1440 px): üfüqi sürüşmə, üst panel
       daşması, görünməyən nişanlar və oxunmayan banner düzəldildi
 - [ ] v4 — mağaza qiymət qatı hələ də **boş**: mənbələr yuxarıdakı cədvəldədir
+- [x] v5 (P1) — səbət ayrıca səhifə: nişan, «səbətə əlavə», plan məzmunu;
+      qiymətsiz məhsul artıq planı öldürmür
+- [x] v5 (P2) — yüklənmə skeleti: ağ ekran anı aradan qalxdı
+- [x] v5 (P3) — oxşar məhsullar ad/brend oxşarlığı ilə seçilir, az uyğunluqda
+      bölmə gizlənir (188 məhsuldan 22-si)
+- [x] v5 (P4) — endirim yoxlaması yumşaldıldı: dərinlik özü şübhə deyil,
+      üç müşahidədən azda hökm verilmir
+- [x] v5 (P5) — kataloq kəsikləri göstərilmir, lövhələr eyni formadadır
+- [x] v5 (P6) — admin `/admin` ünvanına köçdü, istifadəçi interfeysində izi yoxdur
 
-**Testlər:** 538 — 536 keçir, 2 atlanır (`pytest -q`)
+**Testlər:** 575 — 573 keçir, 2 atlanır (`pytest -q`)
