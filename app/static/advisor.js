@@ -27,7 +27,7 @@ document.getElementById("adviseBtn").addEventListener("click", async () => {
   textEl.classList.add("typing");
   checkEl.innerHTML = "";
   btn.disabled = true;
-  btn.textContent = "Yazılır…";
+  btn.textContent = t("advisor.writing");
 
   adviseController = new AbortController();
 
@@ -97,7 +97,7 @@ document.getElementById("adviseBtn").addEventListener("click", async () => {
     textEl.classList.remove("typing");
     btn.disabled = false;
     btn.innerHTML =
-      `<svg aria-hidden="true"><use href="#icon-sparkle"></use></svg> Tövsiyə al`;
+      `<svg aria-hidden="true"><use href="#icon-sparkle"></use></svg> ${t("ai.get")}`;
   }
 });
 

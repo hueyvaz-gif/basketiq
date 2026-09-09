@@ -659,3 +659,72 @@ def test_forma_sahələri_düymə_ilə_eyni_hündürlükdədir():
     hündür = re.search(r"min-height:\s*(\d+)px", blok.group(1))
     assert hündür, "forma sahəsi üçün min-height yoxdur"
     assert int(hündür.group(1)) >= 44, f"forma sahəsi {hündür.group(1)}px — 44 lazımdır"
+
+
+# ------------------------------------------------------- üç dil (AZ / EN / RU)
+
+
+def i18n_keys() -> dict[str, set[str]]:
+    """`i18n.js`-dəki hər açar üçün hansı dillərin yazıldığını qaytarır."""
+    js = read_static("i18n.js")
+    başlanğıc = js.index("const DICT = {")
+    son = js.index("\n  };", başlanğıc)
+    blok = js[başlanğıc:son]
+
+    açarlar: dict[str, set[str]] = {}
+    for m in re.finditer(r'"([\w.\- əçğıöşüƏÇĞİÖŞÜ]+)":\s*\{(.*?)\},?\n', blok, re.S):
+        açar, gövdə = m.group(1), m.group(2)
+        açarlar[açar] = set(re.findall(r"\b(az|en|ru):", gövdə))
+    return açarlar
+
+
+def test_hər_açar_üç_dildə_var():
+    """
+    Bir dili unutmaq ən asan səhvdir və EKRANDA GÖRÜNMÜR: `t()` tapmadığı
+    dildə azərbaycancaya düşür, yəni rus interfeysində birdən azərbaycanca
+    söz peyda olur — nə xəta, nə xəbərdarlıq.
+    """
+    açarlar = i18n_keys()
+    assert len(açarlar) > 150, f"lüğət çox kiçikdir: {len(açarlar)} açar"
+
+    natamam = {a: sorted({"az", "en", "ru"} - d) for a, d in açarlar.items() if len(d) != 3}
+    assert not natamam, f"dil əskikdir: {natamam}"
+
+
+def test_html_də_işarələnən_hər_açar_lüğətdə_var():
+    """
+    `data-i18n="yoxdur.acar"` yazsan, ekranda açarın ÖZÜ görünər.
+    Bu, tərcümədə ən çox rast gəlinən yazı səhvidir.
+    """
+    açarlar = set(i18n_keys())
+    for page in all_pages():
+        html = read_static(page)
+        istifadə = set(re.findall(r'data-i18n="([^"]+)"', html))
+        for cüt in re.findall(r'data-i18n-attr="([^"]+)"', html):
+            istifadə |= {p.split(":")[1].strip() for p in cüt.split(";") if ":" in p}
+        çatışmayan = sorted(istifadə - açarlar)
+        assert not çatışmayan, f"{page} lüğətdə olmayan açar işlədir: {çatışmayan}"
+
+
+def test_js_də_çağırılan_hər_açar_lüğətdə_var():
+    """Eyni səhv JS tərəfində də mümkündür: `t("yanlış.acar")`."""
+    açarlar = set(i18n_keys())
+    scripts = sorted({name for names in SCRIPT_PAGES.values() for name in names})
+    for name in scripts:
+        js = read_static(name)
+        # Yalnız SABİT açarlar yoxlanılır; `t("cat." + c.name)` kimi
+        # hesablanan açarlar ehtiyat mətnlə çağırılır və onlar buraya düşmür.
+        # `(?<![\w.])` vacibdir: onsuz `params.get("q")` da `t(` kimi oxunur
+        # və test uydurma açar tapır.
+        istifadə = set(re.findall(r'(?<![\w.])t\("([\w.]+)"\s*[,)]', js))
+        çatışmayan = sorted(istifadə - açarlar)
+        assert not çatışmayan, f"{name} lüğətdə olmayan açar çağırır: {çatışmayan}"
+
+
+def test_dil_keçidi_hər_səhifədədir():
+    """Dil seçimi bir səhifədə itsə, istifadəçi ora düşəndə ilişib qalır."""
+    for page in all_pages():
+        html = read_static(page)
+        assert 'class="lang-switch"' in html, f"{page} dil keçidi yoxdur"
+        for lang in ("az", "en", "ru"):
+            assert f'data-lang="{lang}"' in html, f"{page} {lang} düyməsi yoxdur"

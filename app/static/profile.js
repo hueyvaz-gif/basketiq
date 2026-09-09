@@ -40,25 +40,25 @@
       fill(await (await fetch("/api/profile")).json());
       await loadPlan();
     } catch {
-      sel("profSummary").innerHTML = `<div class="notice error">Profil yüklənmədi.</div>`;
+      sel("profSummary").innerHTML = `<div class="notice error">${t("profile.loadError")}</div>`;
     }
   }
 
   async function save() {
     const btn = sel("profSaveBtn");
     btn.disabled = true;
-    btn.textContent = "Yadda saxlanılır…";
+    btn.textContent = t("profile.saving");
     try {
       const res = await fetch("/api/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(read()),
       });
-      if (!res.ok) throw new Error("Server xətası");
+      if (!res.ok) throw new Error(t("profile.serverError"));
       fill(await res.json());
       await loadPlan();
     } catch (e) {
-      sel("profSummary").innerHTML = `<div class="notice error">Xəta: ${esc(e.message)}</div>`;
+      sel("profSummary").innerHTML = `<div class="notice error">${t("admin.errorPrefix")}${esc(e.message)}</div>`;
     } finally {
       btn.disabled = false;
       btn.textContent = "Yadda saxla";
@@ -71,19 +71,19 @@
     try {
       data = await (await fetch("/api/profile/recommend")).json();
     } catch {
-      box.innerHTML = `<div class="notice error">Plan hesablanmadı.</div>`;
+      box.innerHTML = `<div class="notice error">${t("profile.planError")}</div>`;
       return;
     }
 
     const parts = [];
 
     if (data.plan === "yoxdur") {
-      parts.push(`<div class="notice">${esc(data.notes[0] || "Plan qurmaq mümkün olmadı.")}</div>`);
+      parts.push(`<div class="notice">${esc(data.notes[0] || t("profile.noPlan"))}</div>`);
       box.innerHTML = parts.join("");
       return;
     }
 
-    const planLabel = data.plan === "bolunmus" ? "Bölünmüş alış" : "Tək market";
+    const planLabel = data.plan === "bolunmus" ? t("profile.split") : t("profile.single");
     parts.push(`<div class="row">
         <span class="row-label"><strong>${esc(planLabel)}</strong> — ${esc(data.stores.join(", "))}</span>
         <span class="row-value"><strong>${money(data.total)} AZN</strong></span>
@@ -93,9 +93,9 @@
     // cavabını görməlidir, yalnız seçilmiş planı yox.
     if (data.single_total != null && data.split_total != null) {
       parts.push(`<div class="row">
-          <span class="row-label">Tək market / bölünmüş</span>
+          <span class="row-label">${t("profile.singleVsSplit")}</span>
           <span class="row-value">${money(data.single_total)} / ${money(data.split_total)} AZN
-            ${data.split_saving ? `(fərq ${money(data.split_saving)})` : ""}</span>
+            ${data.split_saving ? `${t("profile.diff", { amount: money(data.split_saving) })}` : ""}</span>
         </div>`);
     }
 
@@ -116,7 +116,7 @@
           .map(
             (a) => `<tr>
               <td class="txt">${esc(a.label)}</td>
-              <td class="txt">${a.store ? esc(a.store) : "<em>tapılmadı</em>"}</td>
+              <td class="txt">${a.store ? esc(a.store) : `<em>${t("profile.notFound")}</em>`}</td>
               <td class="num">${money(a.price)}</td>
             </tr>`
           )
@@ -129,7 +129,7 @@
       parts.push(`<div class="row">
           <span class="row-label">Büdcə</span>
           <span class="row-value">${money(b.total)} / ${money(b.limit)} AZN —
-            ${b.fits ? "sığır" : `<strong>${money(b.over)} AZN aşır</strong>`}</span>
+            ${b.fits ? t("profile.fits") : `<strong>${t("profile.over", { amount: money(b.over) })}</strong>`}</span>
         </div>`);
     }
 
@@ -147,4 +147,9 @@
   sel("profSaveBtn").addEventListener("click", save);
   sel("planRefresh").addEventListener("click", loadPlan);
   load();
+
+  // Dil dəyişəndə bu modul öz blokunu yenidən çəkir - səhifə yenilənmir.
+  document.addEventListener("basketiq:lang", () => {
+    load();
+  });
 })();

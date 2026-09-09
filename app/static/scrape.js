@@ -29,7 +29,7 @@
       const first = box.querySelector("input");
       if (first) first.checked = true;
     } catch {
-      box.innerHTML = `<div class="notice error">Mənbə siyahısı yüklənmədi.</div>`;
+      box.innerHTML = `<div class="notice error">${t("scrape.listError")}</div>`;
     }
   }
 
@@ -38,7 +38,7 @@
     const status = sel("scrapeStatus");
     const btn = sel("scrapeBtn");
     if (!chosen) {
-      status.innerHTML = `<div class="notice warn">Əvvəlcə mənbə seç.</div>`;
+      status.innerHTML = `<div class="notice warn">${t("scrape.pickFirst")}</div>`;
       return;
     }
 
@@ -46,7 +46,7 @@
     btn.disabled = true;
     // innerHTML, textContent DEYİL: düymənin içində SVG ikon var və
     // textContent onu silərdi - sonra geri qaytarmaq üçün də ikon lazımdır.
-    btn.innerHTML = `<span class="spinner"></span>Çəkilir…`;
+    btn.innerHTML = `<span class="spinner"></span>${t("scrape.working")}`;
     status.innerHTML = `<div class="notice">
         Səhifə açılır, PDF endirilir, sonra OCR işləyir.
         ${pages} səhifə üçün təxminən ${pages * 20} saniyə çəkə bilər — gözlə.
@@ -56,15 +56,15 @@
       const url = `/api/scrape/${encodeURIComponent(chosen.value)}?max_files=1&max_pages=${pages}`;
       const res = await fetch(url, { method: "POST" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Server xətası");
+      if (!res.ok) throw new Error(data.detail || t("profile.serverError"));
       render(status, data);
       if (typeof loadCatalogs === "function") loadCatalogs();
     } catch (e) {
-      status.innerHTML = `<div class="notice error">Xəta: ${html(e.message)}</div>`;
+      status.innerHTML = `<div class="notice error">${t("admin.errorPrefix")}${html(e.message)}</div>`;
     } finally {
       btn.disabled = false;
       btn.innerHTML =
-        `<svg aria-hidden="true"><use href="#icon-download"></use></svg> Mənbədən çək`;
+        `<svg aria-hidden="true"><use href="#icon-download"></use></svg> ${t("admin.scrapeBtn")}`;
     }
   }
 
@@ -114,4 +114,9 @@
 
   sel("scrapeBtn").addEventListener("click", runScrape);
   loadSources();
+
+  // Dil dəyişəndə bu modul öz blokunu yenidən çəkir - səhifə yenilənmir.
+  document.addEventListener("basketiq:lang", () => {
+    loadSources();
+  });
 })();

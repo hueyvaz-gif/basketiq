@@ -487,6 +487,39 @@ keçididir, hərəkət deyil.
 CAPS + geniş hərf aralığı dashboard dilidir; SF-də oxunuşu pisləşdirir. İndi
 adi yazılış, 13px, çəki 500.
 
+### Üç dil: AZ · EN · RU
+
+Üst paneldə dil keçidi var; seçim `localStorage`-də saxlanılır və bütün
+səhifələrə şamil olunur. **271 açar**, hər biri üç dildə.
+
+**Niyə brauzerdə, serverdə yox?** Səhifələr statikdir və server şablon motoru
+işlətmir. Dili brauzerdə dəyişmək o deməkdir ki, seçim **anidir** — səhifə
+yenidən yüklənmir, sorğu getmir, backend dəyişmir.
+
+**Azərbaycanca mətn HTML-in içində qalır.** Hər elementdə həm `data-i18n`
+açarı, həm də azərbaycanca mətnin özü var. JS işləməsə (yükləmə xətası, köhnə
+brauzer) səhifə boş qalmır — azərbaycanca oxunur. Tərcümə qatı yalnız üstünə
+yazır.
+
+**Dinamik mətn:** `app.js`, `deals.js` və s. `t("açar")` çağırır. Dil dəyişəndə
+`basketiq:lang` hadisəsi atılır və hər modul **öz** blokunu yenidən çəkir.
+
+**İkonlu düymələr:** `data-i18n` elementin bütün məzmununu əvəz edir — ikonlu
+düymədə birbaşa işlətsək ikon silinərdi. Orada yalnız mətn `<span>` ilə sarılır.
+
+**Kateqoriyalar bazada azərbaycanca qalır** (filtr ünvanı və API sorğusu ondan
+asılıdır), tərcümə yalnız ekrandadır: `t("cat." + ad, ad)` — lüğətdə açar
+yoxdursa azərbaycanca adı görünür, açarın özü yox.
+
+**Üç test kilidləyir:** hər açarın üç dildə olması, HTML-də və JS-də çağırılan
+hər açarın lüğətdə mövcudluğu, dil keçidinin hər səhifədə olması. Mutasiya ilə
+yoxlanılıb: bir dili silmək və ya yanlış açar yazmaq testi düşürür.
+
+**Tərcümə olunmayan hissə:** backend-in QURDUĞU cümlələr — AI qeydi, endirim
+yoxlamasının səbəb mətnləri, profil planının qeydləri və mənbə təsvirləri.
+Onlar rəqəmlərlə birlikdə serverdə yığılır; tərcümə üçün API-nin açar+parametr
+qaytarması lazımdır. Məhsul və market adları da tərcümə olunmur — onlar datadır.
+
 ### Toxunma hədəfləri: 44px (Apple HIG)
 
 Apple HIG interaktiv element üçün **44×44** tappable sahə tövsiyə edir — bu,
@@ -1287,4 +1320,4 @@ worktree-yə köçürməkdir.
 ¹ Mənbə seçimi ölçmə tələb etdiyi üçün Həftə 2-dən sonra tamamlandı.
 ² Real droplet-də yox, lokal Docker-də sınanıb — təfərrüat `deploy/README.md`-də.
 
-**Testlər:** 405 — 403 keçir, 2 atlanır (`pytest -q`)
+**Testlər:** 409 — 407 keçir, 2 atlanır (`pytest -q`)

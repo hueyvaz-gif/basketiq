@@ -98,7 +98,7 @@
       <input type="search" id="heroSearchInput" name="q"
              placeholder="Məhsul və ya brend axtarın — süd, Milla, yağ…" data-i18n-attr="placeholder:search.placeholder"
              autocomplete="off">
-      <button class="btn" type="submit">Axtar</button>
+      <button class="btn" type="submit" data-i18n="search.submit">Axtar</button>
     </form>
 
 
@@ -253,14 +253,14 @@
         <h2 class="section-heading" id="historyTitle" data-i18n="history.title">Qiymət tarixçəsi</h2>
       </summary>
       <div class="card-head">
-        <p class="section-sub">
+        <p class="section-sub" data-i18n="history.sub">
           Eyni marketdən 2 müşahidə olmayanda trend yox, market müqayisəsi göstərilir.
         </p>
       </div>
 
       <div class="form-row flush">
         <label class="field">
-          <span>Məhsul</span>
+          <span data-i18n="common.product">Məhsul</span>
           <select id="historySelect"></select>
         </label>
       </div>
@@ -288,7 +288,7 @@
         <h2 class="section-heading" id="discountTitle" data-i18n="discount.title">Endirim yoxlaması</h2>
       </summary>
       <div class="card-head">
-        <p class="section-sub">
+        <p class="section-sub" data-i18n="discount.sub">
           Kataloqdakı «köhnə qiymət» iddiasını öz müşahidələrimizlə tutuşdururuq.
           Diqqət tələb edənlər yuxarıdadır. «Təsdiqlənməyib» hökmü «saxta» demək
           deyil — «yoxlaya bilmirik» deməkdir.
@@ -309,7 +309,7 @@
         <h2 class="section-heading" id="profileTitle" data-i18n="profile.title">Profil və parametrlər</h2>
       </summary>
       <div class="card-head">
-        <p class="section-sub">
+        <p class="section-sub" data-i18n="profile.settingsSub">
           Bu ayarlar bəzək deyil: tövsiyə məntiqi onlara görə dəyişir. Tək markete
           gedirsinizsə, 0.20 AZN üçün ikinci market təklif olunmayacaq.
         </p>
@@ -403,25 +403,25 @@
     <div class="stat-grid" id="stats">
       <div class="stat is-accent">
         <div class="stat-icon"><svg><use href="#icon-store"></use></svg></div>
-        <div class="stat-label">Market</div>
+        <div class="stat-label" data-i18n="stat.stores">Market</div>
         <div class="stat-value skeleton">00</div>
         <div class="stat-note">Yüklənir</div>
       </div>
       <div class="stat is-accent">
         <div class="stat-icon"><svg><use href="#icon-layers"></use></svg></div>
-        <div class="stat-label">Kataloq</div>
+        <div class="stat-label" data-i18n="stat.catalogs">Kataloq</div>
         <div class="stat-value skeleton">00</div>
         <div class="stat-note">Yüklənir</div>
       </div>
       <div class="stat is-accent">
         <div class="stat-icon"><svg><use href="#icon-package"></use></svg></div>
-        <div class="stat-label">Məhsul</div>
+        <div class="stat-label" data-i18n="common.product">Məhsul</div>
         <div class="stat-value skeleton">00</div>
         <div class="stat-note">Yüklənir</div>
       </div>
       <div class="stat is-accent">
         <div class="stat-icon"><svg><use href="#icon-tag"></use></svg></div>
-        <div class="stat-label">Qiymət</div>
+        <div class="stat-label" data-i18n="common.price">Qiymət</div>
         <div class="stat-value skeleton">00</div>
         <div class="stat-note">Yüklənir</div>
       </div>
@@ -491,7 +491,7 @@
            aria-label="Kataloq faylı seç — PDF, JPG və ya PNG" data-i18n-attr="aria-label:admin.dropzoneAria">
         <div class="dz-icon" aria-hidden="true"><svg><use href="#icon-upload"></use></svg></div>
         <div class="dz-title" data-i18n="admin.dropHere">Faylı bura sürüşdürün</div>
-        <div class="dz-sub">və ya <span class="link" data-i18n="admin.clickToPick">seçmək üçün klikləyin</span> — PDF, JPG, PNG</div>
+        <div class="dz-sub"><span data-i18n="admin.or">və ya</span> <span class="link" data-i18n="admin.clickToPick">seçmək üçün klikləyin</span> — PDF, JPG, PNG</div>
         <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.webp,.tif,.tiff" hidden>
       </div>
 

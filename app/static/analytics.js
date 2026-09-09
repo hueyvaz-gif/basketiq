@@ -89,19 +89,19 @@
       const data = await (await fetch("/api/analytics/groups?limit=30")).json();
       if (!data.items.length) {
         sel("historyNote").innerHTML =
-          `<div class="notice">Hələ qiymət yoxdur — əvvəlcə kataloq emal edin.</div>`;
+          `<div class="notice">${t("chart.noPrices")}</div>`;
         return;
       }
       box.innerHTML = data.items
         .map(
           (g) =>
-            `<option value="${esc(g.group_key)}">${esc(g.label)} — ${g.observations} müşahidə, ${g.stores} market</option>`
+            `<option value="${esc(g.group_key)}">${esc(g.label)} — ${g.observations} ${t("chart.observations")}, ${g.stores} ${t("chart.markets")}</option>`
         )
         .join("");
       drawHistory(data.items[0].group_key);
     } catch {
       sel("historyNote").innerHTML =
-        `<div class="notice error">Məhsul siyahısı yüklənmədi.</div>`;
+        `<div class="notice error">${t("chart.listError")}</div>`;
     }
   }
 
@@ -113,12 +113,12 @@
         await fetch("/api/analytics/history?group_key=" + encodeURIComponent(groupKey))
       ).json();
     } catch {
-      note.innerHTML = `<div class="notice error">Tarixçə yüklənmədi.</div>`;
+      note.innerHTML = `<div class="notice error">${t("chart.historyError")}</div>`;
       return;
     }
 
     if (!data.points.length) {
-      note.innerHTML = `<div class="notice">Bu məhsul üçün müşahidə yoxdur.</div>`;
+      note.innerHTML = `<div class="notice">${t("chart.noObservation")}</div>`;
       return;
     }
 
@@ -140,10 +140,9 @@
     const hasTrend = maxPerStore >= 2;
 
     note.innerHTML = `<div class="notice">
-      ${esc(data.label)} ${esc(data.size || "")} — ${data.points.length} müşahidə,
-      ${data.stores.length} market.
-      ${hasTrend ? "" : "Eyni marketdən 2 müşahidə olmadığı üçün trend yox, " +
-        "<strong>market müqayisəsi</strong> göstərilir."}
+      ${esc(data.label)} ${esc(data.size || "")} — ${data.points.length} ${t("chart.observations")},
+      ${data.stores.length} ${t("chart.markets")}.
+      ${hasTrend ? "" : t("chart.noTrend") + ` <strong>${t("chart.storeCompare")}</strong> ${t("chart.shown")}`}
     </div>`;
 
     if (typeof Chart === "undefined") {
@@ -176,7 +175,7 @@
     const cheapest = data.points.reduce((a, b) => (b.price < a.price ? b : a));
     box.innerHTML = `
       <span class="chart-value">${cheapest.price.toFixed(2)}<span class="cur">₼</span></span>
-      <span class="chart-caption">ən aşağı müşahidə — ${esc(cheapest.store)}</span>`;
+      <span class="chart-caption">${t("chart.lowestSeenAt", { store: esc(cheapest.store) })}</span>`;
   }
 
   // Ümumi ayarlar - iki qrafik növü arasında fərq yalnız məlumatdadır.
@@ -241,7 +240,7 @@
 
     const options = baseOptions("AZN");
     options.plugins.tooltip.callbacks.label = (ctx) =>
-      `${ctx.parsed.y.toFixed(2)} AZN` + (ctx.parsed.y === min ? " — ən ucuz" : "");
+      `${ctx.parsed.y.toFixed(2)} AZN` + (ctx.parsed.y === min ? t("chart.lowestSeen") : "");
 
     // Sütunlar arasındakı fərq görünsün deyə oxu bir az aşağıdan başladırıq
     const pad = Math.max(0.1, (Math.max(...values) - min) * 0.5);
@@ -309,9 +308,9 @@
   function renderTable(data) {
     sel("historyTable").innerHTML =
       `<thead><tr>
-         <th scope="col">Market</th><th scope="col" class="num">Qiymət</th>
-         <th scope="col" class="num">Köhnə</th><th scope="col" class="num">Vahid qiymət</th>
-         <th scope="col">Tarix</th>
+         <th scope="col">${t("chart.market")}</th><th scope="col" class="num">${t("common.price")}</th>
+         <th scope="col" class="num">${t("chart.oldPrice")}</th><th scope="col" class="num">${t("chart.unitPrice")}</th>
+         <th scope="col">${t("chart.date")}</th>
        </tr></thead><tbody>` +
       data.points
         .map(
@@ -355,14 +354,13 @@
     try {
       data = await (await fetch("/api/analytics/discounts?limit=50")).json();
     } catch {
-      box.innerHTML = `<div class="notice error">Endirim yoxlaması yüklənmədi.</div>`;
+      box.innerHTML = `<div class="notice error">${t("discount.loadError")}</div>`;
       return;
     }
 
     if (!data.with_discount_claim) {
       box.innerHTML = `<div class="notice">
-        Yoxlanan ${data.total_checked} qiymət sətrində endirim iddiası yoxdur
-        (köhnə qiymət göstərilməyib).
+        ${t("discount.noClaim", { n: data.total_checked })}
       </div>`;
       return;
     }
@@ -370,10 +368,10 @@
     const c = data.counts || {};
     const counters = `
       <div class="counter-row">
-        <span class="pill is-red">Şübhəli ${c.subheli || 0}</span>
-        <span class="pill is-amber">Təsdiqlənməyib ${c.tesdiqlenmeyib || 0}</span>
-        <span class="pill is-green">Təsdiqlənib ${c.tesdiqlenib || 0}</span>
-        <span class="pill">Yoxlanıldı ${data.with_discount_claim}</span>
+        <span class="pill is-red">${t("verdict.subheli")} ${c.subheli || 0}</span>
+        <span class="pill is-amber">${t("verdict.tesdiqlenmeyib")} ${c.tesdiqlenmeyib || 0}</span>
+        <span class="pill is-green">${t("verdict.tesdiqlenib")} ${c.tesdiqlenib || 0}</span>
+        <span class="pill">${t("verdict.checked")} ${data.with_discount_claim}</span>
       </div>`;
 
     // DİQQƏT TƏLƏB EDƏN ƏVVƏLDƏ. Sıra pozulmasın deyə `rank` bərabər olanda
@@ -386,7 +384,7 @@
       .map((item) => {
         const style = verdictStyle(item.verdict);
         // `verdict_label` backend-dən gəlir - eyni mətni iki yerdə saxlamırıq
-        const label = esc(item.verdict_label || item.verdict);
+        const label = esc(t("verdict." + item.verdict, item.verdict_label || item.verdict));
         const why = (item.reasons || []).join(" · ");
         return `<div class="exception ${style.row}">
           <span class="pill ${style.pill}">${label}</span>
@@ -410,4 +408,10 @@
 
   loadGroups();
   loadDiscounts();
+
+  // Dil dəyişəndə bu modul öz blokunu yenidən çəkir - səhifə yenilənmir.
+  document.addEventListener("basketiq:lang", () => {
+    loadGroups();
+    loadDiscounts();
+  });
 })();

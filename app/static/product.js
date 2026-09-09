@@ -30,12 +30,12 @@
       brand +
       `<h1 class="product-name">${name}</h1>` +
       `<div class="product-pills">${size}` +
-      (product.category ? `<span class="cat-pill">${esc(product.category)}</span>` : "") +
+      (product.category ? `<span class="cat-pill">${esc(t("cat." + product.category, product.category))}</span>` : "") +
       `</div>` +
       `<div class="product-photo"><img src="${esc(product.image)}" alt="${esc(product.label)}"></div>` +
       (cheapest
         ? `<div class="product-best">` +
-          `<span class="eyebrow">Ən aşağı qiymət</span>` +
+          `<span class="eyebrow">${t("product.lowestPrice")}</span>` +
           `<span class="product-best-price">${price(cheapest.price)}</span>` +
           `<span class="product-best-store">${esc(cheapest.store)}</span>` +
           `</div>`
@@ -58,8 +58,8 @@
       : "";
 
     const badges = [];
-    if (offer.is_cheapest) badges.push(`<span class="tag-best">Ən ucuz</span>`);
-    if (offer.is_best_value) badges.push(`<span class="tag-value">Ən sərfəli</span>`);
+    if (offer.is_cheapest) badges.push(`<span class="tag-best">${t("product.best")}</span>`);
+    if (offer.is_best_value) badges.push(`<span class="tag-value">${t("product.bestValue")}</span>`);
 
     return (
       `<div class="wtb-row${offer.is_cheapest ? " is-best" : ""}">` +
@@ -77,14 +77,14 @@
     const box = el("offersBox");
     if (!offers.length) {
       box.innerHTML =
-        `<div class="notice warn">Bu məhsulun heç bir marketdə cari qiyməti yoxdur.</div>`;
+        `<div class="notice warn">${t("product.noPrice")}</div>`;
       return;
     }
 
     const summary = compare
-      ? `<p class="block-sub">${compare.stores} marketdə var — ən ucuz ilə ən bahalı ` +
-        `arasında fərq <strong>${money(compare.spread)} ₼</strong>.</p>`
-      : `<p class="block-sub">Yalnız bir marketdə tapılıb — müqayisə üçün ikinci qiymət yoxdur.</p>`;
+      ? `<p class="block-sub">${t("product.spread", { n: compare.stores, amount: money(compare.spread) })} ` +
+        `</p>`
+      : `<p class="block-sub">${t("product.onlyOne")}</p>`;
 
     box.innerHTML = summary + `<div class="wtb">${offers.map(offerRow).join("")}</div>`;
   }
@@ -98,8 +98,8 @@
       .map((m) => m.name);
 
     const parts = [];
-    if (missing.length) parts.push(`${missing.join(", ")} kataloqunda tapılmadı.`);
-    if (soon.length) parts.push(`${soon.join(" və ")} — tezliklə.`);
+    if (missing.length) parts.push(`${t("product.missingAt", { stores: missing.join(", ") })}`);
+    if (soon.length) parts.push(`${t("product.soonAt", { stores: soon.join(", ") })}`);
     el("marketNote").textContent = parts.join(" ");
   }
 
@@ -116,11 +116,11 @@
       `<span class="pricebar-marker" style="left:${pos}%">${money(summary.current)} ₼</span>` +
       `<span class="pricebar-track"></span>` +
       `<span class="pricebar-ends">` +
-      `<span><b>Ən aşağı</b> ${money(summary.lowest)} ₼</span>` +
-      `<span><b>Adətən</b> ${money(summary.usually)} ₼</span>` +
+      `<span><b>${t("product.lowest")}</b> ${money(summary.lowest)} ₼</span>` +
+      `<span><b>${t("product.usually")}</b> ${money(summary.usually)} ₼</span>` +
       `</span>` +
       `</div>` +
-      `<p class="fineprint">${summary.observations} müşahidəyə əsaslanır.</p>`;
+      `<p class="fineprint">${t("product.basedOn", { n: summary.observations })}</p>`;
     el("priceBarCard").classList.remove("hidden");
   }
 
@@ -206,15 +206,15 @@
       const res = await fetch(`/api/catalog/product/${productId}`);
       if (res.status === 404) {
         el("productAside").innerHTML =
-          `<h1 class="product-name">Məhsul tapılmadı</h1>` +
-          `<p class="block-sub"><a class="link" href="/">Ana səhifəyə qayıt</a></p>`;
+          `<h1 class="product-name">${t("product.notFound")}</h1>` +
+          `<p class="block-sub"><a class="link" href="/">${t("store.backHome")}</a></p>`;
         el("offersBox").innerHTML = "";
         return;
       }
       data = await res.json();
     } catch (e) {
       console.error("[product]", e);
-      el("offersBox").innerHTML = `<div class="notice error">Məhsul datası yüklənmədi.</div>`;
+      el("offersBox").innerHTML = `<div class="notice error">${t("product.loadError")}</div>`;
       return;
     }
 
@@ -235,4 +235,9 @@
   }
 
   load();
+
+  // Dil dəyişəndə bu modul öz blokunu yenidən çəkir - səhifə yenilənmir.
+  document.addEventListener("basketiq:lang", () => {
+    load();
+  });
 })();

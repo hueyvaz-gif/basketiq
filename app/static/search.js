@@ -52,7 +52,7 @@
           `<label class="filter-opt">` +
           `<input type="radio" name="category" value="${esc(c.name)}"` +
           `${state.category === c.name ? " checked" : ""}>` +
-          `<span>${esc(c.name)}</span>` +
+          `<span>${esc(t("cat." + c.name, c.name))}</span>` +
           `<small>${c.count}</small></label>`
       )
       .join("");

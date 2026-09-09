@@ -20,7 +20,7 @@ function setFile(file) {
   selectedFile = file;
   $("#fileName").textContent = file
     ? `${file.name} — ${(file.size / 1048576).toFixed(2)} MB`
-    : "Fayl seçilməyib";
+    : t("admin.noFile");
   $("#uploadBtn").disabled = !file;
 }
 
@@ -64,7 +64,7 @@ $("#uploadBtn").addEventListener("click", async () => {
 
   const form = new FormData();
   form.append("file", selectedFile);
-  form.append("store", $("#storeInput").value.trim() || "Naməlum market");
+  form.append("store", $("#storeInput").value.trim() || t("admin.unknownStore"));
   form.append("force_ocr", $("#forceOcr").checked ? "true" : "false");
   form.append("psm", $("#psmInput").value);
 
@@ -72,7 +72,7 @@ $("#uploadBtn").addEventListener("click", async () => {
   notice(
     $("#uploadStatus"),
     "info",
-    `<span class="spinner"></span>Emal olunur… Skan PDF-də OCR bir neçə dəqiqə çəkə bilər.`
+    `<span class="spinner"></span>${t("admin.processing")}`
   );
 
   try {
@@ -80,7 +80,7 @@ $("#uploadBtn").addEventListener("click", async () => {
     const data = await res.json();
 
     if (!res.ok) {
-      notice($("#uploadStatus"), "error", esc(data.detail || "Naməlum xəta"));
+      notice($("#uploadStatus"), "error", esc(data.detail || t("admin.unknownError")));
       return;
     }
     if (data.duplicate) {
@@ -93,12 +93,12 @@ $("#uploadBtn").addEventListener("click", async () => {
     notice(
       $("#uploadStatus"),
       "ok",
-      `Hazırdır — <strong>${data.stats.kept}</strong> məhsul namizədi sətir tapıldı.`
+      `${t("admin.ready", { n: `<strong>${data.stats.kept}</strong>` })}`
     );
     renderResult(data);
     await Promise.all([loadCatalogs(), loadHealth()]);
   } catch (e) {
-    notice($("#uploadStatus"), "error", "Şəbəkə xətası: " + esc(e.message));
+    notice($("#uploadStatus"), "error", t("admin.networkError") + esc(e.message));
   } finally {
     $("#uploadBtn").disabled = false;
   }
@@ -109,7 +109,7 @@ $("#uploadBtn").addEventListener("click", async () => {
 const SOURCE_LABEL = {
   pdf_text: "PDF (text layer) — OCR-siz",
   pdf_scan: "Skan PDF — OCR",
-  image: "Şəkil — OCR",
+  image: t("admin.imageOcr"),
 };
 
 function renderResult(data) {
@@ -126,11 +126,11 @@ function renderResult(data) {
   $("#resultMeta").innerHTML = `
     <div class="badges">
       <span class="badge ${data.ocr_used ? "warn" : "ok"}">${esc(SOURCE_LABEL[data.source_type] || data.source_type)}</span>
-      <span class="badge">səhifə <strong>${data.pages ?? "—"}</strong></span>
+      <span class="badge">${t("badge.pages")} <strong>${data.pages ?? "—"}</strong></span>
       <span class="badge">simvol <strong>${data.chars ?? "—"}</strong></span>
-      <span class="badge">xam sətir <strong>${s.total_lines}</strong></span>
-      <span class="badge ok">saxlanıldı <strong>${s.kept}</strong></span>
-      <span class="badge">nisbət <strong>${(s.keep_ratio * 100).toFixed(0)}%</strong></span>
+      <span class="badge">${t("badge.rawLines")} <strong>${s.total_lines}</strong></span>
+      <span class="badge ok">${t("badge.kept")} <strong>${s.kept}</strong></span>
+      <span class="badge">${t("badge.ratio")} <strong>${(s.keep_ratio * 100).toFixed(0)}%</strong></span>
     </div>
     ${dropped ? `<div class="badges">${dropped}</div>` : ""}
     ${(data.notes || []).map((n) => `<div class="notice info">${esc(n)}</div>`).join("")}
@@ -142,12 +142,12 @@ function renderResult(data) {
 function renderLines(lines) {
   if (!lines.length) {
     $("#linesTable").innerHTML =
-      `<tr><td class="txt">Heç bir məhsul sətri tapılmadı. PSM rejimini dəyişib yenidən yoxlayın.</td></tr>`;
+      `<tr><td class="txt">${t("admin.noLines")}</td></tr>`;
     return;
   }
   $("#linesTable").innerHTML = `
     <thead>
-      <tr><th>#</th><th class="num">Qiymət</th><th class="num">Köhnə</th><th>Sətir</th></tr>
+      <tr><th>#</th><th class="num">${t("common.price")}</th><th class="num">${t("col.old")}</th><th>${t("col.line")}</th></tr>
     </thead>
     <tbody>
       ${lines
@@ -176,8 +176,8 @@ $("#extractBtn").addEventListener("click", async () => {
   notice(
     $("#extractStatus"),
     "info",
-    `<span class="spinner"></span>Model sətirləri emal edir…
-     <br><small>Keşdə olan sətirlər dərhal qayıdır.</small>`
+    `<span class="spinner"></span>${t("admin.modelWorking")}
+     <br><small>${t("admin.cacheHint")}</small>`
   );
 
   try {
@@ -195,15 +195,15 @@ $("#extractBtn").addEventListener("click", async () => {
     notice(
       $("#extractStatus"),
       "ok",
-      `<strong>${data.saved}</strong> məhsul yazıldı ·
-       keşdən <strong>${llm.from_cache}</strong> ·
+      `<strong>${data.saved}</strong> ${t("admin.savedCount")} ·
+       ${t("admin.fromCache")} <strong>${llm.from_cache}</strong> ·
        modeldən <strong>${llm.from_llm}</strong> ·
        uğursuz <strong>${llm.failed}</strong>`
     );
     renderProducts(data.products, data);
     await Promise.all([loadHealth(), loadCompare()]);
   } catch (e) {
-    notice($("#extractStatus"), "error", "Şəbəkə xətası: " + esc(e.message));
+    notice($("#extractStatus"), "error", t("admin.networkError") + esc(e.message));
   } finally {
     $("#extractBtn").disabled = false;
   }
@@ -217,18 +217,18 @@ function renderProducts(items, meta) {
       <span class="badge"><strong>${esc(meta.store)}</strong></span>
       <span class="badge">emal olundu <strong>${meta.processed}</strong>/${meta.total_lines}</span>
       <span class="badge ok">yazıldı <strong>${meta.saved}</strong></span>
-      ${meta.skipped ? `<span class="badge warn">ötürüldü <strong>${meta.skipped}</strong></span>` : ""}
+      ${meta.skipped ? `<span class="badge warn">${t("admin.skipped")} <strong>${meta.skipped}</strong></span>` : ""}
     </div>`;
 
   if (!items.length) {
-    $("#productTable").innerHTML = `<tr><td class="txt">Məhsul çıxarılmadı.</td></tr>`;
+    $("#productTable").innerHTML = `<tr><td class="txt">${t("admin.noExtract")}</td></tr>`;
     return;
   }
 
   $("#productTable").innerHTML = `
     <thead>
       <tr>
-        <th>Məhsul</th><th>Brend</th><th>Ölçü</th>
+        <th>${t("common.product")}</th><th>${t("col.brand")}</th><th>${t("col.size")}</th>
         <th class="num">Qiymət</th><th class="num">Vahid qiymət</th><th>Kateqoriya</th>
       </tr>
     </thead>
@@ -243,7 +243,7 @@ function renderProducts(items, meta) {
             <td class="num">${esc(size)}</td>
             <td class="num"><strong>${money(p.price)}</strong></td>
             <td class="num">${esc(unit)}</td>
-            <td class="txt">${esc(p.category)}</td>
+            <td class="txt">${esc(t("cat." + p.category, p.category))}</td>
           </tr>`;
         })
         .join("")}
@@ -262,8 +262,8 @@ async function showLines(catalogId) {
     <div class="badges">
       <span class="badge"><strong>${esc(data.store)}</strong></span>
       <span class="badge">${esc(SOURCE_LABEL[data.source_type] || data.source_type)}</span>
-      <span class="badge">xam sətir <strong>${data.stats.total_lines}</strong></span>
-      <span class="badge ok">saxlanıldı <strong>${data.stats.kept}</strong></span>
+      <span class="badge">${t("badge.rawLines")} <strong>${data.stats.total_lines}</strong></span>
+      <span class="badge ok">${t("badge.kept")} <strong>${data.stats.kept}</strong></span>
     </div>`;
   renderLines(data.lines);
   $("#resultCard").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -278,7 +278,7 @@ async function loadCatalogs() {
 
     if (!rows.length) {
       $("#catalogList").innerHTML =
-        `<div class="row"><span class="row-value">Hələ kataloq yüklənməyib.</span></div>`;
+        `<div class="row"><span class="row-value">${t("admin.noCatalog")}</span></div>`;
       return;
     }
 
@@ -293,7 +293,7 @@ async function loadCatalogs() {
             </span>
           </span>
           <span class="actions flush">
-            <button class="btn btn-secondary" data-lines="${r.id}" type="button">Sətirlər</button>
+            <button class="btn btn-secondary" data-lines="${r.id}" type="button">${t("admin.lines")}</button>
             <button class="icon-btn" data-del="${r.id}" type="button"
                     aria-label="${esc(r.store_name)} kataloqunu sil">${icon("trash")}</button>
           </span>
@@ -312,7 +312,7 @@ async function loadCatalogs() {
       })
     );
   } catch {
-    $("#catalogList").innerHTML = `<div class="row"><span class="row-value">Siyahı yüklənmədi</span></div>`;
+    $("#catalogList").innerHTML = `<div class="row"><span class="row-value">${t("admin.listError")}</span></div>`;
   }
 }
 
@@ -376,8 +376,8 @@ function armDeleteButton(btn, onConfirm) {
     // Birinci klik - başqa sətirdə gözləyən təsdiq varsa, o ləğv olunur.
     cancelPendingDelete();
     btn.classList.add("is-confirming");
-    btn.textContent = "Silinsin?";
-    btn.setAttribute("aria-label", `${label} — təsdiq üçün yenidən basın`);
+    btn.textContent = t("common.confirmDelete");
+    btn.setAttribute("aria-label", t("confirm.aria", { label }));
     pendingDelete = {
       btn,
       label,
@@ -400,7 +400,7 @@ document.addEventListener("keydown", (e) => {
 $("#matchBtn").addEventListener("click", async () => {
   $("#matchBtn").disabled = true;
   notice($("#matchStatus"), "info",
-    `<span class="spinner"></span>Oxşar məhsullar axtarılır, sonra model onları yoxlayır…`);
+    `<span class="spinner"></span>${t("admin.matching")}`);
 
   try {
     const data = await (await fetch("/api/match/run?limit=20", { method: "POST" })).json();
@@ -416,7 +416,7 @@ $("#matchBtn").addEventListener("click", async () => {
     notice($("#matchStatus"), "ok",
       `<strong>${data.llm.confirmed}</strong> cüt birləşdirildi ·
        yoxlanıldı ${data.candidates_checked}/${data.candidates_found} ·
-       keşdən ${data.llm.from_cache} · modeldən ${data.llm.from_llm}
+       ${t("admin.fromCache")} ${data.llm.from_cache} · ${t("admin.fromModel")} ${data.llm.from_llm}
        ${pairs ? `<div class="gap-sm">${pairs}</div>` : ""}
        ${rejected ? `<div class="gap-sm is-muted">${rejected}</div>` : ""}`);
 
@@ -447,7 +447,7 @@ async function runSearch(q) {
     const data = await (await fetch(`/api/products/search?q=${encodeURIComponent(q)}`)).json();
     if (!data.items.length) {
       $("#searchResults").innerHTML =
-        `<div class="search-item"><span class="search-meta">Tapılmadı</span></div>`;
+        `<div class="search-item"><span class="search-meta">${t("add.notFound")}</span></div>`;
       return;
     }
     $("#searchResults").innerHTML = data.items
@@ -463,7 +463,7 @@ async function runSearch(q) {
             </span>
           </span>
           <button class="btn btn-secondary" data-add="${p.id}" type="button"
-                  aria-label="${title} məhsulunu səbətə əlavə et">Səbətə</button>
+                  aria-label="${t("add.aria", { name: title })}">Səbətə</button>
         </div>`;
       })
       .join("");
@@ -471,7 +471,7 @@ async function runSearch(q) {
     $("#searchResults").querySelectorAll("[data-add]").forEach((b) =>
       b.addEventListener("click", async () => {
         b.disabled = true;
-        b.innerHTML = `${icon("check")} Əlavə olundu`;
+        b.innerHTML = `${icon("check")} ${t("add.done")}`;
         await fetch("/api/basket/items", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -496,8 +496,8 @@ function resetAdvisor(enabled) {
   const placeholder = $("#advisorPlaceholder");
   placeholder.classList.remove("hidden");
   placeholder.innerHTML = enabled
-    ? `Səbətiniz hazırdır — <strong>Tövsiyə al</strong> düyməsi ilə izah alın.`
-    : `Səbətinizi doldurun, sonra <strong>Tövsiyə al</strong> düyməsini basın.`;
+    ? `${t("answer.readyForAi")} <strong>${t("ai.get")}</strong>${t("answer.readyForAiAfter")}`
+    : `${t("ai.placeholderBefore")} <strong>${t("ai.get")}</strong>${t("ai.placeholderAfter")}`;
 }
 
 /**
@@ -523,14 +523,14 @@ function renderBasket(data) {
   }
 
   box.innerHTML =
-    `<span class="basket-mini-label">Səbətiniz (${data.items.length})</span>` +
+    `<span class="basket-mini-label">${t("basket.label")} (${data.items.length})</span>` +
     data.items
       .map(
         (item) => `<span class="basket-chip">
           <span class="basket-chip-name">${esc(item.label)}</span>
           ${item.qty && item.qty !== 1 ? `<span class="basket-chip-qty">×${esc(String(item.qty))}</span>` : ""}
           <button class="basket-chip-del" data-del-item="${item.product_id}" type="button"
-                  aria-label="${esc(item.label)} məhsulunu səbətdən sil">${icon("trash")}</button>
+                  aria-label="${t("basket.removeItem", { name: esc(item.label) })}">${icon("trash")}</button>
         </span>`
       )
       .join("");
@@ -564,8 +564,8 @@ function renderHero(data) {
   if (!data.items.length) {
     box.innerHTML = `
       <div class="hero-empty">
-        <div class="hero-empty-title">Səbət boşdur</div>
-        <div>Aşağıdakı axtarışdan məhsul əlavə edin — cavab dərhal görünəcək.</div>
+        <div class="hero-empty-title">${t("basket.empty")}</div>
+        <div>${t("basket.emptyHint")}</div>
       </div>`;
     return;
   }
@@ -578,8 +578,7 @@ function renderHero(data) {
   const splitLine =
     best && c && splitSaving > 0.005
       ? `<p class="answer-alt">
-           ${c.store_count} marketi gəzsəniz daha
-           <strong>${price(splitSaving)}</strong> qənaət edərsiniz
+           ${t("answer.split", { n: c.store_count, amount: `<strong>${price(splitSaving)}</strong>` })}
          </p>`
       : "";
 
@@ -593,8 +592,8 @@ function renderHero(data) {
     const second = complete[1];
 
     const line = second
-      ? `${esc(second.store)} ilə müqayisədə ${price(second.total - best.total)} ucuz`
-      : `Ən ucuz qiymət: ${best.cheapest_count} / ${data.items.length} məhsulda`;
+      ? `${t("answer.cheaperThan", { store: esc(second.store), amount: price(second.total - best.total) })}`
+      : `${t("answer.cheapestCount", { n: best.cheapest_count, total: data.items.length })}`;
 
     box.innerHTML = `
       <div class="answer">
@@ -615,8 +614,8 @@ function renderHero(data) {
   if (!c || !most) {
     box.innerHTML = `
       <div class="hero-empty">
-        <div class="hero-empty-title">Qalib elan edilmir</div>
-        <div>${esc(data.note || "Heç bir market səbətin hamısını satmır.")}</div>
+        <div class="hero-empty-title">${t("answer.noWinner")}</div>
+        <div>${esc(data.note || t("answer.noneComplete"))}</div>
       </div>`;
     return;
   }
@@ -629,7 +628,7 @@ function renderHero(data) {
         ${c.store_count} marketi gəzsəniz — hər məhsulu ən ucuz satandan.
         Tək market kifayət etmir; ən çox əhatə:
         <strong>${esc(most.store)}</strong> — ${most.covered}/${data.items.length} məhsul.${
-          c.unavailable ? ` ${c.unavailable} məhsul heç bir marketdə tapılmadı.` : ""
+          c.unavailable ? `${t("answer.unavailable", { n: c.unavailable })}` : ""
         }
       </p>
     </div>`;
@@ -676,8 +675,8 @@ function renderBars(data) {
       const isBest = data.best && s.store_id === data.best.store_id;
       const cls = `bar-row${isBest ? " is-best" : ""}${s.complete ? "" : " is-partial"}`;
       const sub = s.complete
-        ? (isBest ? "ən ucuz tam səbət" : (s.diff != null ? `+${money(s.diff)} ₼` : ""))
-        : `${s.covered}/${data.items.length} məhsul — natamam`;
+        ? (isBest ? t("answer.fullBasket") : (s.diff != null ? `+${money(s.diff)} ₼` : ""))
+        : `${t("answer.partial", { covered: s.covered, total: data.items.length })}`;
       // Bar ən azı 22% enində olur ki, içindəki rəqəm həmişə oxunsun
       const width = Math.max(22, (s.total / max) * 100);
       return `<div class="${cls}">
@@ -702,17 +701,17 @@ function renderCompareTable(data) {
   $("#compareTableWrap").innerHTML = `
     <div class="table-scroll">
       <table class="lines">
-        <caption class="sr-only">Səbətdəki məhsulların marketlər üzrə qiymət müqayisəsi</caption>
+        <caption class="sr-only">${t("compare.caption")}</caption>
         <thead>
           <tr>
-            <th scope="col">Məhsul</th>
+            <th scope="col">${t("common.product")}</th>
             ${stores
               .map((s) => {
                 const best = data.best && s.store_id === data.best.store_id;
                 return `<th scope="col" class="num">${storeChip(s.store, best)}</th>`;
               })
               .join("")}
-            <th scope="col"><span class="sr-only">Əməliyyat</span></th>
+            <th scope="col"><span class="sr-only">${t("col.action")}</span></th>
           </tr>
         </thead>
         <tbody>
@@ -729,7 +728,7 @@ function renderCompareTable(data) {
                   // bilməyən istifadəçi məlumatı itirmir.
                   const inner = cheap
                     ? `<span class="price-pill is-best">${icon("check")}${money(p.price)}` +
-                      `<span class="sr-only">— ən ucuz</span></span>`
+                      `<span class="sr-only">${t("compare.srCheapest")}</span></span>`
                     : price(p.price);
                   return `<td class="num" title="${esc(p.raw_line || "")}">${inner}</td>`;
                 })
@@ -740,7 +739,7 @@ function renderCompareTable(data) {
                     <span class="avatar" aria-hidden="true">${icon(categoryIcon(item.category))}</span>
                     <span class="entity-text">
                       <span class="entity-name">${esc(item.label)}</span>
-                      <span class="entity-meta">${esc([item.size, item.category].filter(Boolean).join(" · "))}</span>
+                      <span class="entity-meta">${esc([item.size, item.category ? t("cat." + item.category, item.category) : ""].filter(Boolean).join(" · "))}</span>
                     </span>
                   </span>
                 </td>
@@ -779,7 +778,7 @@ async function loadCompare() {
     if (!data.items.length) {
       $("#storeBars").innerHTML = "";
       $("#compareTableWrap").innerHTML =
-        `<div class="hint">Səbətdə məhsul yoxdur.</div>`;
+        `<div class="hint">${t("compare.emptyBasket")}</div>`;
       resetAdvisor(false);
       return;
     }
@@ -790,7 +789,7 @@ async function loadCompare() {
     resetAdvisor(true);
   } catch {
     $("#compareResult").innerHTML =
-      `<div class="notice error">Müqayisə yüklənmədi — backend cavab vermir.</div>`;
+      `<div class="notice error">${t("compare.loadError")}</div>`;
     resetAdvisor(false);
   }
 }
@@ -804,10 +803,10 @@ function renderStats(db) {
   // verilirdi - rəng bəzək kimi işlədilirdi. Üstəlik index.html-dəki skeleton
   // is-accent ilə başlayırdı, yəni yüklənəndə rəng sıçrayırdı.
   const cards = [
-    ["store", "Market", db.stores, "Qiyməti olan supermarket", "is-accent"],
-    ["layers", "Kataloq", db.catalogs, "Emal olunmuş fayl", "is-accent"],
-    ["package", "Məhsul", db.products, "AI ilə çıxarılmış sətir", "is-accent"],
-    ["tag", "Qiymət", db.prices, "Ümumi müşahidə", "is-accent"],
+    ["store", "Market", db.stores, t("stat.storesNote"), "is-accent"],
+    ["layers", "Kataloq", db.catalogs, t("stat.catalogsNote"), "is-accent"],
+    ["package", "Məhsul", db.products, t("stat.productsNote"), "is-accent"],
+    ["tag", "Qiymət", db.prices, t("stat.pricesNote"), "is-accent"],
   ];
 
   $("#stats").innerHTML = cards
@@ -832,7 +831,7 @@ function renderStats(db) {
 function statusTile(ico, label, state, value, detail = "") {
   const cls = state === true ? "ok" : state === false ? "bad" : "warn";
   const tone = state === true ? "is-green" : state === false ? "" : "is-amber";
-  const word = state === true ? "işləyir" : state === false ? "xəta" : "yoxlanılır";
+  const word = state === true ? t("health.ok") : state === false ? t("health.fail") : t("health.checking");
   return `<div class="status-tile">
     <span class="avatar is-sm ${tone}" aria-hidden="true">${icon(ico)}</span>
     <div class="status-tile-body">
@@ -856,26 +855,34 @@ async function loadHealth() {
     const activeModel = llm.claude_active ? llm.claude_model : llm.model;
 
     $("#status").innerHTML = [
-      statusTile("database", "Verilənlər bazası", !data.database.error,
-        data.database.error ? "Xəta" : "Qoşuludur",
+      statusTile("database", t("health.database"), !data.database.error,
+        data.database.error ? t("admin.error") : t("health.connected"),
         data.database.error || ""),
-      statusTile("sparkle", "LLM provayderi", llm.claude_active || llm.reachable,
+      statusTile("sparkle", t("health.llmProvider"), llm.claude_active || llm.reachable,
         llm.status || llm.provider,
         llm.claude_note || ""),
-      statusTile("cpu", "Aktiv model", llm.claude_active || llm.model_available,
+      statusTile("cpu", t("health.activeModel"), llm.claude_active || llm.model_available,
         activeModel,
-        llm.claude_active ? "Ehtiyat: " + llm.model : ""),
-      statusTile("server", "Ollama serveri", llm.reachable,
-        llm.reachable ? "Əlçatandır" : "Əlçatmazdır",
+        llm.claude_active ? t("health.fallback") + llm.model : ""),
+      statusTile("server", t("health.ollama"), llm.reachable,
+        llm.reachable ? t("health.reachable") : t("health.unreachable"),
         llm.reachable ? llm.base_url : (llm.error || "")),
-      statusTile("terminal", "Mühit", true, data.env),
+      statusTile("terminal", t("health.environment"), true, data.env),
     ].join("");
   } catch {
-    $("#status").innerHTML = statusTile("server", "Backend", false, "Cavab vermir",
-      "uvicorn işləyirmi?");
+    $("#status").innerHTML = statusTile("server", "Backend", false, t("health.noResponse"),
+      t("health.uvicorn"));
   }
 }
 
 loadHealth();
 loadCatalogs();
 loadCompare();
+
+// Dil dəyişəndə JS-in qurduğu bütün bloklar yenidən çəkilir. Statik mətni
+// `i18n.js` özü əvəz edir; buradakı çağırışlar yalnız DİNAMİK hissələr üçündür.
+document.addEventListener("basketiq:lang", () => {
+  loadHealth();
+  loadCatalogs();
+  loadCompare();
+});

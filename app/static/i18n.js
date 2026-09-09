@@ -130,6 +130,11 @@
     },
     "compare.addLabel": { az: "Məhsul axtar və səbətə əlavə et", en: "Search a product and add it to the basket", ru: "Найдите товар и добавьте в корзину" },
     "compare.addPlaceholder": { az: "süd, düyü, yağ…", en: "milk, rice, oil…", ru: "молоко, рис, масло…" },
+    "compare.caption": {
+      az: "Səbətdəki məhsulların marketlər üzrə qiymət müqayisəsi",
+      en: "Price comparison of the basket's products across supermarkets",
+      ru: "Сравнение цен товаров корзины по магазинам",
+    },
     "compare.cheapest": { az: "ən ucuz", en: "cheapest", ru: "самая низкая" },
 
     // ======================================================================= AI
@@ -291,6 +296,250 @@
     "store.backHome": { az: "Ana səhifəyə qayıt", en: "Back to the home page", ru: "Вернуться на главную" },
     "store.loadError": { az: "Market datası yüklənmədi.", en: "Supermarket data did not load.", ru: "Данные магазина не загрузились." },
 
+    // -------------------------------------------------- səbət cavabı (app.js)
+    "answer.cheaperThan": {
+      az: "{store} ilə müqayisədə {amount} ucuz",
+      en: "{amount} cheaper than {store}",
+      ru: "На {amount} дешевле, чем {store}",
+    },
+    "answer.cheapestCount": {
+      az: "Ən ucuz qiymət: {n} / {total} məhsulda",
+      en: "Lowest price on {n} of {total} products",
+      ru: "Самая низкая цена по {n} из {total} товаров",
+    },
+    "answer.noneComplete": {
+      az: "Heç bir market səbətin hamısını satmır.",
+      en: "No supermarket sells the whole basket.",
+      ru: "Ни один магазин не продаёт всю корзину.",
+    },
+    "answer.unavailable": {
+      az: " {n} məhsul heç bir marketdə tapılmadı.",
+      en: " {n} products were not found at any supermarket.",
+      ru: " {n} товаров не найдено ни в одном магазине.",
+    },
+    "answer.noWinner": { az: "Qalib elan edilmir", en: "No winner is declared", ru: "Победитель не объявляется" },
+    "answer.split": {
+      az: "{n} marketi gəzsəniz daha {amount} qənaət edərsiniz",
+      en: "Visit {n} supermarkets and you save {amount} more",
+      ru: "Обойдите {n} магазина — сэкономите ещё {amount}",
+    },
+    "answer.fullBasket": { az: "ən ucuz tam səbət", en: "cheapest complete basket", ru: "самая дешёвая полная корзина" },
+    "answer.partial": {
+      az: "{covered}/{total} məhsul — natamam",
+      en: "{covered}/{total} products — incomplete",
+      ru: "{covered}/{total} товаров — неполно",
+    },
+    "answer.readyForAi": {
+      az: "Səbətiniz hazırdır —",
+      en: "Your basket is ready —",
+      ru: "Ваша корзина готова —",
+    },
+    "answer.readyForAiAfter": {
+      az: " düyməsi ilə izah alın.",
+      en: " for an explanation.",
+      ru: " за объяснением.",
+    },
+    "compare.emptyBasket": { az: "Səbətdə məhsul yoxdur.", en: "There are no products in the basket.", ru: "В корзине нет товаров." },
+    "compare.loadError": {
+      az: "Müqayisə yüklənmədi — backend cavab vermir.",
+      en: "The comparison did not load — the backend is not responding.",
+      ru: "Сравнение не загрузилось — бэкенд не отвечает.",
+    },
+    "compare.srCheapest": { az: "— ən ucuz", en: "— cheapest", ru: "— самая низкая" },
+
+    // ------------------------------------------------ məhsul axtarışı (app.js)
+    "add.notFound": { az: "Tapılmadı", en: "Not found", ru: "Не найдено" },
+    "add.aria": {
+      az: "{name} məhsulunu səbətə əlavə et",
+      en: "Add {name} to the basket",
+      ru: "Добавить {name} в корзину",
+    },
+    "add.done": { az: "Əlavə olundu", en: "Added", ru: "Добавлено" },
+    "confirm.aria": {
+      az: "{label} — təsdiq üçün yenidən basın",
+      en: "{label} — press again to confirm",
+      ru: "{label} — нажмите ещё раз для подтверждения",
+    },
+
+    // ------------------------------------------------------ admin emalı (app.js)
+    "admin.unknownStore": { az: "Naməlum market", en: "Unknown supermarket", ru: "Неизвестный магазин" },
+    "admin.processing": {
+      az: "Emal olunur… Skan PDF-də OCR bir neçə dəqiqə çəkə bilər.",
+      en: "Processing… OCR on a scanned PDF can take a few minutes.",
+      ru: "Обработка… OCR отсканированного PDF может занять несколько минут.",
+    },
+    "admin.unknownError": { az: "Naməlum xəta", en: "Unknown error", ru: "Неизвестная ошибка" },
+    "admin.ready": {
+      az: "Hazırdır — {n} məhsul namizədi sətir tapıldı.",
+      en: "Done — {n} candidate product lines found.",
+      ru: "Готово — найдено строк-кандидатов: {n}.",
+    },
+    "admin.networkError": { az: "Şəbəkə xətası: ", en: "Network error: ", ru: "Сетевая ошибка: " },
+    "admin.imageOcr": { az: "Şəkil — OCR", en: "Image — OCR", ru: "Изображение — OCR" },
+    "admin.noLines": {
+      az: "Heç bir məhsul sətri tapılmadı. PSM rejimini dəyişib yenidən yoxlayın.",
+      en: "No product line was found. Change the PSM mode and try again.",
+      ru: "Строк с товарами не найдено. Измените режим PSM и попробуйте снова.",
+    },
+    "admin.error": { az: "Xəta", en: "Error", ru: "Ошибка" },
+    "admin.errorPrefix": { az: "Xəta: ", en: "Error: ", ru: "Ошибка: " },
+    "admin.skipped": { az: "ötürüldü", en: "skipped", ru: "пропущено" },
+    "admin.noExtract": { az: "Məhsul çıxarılmadı.", en: "No product was extracted.", ru: "Ни один товар не извлечён." },
+    "admin.noCatalog": { az: "Hələ kataloq yüklənməyib.", en: "No catalogue has been uploaded yet.", ru: "Каталоги ещё не загружены." },
+    "admin.listError": { az: "Siyahı yüklənmədi", en: "The list did not load", ru: "Список не загрузился" },
+    "admin.matching": {
+      az: "Oxşar məhsullar axtarılır, sonra model onları yoxlayır…",
+      en: "Looking for similar products, then the model verifies them…",
+      ru: "Ищем похожие товары, затем модель их проверяет…",
+    },
+
+    "badge.pages": { az: "səhifə", en: "pages", ru: "страниц" },
+    "badge.rawLines": { az: "xam sətir", en: "raw lines", ru: "сырых строк" },
+    "badge.kept": { az: "saxlanıldı", en: "kept", ru: "сохранено" },
+    "badge.ratio": { az: "nisbət", en: "ratio", ru: "доля" },
+    "col.old": { az: "Köhnə", en: "Old", ru: "Старая" },
+    "col.line": { az: "Sətir", en: "Line", ru: "Строка" },
+    "col.brand": { az: "Brend", en: "Brand", ru: "Бренд" },
+    "col.size": { az: "Ölçü", en: "Size", ru: "Размер" },
+    "col.action": { az: "Əməliyyat", en: "Action", ru: "Действие" },
+    "admin.modelWorking": {
+      az: "Model sətirləri emal edir…",
+      en: "The model is processing the lines…",
+      ru: "Модель обрабатывает строки…",
+    },
+    "admin.cacheHint": {
+      az: "Keşdə olan sətirlər dərhal qayıdır.",
+      en: "Cached lines come back immediately.",
+      ru: "Строки из кеша возвращаются сразу.",
+    },
+    "admin.savedCount": { az: "məhsul yazıldı", en: "products written", ru: "товаров записано" },
+    "admin.fromCache": { az: "keşdən", en: "from cache", ru: "из кеша" },
+    "admin.fromModel": { az: "modeldən", en: "from the model", ru: "от модели" },
+
+    // ------------------------------------------------ admin sayğacları (app.js)
+    "stat.stores": { az: "Market", en: "Supermarkets", ru: "Магазины" },
+    "stat.storesNote": { az: "Qiyməti olan supermarket", en: "Supermarkets with prices", ru: "Магазины с ценами" },
+    "stat.catalogs": { az: "Kataloq", en: "Catalogues", ru: "Каталоги" },
+    "stat.catalogsNote": { az: "Emal olunmuş fayl", en: "Processed files", ru: "Обработанные файлы" },
+    "stat.productsNote": { az: "AI ilə çıxarılmış sətir", en: "Lines extracted with AI", ru: "Строки, извлечённые ИИ" },
+    "stat.pricesNote": { az: "Ümumi müşahidə", en: "Total observations", ru: "Всего наблюдений" },
+
+    // ------------------------------------------------------ sistem statusu (app.js)
+    "health.ok": { az: "işləyir", en: "working", ru: "работает" },
+    "health.fail": { az: "xəta", en: "error", ru: "ошибка" },
+    "health.checking": { az: "yoxlanılır", en: "checking", ru: "проверяется" },
+    "health.llmProvider": { az: "LLM provayderi", en: "LLM provider", ru: "Провайдер LLM" },
+    "health.activeModel": { az: "Aktiv model", en: "Active model", ru: "Активная модель" },
+    "health.ollama": { az: "Ollama serveri", en: "Ollama server", ru: "Сервер Ollama" },
+    "health.fallback": { az: "Ehtiyat: ", en: "Fallback: ", ru: "Резерв: " },
+    "health.noResponse": { az: "Cavab vermir", en: "Not responding", ru: "Не отвечает" },
+    "health.database": { az: "Verilənlər bazası", en: "Database", ru: "База данных" },
+    "health.connected": { az: "Qoşuludur", en: "Connected", ru: "Подключена" },
+    "health.reachable": { az: "Əlçatandır", en: "Reachable", ru: "Доступен" },
+    "health.unreachable": { az: "Əlçatmazdır", en: "Unreachable", ru: "Недоступен" },
+    "health.environment": { az: "Mühit", en: "Environment", ru: "Окружение" },
+    "health.uvicorn": { az: "uvicorn işləyirmi?", en: "is uvicorn running?", ru: "запущен ли uvicorn?" },
+
+    // ------------------------------------------------- tarixçə / qrafik
+    "chart.noPrices": {
+      az: "Hələ qiymət yoxdur — əvvəlcə kataloq emal edin.",
+      en: "No prices yet — process a catalogue first.",
+      ru: "Цен пока нет — сначала обработайте каталог.",
+    },
+    "chart.observations": { az: "müşahidə", en: "observations", ru: "наблюдений" },
+    "chart.markets": { az: "market", en: "supermarkets", ru: "магазинов" },
+    "chart.listError": { az: "Məhsul siyahısı yüklənmədi.", en: "The product list did not load.", ru: "Список товаров не загрузился." },
+    "chart.historyError": { az: "Tarixçə yüklənmədi.", en: "The history did not load.", ru: "История не загрузилась." },
+    "chart.noObservation": { az: "Bu məhsul üçün müşahidə yoxdur.", en: "There is no observation for this product.", ru: "По этому товару нет наблюдений." },
+    "chart.noTrend": {
+      az: "Eyni marketdən 2 müşahidə olmadığı üçün trend yox,",
+      en: "Without two observations from the same supermarket there is no trend, so a",
+      ru: "Без двух наблюдений из одного магазина тренда нет, поэтому показано",
+    },
+    "chart.storeCompare": { az: "market müqayisəsi", en: "supermarket comparison", ru: "сравнение магазинов" },
+    "chart.shown": { az: "göstərilir.", en: "is shown.", ru: "показано." },
+    "chart.lowestSeen": { az: " — ən ucuz", en: " — cheapest", ru: " — самая низкая" },
+    "discount.loadError": { az: "Endirim yoxlaması yüklənmədi.", en: "The discount check did not load.", ru: "Проверка скидки не загрузилась." },
+
+    "chart.market": { az: "Market", en: "Supermarket", ru: "Магазин" },
+    "chart.oldPrice": { az: "Köhnə", en: "Old", ru: "Старая" },
+    "chart.unitPrice": { az: "Vahid qiymət", en: "Unit price", ru: "Цена за единицу" },
+    "chart.date": { az: "Tarix", en: "Date", ru: "Дата" },
+    "chart.lowestSeenAt": { az: "ən aşağı müşahidə — {store}", en: "lowest observed — {store}", ru: "минимум зафиксирован — {store}" },
+    "history.sub": {
+      az: "Eyni marketdən 2 müşahidə olmayanda trend yox, market müqayisəsi göstərilir.",
+      en: "Without two observations from the same supermarket a comparison across supermarkets is shown instead of a trend.",
+      ru: "Если из одного магазина нет двух наблюдений, вместо тренда показывается сравнение магазинов.",
+    },
+    "discount.sub": {
+      az: "Kataloqdakı «köhnə qiymət» iddiasını öz müşahidələrimizlə tutuşdururuq.",
+      en: "We check the leaflet's \u00ableaflet old price\u00bb claim against our own observations.",
+      ru: "Сверяем заявленную в каталоге «старую цену» с нашими собственными наблюдениями.",
+    },
+    "discount.noClaim": {
+      az: "Yoxlanan {n} qiymət sətrində endirim iddiası yoxdur (köhnə qiymət göstərilməyib).",
+      en: "None of the {n} checked price lines claims a discount (no old price is shown).",
+      ru: "Ни в одной из {n} проверенных строк нет заявленной скидки (старая цена не указана).",
+    },
+    "verdict.subheli": { az: "Şübhəli", en: "Suspicious", ru: "Подозрительно" },
+    "verdict.tesdiqlenmeyib": { az: "Təsdiqlənməyib", en: "Unverified", ru: "Не подтверждено" },
+    "verdict.tesdiqlenib": { az: "Təsdiqlənib", en: "Verified", ru: "Подтверждено" },
+    "verdict.endirim_yoxdur": { az: "Endirim yoxdur", en: "No discount", ru: "Скидки нет" },
+    "verdict.checked": { az: "Yoxlanıldı", en: "Checked", ru: "Проверено" },
+    "health.works": { az: "işləyir", en: "working", ru: "работает" },
+
+    // --------------------------------------------------- məhsul səhifəsi
+    "product.best": { az: "Ən ucuz", en: "Cheapest", ru: "Самая дешёвая" },
+    "product.bestValue": { az: "Ən sərfəli", en: "Best value", ru: "Выгоднее всего" },
+    "product.noPrice": {
+      az: "Bu məhsulun heç bir marketdə cari qiyməti yoxdur.",
+      en: "This product has no current price at any supermarket.",
+      ru: "У этого товара нет актуальной цены ни в одном магазине.",
+    },
+    "product.spread": {
+      az: "{n} marketdə var — ən ucuz ilə ən bahalı arasında fərq {amount} ₼.",
+      en: "Available at {n} supermarkets — the gap between cheapest and dearest is {amount} ₼.",
+      ru: "Есть в {n} магазинах — разница между самой низкой и самой высокой ценой {amount} ₼.",
+    },
+    "product.onlyOne": {
+      az: "Yalnız bir marketdə tapılıb — müqayisə üçün ikinci qiymət yoxdur.",
+      en: "Found at only one supermarket — there is no second price to compare.",
+      ru: "Найден только в одном магазине — второй цены для сравнения нет.",
+    },
+    "product.missingAt": { az: "{stores} kataloqunda tapılmadı.", en: "Not found in the {stores} catalogue.", ru: "Не найдено в каталоге {stores}." },
+    "product.soonAt": { az: "{stores} — tezliklə.", en: "{stores} — coming soon.", ru: "{stores} — скоро." },
+    "product.lowest": { az: "Ən aşağı", en: "Lowest", ru: "Минимум" },
+    "product.usually": { az: "Adətən", en: "Usually", ru: "Обычно" },
+    "product.basedOn": { az: "{n} müşahidəyə əsaslanır.", en: "Based on {n} observations.", ru: "Основано на {n} наблюдениях." },
+    "product.notFound": { az: "Məhsul tapılmadı", en: "Product not found", ru: "Товар не найден" },
+    "product.loadError": { az: "Məhsul datası yüklənmədi.", en: "Product data did not load.", ru: "Данные товара не загрузились." },
+
+    // ----------------------------------------------------------- profil
+    "profile.loadError": { az: "Profil yüklənmədi.", en: "The profile did not load.", ru: "Профиль не загрузился." },
+    "profile.saving": { az: "Yadda saxlanılır…", en: "Saving…", ru: "Сохранение…" },
+    "profile.serverError": { az: "Server xətası", en: "Server error", ru: "Ошибка сервера" },
+    "profile.planError": { az: "Plan hesablanmadı.", en: "The plan could not be computed.", ru: "План не рассчитан." },
+    "profile.noPlan": { az: "Plan qurmaq mümkün olmadı.", en: "It was not possible to build a plan.", ru: "Не удалось построить план." },
+    "profile.singleVsSplit": { az: "Tək market / bölünmüş", en: "Single / split", ru: "Один магазин / раздельно" },
+    "profile.settingsSub": {
+      az: "Bu ayarlar bəzək deyil: tövsiyə məntiqi onlara görə dəyişir. Tək markete gedirsinizsə, 0.20 AZN üçün ikinci market təklif olunmayacaq.",
+      en: "These settings are not decoration: the recommendation logic changes with them. If you shop at a single supermarket, a split trip will not be suggested.",
+      ru: "Эти настройки — не украшение: логика рекомендации зависит от них. Если вы ходите в один магазин, раздельная покупка предлагаться не будет.",
+    },
+    "profile.split": { az: "Bölünmüş alış", en: "Split shopping", ru: "Покупка в двух магазинах" },
+    "profile.single": { az: "Tək market", en: "Single supermarket", ru: "Один магазин" },
+    "profile.diff": { az: "(fərq {amount})", en: "(difference {amount})", ru: "(разница {amount})" },
+    "profile.notFound": { az: "tapılmadı", en: "not found", ru: "не найдено" },
+    "profile.fits": { az: "sığır", en: "fits", ru: "укладывается" },
+    "profile.over": { az: "{amount} AZN aşır", en: "over by {amount} AZN", ru: "превышение на {amount} AZN" },
+
+    // --------------------------------------------------------- mənbədən çək
+    "scrape.listError": { az: "Mənbə siyahısı yüklənmədi.", en: "The source list did not load.", ru: "Список источников не загрузился." },
+    "scrape.pickFirst": { az: "Əvvəlcə mənbə seç.", en: "Pick a source first.", ru: "Сначала выберите источник." },
+    "scrape.working": { az: "Çəkilir…", en: "Fetching…", ru: "Загрузка…" },
+
+    "advisor.writing": { az: "Yazılır…", en: "Writing…", ru: "Пишет…" },
+
     // ============================================================ MƏHSUL SƏHİFƏSİ
     "product.searchPlaceholder": {
       az: "Məhsul və ya brend axtarın",
@@ -371,9 +620,15 @@
    * Tapılmayan açar üçün AZƏRBAYCANCA variant qaytarılır - ekranda açar adı
    * («search.found») görünməsindənsə, tərcümə olunmamış mətn görünsün.
    */
-  function t(key, vars) {
+  function t(key, varsOrFallback) {
+    // İkinci arqument ya dəyişənlər obyekti, ya da EHTİYAT MƏTNDİR.
+    // Ehtiyat variant kateqoriyalar üçün lazımdır: bazaya yeni kateqoriya
+    // düşsə, lüğətdə açar olmaya bilər - onda ekranda azərbaycanca adı qalır,
+    // açar adı («cat.yeni») yox.
+    const fallback = typeof varsOrFallback === "string" ? varsOrFallback : null;
+    const vars = fallback ? null : varsOrFallback;
     const giriş = DICT[key];
-    let mətn = giriş ? giriş[current] || giriş.az : key;
+    let mətn = giriş ? giriş[current] || giriş.az : fallback || key;
     if (vars) {
       for (const [ad, dəyər] of Object.entries(vars)) {
         mətn = mətn.split(`{${ad}}`).join(dəyər);

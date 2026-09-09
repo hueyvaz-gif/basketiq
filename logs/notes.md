@@ -1257,3 +1257,76 @@ fokusda 4px mavi halqa, etiketlər 12px/700 CAPS-dan **13px/500**-ə.
 - test əlavə olundu, mutasiya ilə təsdiqləndi: sahəni 38px-ə endirəndə düşür
 
 403 test keçir, 2 atlanır, ruff təmiz.
+
+---
+
+## 2026-09-09 — Üç dil: AZ · EN · RU
+
+İstifadəçinin tapşırığı: yuxarıda dil seçimi, hər bölmə bir-bir, dəqiq tərcümə.
+
+### Əvvəlcə ölçdüm
+
+Tərcümə ediləcək sətirlərin inventarı: **HTML 101 · JS 122 · backend 44 ≈ 267**.
+Plan buna görə quruldu — «hamısını bir dəfəyə» demək yerinə mərhələ-mərhələ.
+
+### Memarlıq qərarları
+
+**Brauzerdə, serverdə yox.** Səhifələr statikdir, şablon motoru yoxdur. Dil
+brauzerdə dəyişəndə seçim anidir — səhifə yenilənmir, sorğu getmir.
+
+**Azərbaycanca mətn HTML-də qalır.** Hər elementdə həm `data-i18n` açarı, həm
+mətnin özü var; JS işləməsə səhifə azərbaycanca oxunur.
+
+**İkonlu düymələr ayrıca.** `data-i18n` bütün məzmunu əvəz edir — ikonlu
+düymədə ikon silinərdi. Orada yalnız mətn `<span>` ilə sarıldı (5 yer).
+
+**`t()` ehtiyat mətn qəbul edir.** Kateqoriyalar bazada azərbaycanca qalır
+(filtr ünvanı ondan asılıdır); ekranda `t("cat." + ad, ad)` çağırılır — açar
+yoxdursa azərbaycanca adı görünür, «cat.yeni» yox.
+
+**Dil dəyişəndə modul öz blokunu yenidən çəkir** (`basketiq:lang` hadisəsi).
+Doqquz modulun hamısına dinləyici qoyuldu.
+
+### Nəticə
+
+| | Say |
+|---|---|
+| Lüğət açarı | **271** (hər biri üç dildə) |
+| İşarələnmiş HTML elementi | 87 (index) + 4 səhifə |
+| Tərcümə olunmuş JS modulu | 9 |
+
+Bölmələr üzrə: admin 59 · profil 25 · məhsul 19 · status 15 · qrafik 15 ·
+axtarış 13 · ümumi 12 · market 11 · cavab 10 · kateqoriya 10 · endirim 9 ·
+müqayisə 9 · AI 9 · səbət 6 · sayğac 6 · naviqasiya 5 · hökm 5 …
+
+### Yolda tapılan iki qüsur
+
+1. **«Axtar» düyməsi tərcümə olunmurdu** — ekran şəklinə baxanda göründü;
+   HTML-də işarələnməmişdi.
+2. **Test uydurma açar tapırdı**: `t\("...` naxışı `params.get("q")` sətrini
+   də tuturdu. `(?<![\w.])` əlavə olundu.
+
+### Brauzerdə yoxlandı
+
+Üç dil də işləyir, `<html lang>` və `<title>` dəyişir, seçim **yenidən
+yükləmədən və səhifələr arası keçiddən sonra da** qalır, konsol xətası yoxdur.
+EN və RU ekran şəkilləri ilə baxıldı.
+
+### Testlər
+
+Üç yeni test: hər açarın üç dildə olması, HTML/JS-də çağırılan açarların
+lüğətdə mövcudluğu, dil keçidinin hər səhifədə olması. **Mutasiya ilə
+təsdiqləndi:** bir dili silmək və yanlış açar yazmaq testləri düşürür.
+
+407 test keçir, 2 atlanır, ruff təmiz.
+
+### Nəyə əmin deyiləm / tərcümə olunmayan
+
+- **Backend-in qurduğu cümlələr azərbaycanca qalır:** AI qeydi, endirim
+  yoxlamasının səbəbləri («ərzaqda bu dərinlikdə endirim…»), profil planının
+  qeydləri, mənbə təsvirləri. Onlar rəqəmlərlə birlikdə serverdə yığılır;
+  tərcümə üçün API açar + parametr qaytarmalıdır. Bu, ayrıca işdir.
+- **Məhsul və market adları tərcümə olunmur** — onlar datadır, uydurma tərcümə
+  qiymət müqayisəsini yanlış göstərərdi.
+- **Tərcümələri ana dili daşıyıcısı yoxlamayıb.** Mən yazdım; xüsusən rus
+  dilində üslub fərqləri ola bilər.
