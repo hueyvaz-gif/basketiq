@@ -21,6 +21,10 @@
 
   let markets = [];
 
+  // Yazdıqca axtarış: 150 ms gecikmə (M1). Eyni dəyər `app.js`-dədir.
+  const SEARCH_DEBOUNCE_MS = 150;
+  let searchTimer = null;
+
   /** Vəziyyəti ünvana yazır və səhifəni yenidən yükləyir. */
   function apply(changes) {
     const next = new URLSearchParams();
@@ -209,6 +213,40 @@
   }
 
   load();
+
+  /**
+   * YAZDIQCA AXTARIŞ (M1) — səhifə yenilənmir.
+   *
+   * `apply()` ünvanı dəyişib səhifəni YENİDƏN YÜKLƏYİR: hər hərfdə tam
+   * yükləmə həm yavaşdır, həm də fokusu itirir. Burada isə yalnız nəticə
+   * bölməsi yenidən çəkilir, ünvan isə `replaceState` ilə yenilənir - yəni
+   * link hələ də paylaşıla bilir və «geri» düyməsi tarixçəni doldurmur.
+   */
+  const topInput = el("topSearchInput");
+  if (topInput) {
+    topInput.addEventListener("input", (e) => {
+      clearTimeout(searchTimer);
+      const q = e.target.value.trim();
+      searchTimer = setTimeout(() => {
+        state.q = q;
+        const next = new URLSearchParams(location.search);
+        if (q) next.set("q", q);
+        else next.delete("q");
+        history.replaceState(null, "", `${location.pathname}?${next}`);
+        load();
+      }, SEARCH_DEBOUNCE_MS);
+    });
+
+    // Formanın öz göndərilməsi artıq lazım deyil: nəticə onsuz da yazdıqca
+    // yenilənir. Enter səhifəni yeniləsəydi, istifadəçi eyni nəticəni ikinci
+    // dəfə gözləyərdi.
+    el("topSearchForm")?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      clearTimeout(searchTimer);
+      state.q = topInput.value.trim();
+      load();
+    });
+  }
 
   // Dil dəyişəndə bu blok yenidən çəkilir - səhifə yenilənmir.
   // `i18n.js` hadisəni `document`-ə atır, hər modul yalnız ÖZ hissəsinə

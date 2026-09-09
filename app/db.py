@@ -279,10 +279,22 @@ def _migrate(conn: sqlite3.Connection) -> None:
     #
     # BOŞ QALA BİLƏR: şəkli tapılmayan məhsul üçün UI neytral placeholder
     # göstərir - səhifə sınmır.
+    # `name_norm` — AXTARIŞ üçün normallaşdırılmış ad (M1).
+    #
+    # NİYƏ SÜTUN, HƏR SORĞUDA HESABLAMA YOX? Fold funksiyasını sorğu anında
+    # tətbiq etsək, SQL hər sətri Python-a çıxarıb çevirməli olardı - indeks
+    # işə düşməzdi və axtarış məhsul sayı ilə birlikdə yavaşlayardı. Sütun
+    # bir dəfə yazılır, sorğu isə hazır dəyərin üstündə işləyir.
+    #
+    # İÇİNDƏ BREND DƏ VAR: istifadəçi «milla sud» yazanda həm brendi, həm adı
+    # bir sətirdə axtarır. İki ayrı sütun olsaydı, çoxsözlü sorğunun VƏ
+    # məntiqi iki sütun arasında paylanardı və «milla» ilə «sud» fərqli
+    # sahələrə düşəndə uyğunluq itərdi.
     for column, ddl in (
         ("barcode", "ALTER TABLE products ADD COLUMN barcode TEXT"),
         ("product_url", "ALTER TABLE products ADD COLUMN product_url TEXT"),
         ("image_path", "ALTER TABLE products ADD COLUMN image_path TEXT"),
+        ("name_norm", "ALTER TABLE products ADD COLUMN name_norm TEXT"),
     ):
         if column not in columns:
             conn.execute(ddl)
@@ -298,6 +310,21 @@ def _migrate(conn: sqlite3.Connection) -> None:
 
     # Sütun mövcud olduqdan SONRA indeks
     conn.execute("CREATE INDEX IF NOT EXISTS idx_products_group ON products(group_key)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_products_name_norm ON products(name_norm)")
+
+    # KÖHNƏ SƏTİRLƏR DOLDURULUR. Sütun boş qalsa, axtarış həmin məhsulları
+    # HEÇ VAXT tapmazdı - və səhv səssiz olardı: sorğu işləyir, sadəcə nəticə
+    # az gəlir. Yalnız `NULL` olanlar yazılır, yəni təkrar çağırış ucuzdur.
+    from app.search_norm import fold  # dövri idxaldan qaçmaq üçün burada
+
+    boşlar = conn.execute(
+        "SELECT id, name, brand FROM products WHERE name_norm IS NULL"
+    ).fetchall()
+    for row in boşlar:
+        conn.execute(
+            "UPDATE products SET name_norm = ? WHERE id = ?",
+            (fold(f"{row['brand'] or ''} {row['name'] or ''}".strip()), row["id"]),
+        )
     # Barkod UNİKAL DEYİL: eyni barkod fərqli marketlərdə ayrı `products`
     # sətri kimi görünə bilər - onları birləşdirmək matching-in işidir,
     # bazanın deyil. İndeks yalnız axtarışı sürətləndirir.

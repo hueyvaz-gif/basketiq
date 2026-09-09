@@ -19,6 +19,9 @@ const $ = (sel) => document.querySelector(sel);
 
 let searchTimer = null;
 
+// Axtarış gecikməsi - `search.js` də eyni dəyəri işlədir (M1).
+const SEARCH_DEBOUNCE_MS = 150;
+
 // ENTER = BİRİNCİ NƏTİCƏNİ SƏBƏTƏ ƏLAVƏ ET.
 //
 // REAL ŞİKAYƏTDƏN ÇIXIB: bu sahə yazdıqca nəticə göstərirdi, amma Enter
@@ -39,7 +42,10 @@ $("#searchInput").addEventListener("input", (e) => {
     $("#searchResults").innerHTML = "";
     return;
   }
-  searchTimer = setTimeout(() => runSearch(q), 250);
+  // 150 ms (M1): sürətli yazanda hər hərfə sorğu getmir, amma gecikmə
+  // hiss olunmur. Əvvəl 250 idi - yazıb dayanandan sonra nəzərəçarpan
+  // fasilə yaranırdı.
+  searchTimer = setTimeout(() => runSearch(q), SEARCH_DEBOUNCE_MS);
 });
 
 async function runSearch(q) {

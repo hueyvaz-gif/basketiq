@@ -31,6 +31,7 @@ from statistics import median
 
 from app.analytics import IMPLAUSIBLE_DEPTH, SUSPICIOUS_DEPTH, verify_claim
 from app.db import get_connection
+from app.search_norm import match_score, tokens as norm_tokens
 from app.similar import pick_similar
 from app.stores import MARKETS, Market, market_for, market_status, store_map
 from ingestion.images import image_url
@@ -392,6 +393,41 @@ def todays_deals(limit: int = 12) -> dict:
 # ------------------------------------------------------------ axtarış / filtr
 
 
+def _rank_matches(rows, sorğu_tokenləri, fuzzy_namizədlər):
+    """
+    Nəticələri UYĞUNLUQ PİLLƏSİNƏ görə sıralayır (M1).
+
+    Pillələr `app/search_norm.py`-dədir: 1 tam, 2 söz başlanğıcı, 3 söz
+    ortası, 4 bir hərf səhvi.
+
+    DÖRDÜNCÜ PİLLƏ YALNIZ QALAN ÜÇÜ BOŞ QAYIDANDA. SQL alt sətir uyğunluğu
+    ilə namizəd verir, yəni bura gələn hər sətir onsuz da 1-3 pilləsindədir.
+    Siyahı boşdursa - yazı səhvi ehtimalı var - namizədlər yenidən çəkilir və
+    fuzzy açılır. Bu, «süd» sorğusunun «sut/suz» gətirməsinin qarşısını alır:
+    dəqiq nəticə varkən fuzzy heç vaxt işə düşmür.
+
+    SIRA DAXİLİNDƏ SQL-in ÖZ SIRASI QORUNUR (market sayı, qiymət): `sorted`
+    stabil olduğu üçün eyni pillədəki sətirlər yerini dəyişmir.
+    """
+    if not sorğu_tokenləri:
+        return rows
+
+    ballı = []
+    for row in rows:
+        bal = match_score(row["name_norm"] or "", sorğu_tokenləri)
+        if bal is not None:
+            ballı.append((bal, row))
+
+    if not ballı:
+        for row in fuzzy_namizədlər():
+            bal = match_score(row["name_norm"] or "", sorğu_tokenləri, allow_fuzzy=True)
+            if bal is not None:
+                ballı.append((bal, row))
+
+    ballı.sort(key=lambda cüt: cüt[0])
+    return [row for _, row in ballı]
+
+
 def search(
     q: str = "",
     market: str | None = None,
@@ -429,9 +465,21 @@ def search(
         where = [f"pr.store_id IN ({','.join('?' * len(store_ids))})"]
         params: list = list(store_ids)
 
-        if q.strip():
-            where.append("(p.name LIKE ? OR COALESCE(p.brand,'') LIKE ?)")
-            params += [f"%{q.strip()}%", f"%{q.strip()}%"]
+        # AXTARIŞ NORMALLAŞDIRILMIŞ SÜTUN ÜZRƏDİR (M1).
+        #
+        # Əvvəl şərt `p.name LIKE '%dusbere%'` idi və HEÇ NƏ tapmırdı: bazada
+        # ad «düşbərə» kimi yazılıb. İndi hər token `name_norm` sütununda
+        # axtarılır - sütun brendi də daxil edir, ona görə «milla sud» kimi
+        # çoxsözlü sorğu bir sahədə həll olunur.
+        #
+        # SQL YALNIZ NAMİZƏD VERİR (alt sətir uyğunluğu). Pillə (tam / söz
+        # başlanğıcı / söz ortası) Python-da hesablanır: SQL-də bunu ifadə
+        # etmək üç ayrı LIKE və `CASE` deməkdir, oxunmaz olur və indeksdən
+        # onsuz da istifadə etmir.
+        sorğu_tokenləri = norm_tokens(q)
+        for token in sorğu_tokenləri:
+            where.append("p.name_norm LIKE ?")
+            params.append(f"%{token}%")
         if category:
             where.append("p.category = ?")
             params.append(category)
@@ -449,6 +497,7 @@ def search(
             "SELECT p.id AS product_id, p.group_key AS group_key, p.name AS name, "
             "       p.brand AS brand, p.size_value AS size_value, p.size_unit AS size_unit, "
             "       p.category AS category, p.image_path AS image_path, "
+            "       p.name_norm AS name_norm, "
             "       MIN(pr.price) AS price, MAX(pr.old_price) AS old_price, "
             "       COUNT(DISTINCT pr.store_id) AS store_count "
             "FROM products p JOIN prices pr ON pr.product_id = p.id "
@@ -459,10 +508,31 @@ def search(
         if having:
             sql += f"HAVING {' AND '.join(having)} "
             tail_params += [v for v in (min_price, max_price) if v is not None]
-        sql += "ORDER BY store_count DESC, price LIMIT ?"
-        tail_params.append(limit)
+        # Sıralama Python-dadır (aşağıda), ona görə SQL-də limit YOXDUR:
+        # limit tətbiq olunsaydı, SQL-in öz sırası ilə kəsilər və uyğunluq
+        # pilləsi yüksək olan sətir siyahıdan kənarda qala bilərdi.
+        sql += "ORDER BY store_count DESC, price"
 
         rows = conn.execute(sql, tail_params).fetchall()
+
+        def _sorğusuz_namizədlər():
+            """
+            Fuzzy keçidi üçün: eyni sorğu, amma AXTARIŞ ŞƏRTİ OLMADAN.
+
+            Yazı səhvi olan token heç bir `LIKE` şərtini ödəmir, ona görə
+            namizədləri yenidən çəkmək lazımdır. Digər süzgəclər (market,
+            kateqoriya, qiymət) YERİNDƏ QALIR - istifadəçinin seçimi yazı
+            səhvinə görə ləğv olunmamalıdır.
+            """
+            təmiz_where = [ş for ş in where if "name_norm" not in ş]
+            təmiz_params = list(store_ids)
+            if category:
+                təmiz_params.append(category)
+            alt_sql = sql.replace(" AND ".join(where), " AND ".join(təmiz_where))
+            son_params = təmiz_params + [v for v in (min_price, max_price) if v is not None]
+            return conn.execute(alt_sql, son_params).fetchall()
+
+        rows = _rank_matches(rows, sorğu_tokenləri, _sorğusuz_namizədlər)[:limit]
 
         items = []
         for row in rows:
@@ -507,9 +577,9 @@ def search(
         # ==========================================================
         facet_where = [f"pr.store_id IN ({','.join('?' * len(store_ids))})"]
         facet_params: list = list(store_ids)
-        if q.strip():
-            facet_where.append("(p.name LIKE ? OR COALESCE(p.brand,'') LIKE ?)")
-            facet_params += [f"%{q.strip()}%", f"%{q.strip()}%"]
+        for token in sorğu_tokenləri:
+            facet_where.append("p.name_norm LIKE ?")
+            facet_params.append(f"%{token}%")
         facet_sql = " AND ".join(facet_where)
 
         cats = conn.execute(

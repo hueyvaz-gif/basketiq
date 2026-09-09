@@ -18,6 +18,7 @@ from ai.chains import extract_attributes
 from app.db import db_cursor, get_connection
 from app.models import ExtractedProduct
 from ingestion.cleaner import clean_text
+from app.search_norm import fold
 from ingestion.normalize import canonical_key, unit_price
 from ingestion.quality import check_price
 
@@ -151,11 +152,17 @@ def save_products(products: list[ExtractedProduct], store_id: int, catalog_id: i
             # sonra birləşən məhsullar ortaq group_key alır - ona görə burada
             # mövcud group_key-ə TOXUNMURUQ (əks halda matching nəticəsi silinərdi).
             cur.execute(
+                # `name_norm` ELƏ BURADA yazılır (M1): axtarış sütunu yazma
+                # anında dolmalıdır, əks halda yeni məhsul bazaya düşür, amma
+                # axtarışda TAPILMIR - və səhv səssiz olur (sorğu işləyir,
+                # sadəcə nəticə əskikdir). `ON CONFLICT` qolunda da yenilənir,
+                # çünki ad və brend orada dəyişə bilər.
                 "INSERT INTO products (canonical_key, name, brand, size_value, size_unit, "
-                "                      category, group_key) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?) "
+                "                      category, group_key, name_norm) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
                 "ON CONFLICT(canonical_key) DO UPDATE SET "
-                "  name = excluded.name, brand = excluded.brand, category = excluded.category",
+                "  name = excluded.name, brand = excluded.brand, category = excluded.category, "
+                "  name_norm = excluded.name_norm",
                 (
                     product.canonical_key,
                     product.name,
@@ -164,6 +171,7 @@ def save_products(products: list[ExtractedProduct], store_id: int, catalog_id: i
                     product.size_unit,
                     product.category,
                     product.canonical_key,
+                    fold(f"{product.brand or ''} {product.name or ''}".strip()),
                 ),
             )
             cur.execute(

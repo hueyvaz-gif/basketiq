@@ -161,10 +161,13 @@ def duyu_mehsulu():
     İndi lazım olan datanı özü yaradır.
     """
     with db_cursor() as cur:
+        # `name_norm` MƏCBURİDİR (M1): axtarış həmin sütun üzrə işləyir və
+        # boş qalsa, məhsul bazada olur, amma HEÇ VAXT tapılmır. Səhv səssiz
+        # olur - məhz bu test onu tutdu.
         cur.execute(
             "INSERT INTO products (canonical_key, name, size_value, size_unit, "
-            "                      category, group_key) "
-            "VALUES ('v|duyu|1kg', 'düyü', 1, 'kg', 'çörək və taxıl', 'v|duyu|1kg')"
+            "                      category, group_key, name_norm) "
+            "VALUES ('v|duyu|1kg', 'düyü', 1, 'kg', 'çörək və taxıl', 'v|duyu|1kg', 'duyu')"
         )
         product_id = cur.lastrowid
 
