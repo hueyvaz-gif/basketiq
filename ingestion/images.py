@@ -29,7 +29,7 @@ yuxarı bir sıra addımı, yanlara isə yarım sütun addımı.
 """
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 from pathlib import Path
 from statistics import median
@@ -61,6 +61,109 @@ MATCH_THRESHOLD = 0.55
 MAX_SIDE = 400
 
 
+# İki namizədin fərqi bundan kiçikdirsə, hansının doğru olduğunu bilmirik.
+AMBIGUITY_GAP = 0.05
+
+
+@dataclass
+class Assignment:
+    """Bir məhsul -> bir kart. `card_index` səhifədəki kartın nömrəsidir."""
+
+    product_id: int
+    card_index: int
+    score: float
+
+
+# Səbəblər «uyğunlaşmaya nə qədər yaxın idi» sırası ilə. Bir məhsul bir neçə
+# səhifədə yoxlanır; hesabatda ƏN İRƏLİ gedən səbəb yazılır, çünki «qiymət
+# yoxdur» (2-ci səhifədə) ilə «kart tutulub» (5-ci səhifədə) eyni məhsul üçün
+# eyni vaxtda doğrudur, amma yalnız ikincisi növbəti addımı göstərir.
+REASON_ORDER = ("qiymət yoxdur", "zəif", "qeyri-müəyyən", "kart tutulub")
+
+
+def better_reason(current: str | None, candidate: str) -> str:
+    if current is None:
+        return candidate
+    return max(current, candidate, key=REASON_ORDER.index)
+
+
+def assign_cards(targets: list[dict], cards: list) -> tuple[list[Assignment], dict[int, str]]:
+    """
+    Məhsulları səhifədəki kartlara BİR-BİRƏ uyğunlaşdırır.
+
+    ƏVVƏLKİ VARİANT BİR-ÇOXA İDİ VƏ ÖLÇÜLDÜ (`logs/image-check.md`):
+    hər məhsul üçün ən yaxşı kart ayrıca seçilirdi, seçilmiş kart isə
+    siyahıda qalırdı. Nəticə: 73 şəkildən yalnız 63-ü unikal idi — 20 məhsul
+    10 kartı bölüşürdü, yəni hər cütdə ən azı biri səhv şəkil göstərirdi
+    («it yemi» üçün plastilin, «paltar yuyucu vasitə» üçün Tuc krekeri).
+    Bir kart bir məhsuldur; burada kart tutulandan sonra siyahıdan çıxır.
+
+    QİYMƏT MƏCBURİDİR. Əvvəl `pool = priced or cards` yazılırdı — qiyməti
+    uyğun kart tapılmayanda süzgəc TAMAMİLƏ düşürdü və qərarı yalnız mətn
+    oxşarlığı verirdi. Qorunma məhz ehtiyac olan anda sönürdü: «sosis» sətri
+    Pringles kartına, «qaymaq» plastilinə belə düşdü. İndi qiymət uyğunluğu
+    olmayan məhsul şəkilsiz qalır — placeholder səhv şəkildən yaxşıdır.
+
+    SIRA XAL ÜZRƏDİR, bazadakı sıra üzrə yox. Əvvəl kartı «birinci gələn»
+    alırdı, yəni nəticə `product_id` sırasından asılı idi. İndi əvvəlcə bütün
+    iddialar hesablanır, sonra ən yüksək xaldan aşağı paylanır.
+    """
+    why: dict[int, str] = {}
+    claims: list[Assignment] = []
+
+    for target in targets:
+        priced = [
+            (index, card)
+            for index, card in enumerate(cards)
+            if card.price is not None and abs(card.price - target["price"]) < 0.005
+        ]
+        if not priced:
+            why[target["product_id"]] = "qiymət yoxdur"
+            continue
+
+        scored = sorted(
+            ((similarity(target["raw_line"], card.as_line()), index) for index, card in priced),
+            key=lambda pair: pair[0],
+            reverse=True,
+        )
+        score, index = scored[0]
+
+        # HƏDD 0.30 İDİ VƏ SƏHV ŞƏKİL VERİRDİ. Ölçüldü: «Düşbərə Tac 300 q
+        # 3,99» sətri «ASH Su qabı 3,99» kartı ilə eyni qiymətə düşür və qısa
+        # sətirlərdə oxşarlıq 0.3-ü keçir.
+        if score < MATCH_THRESHOLD:
+            why[target["product_id"]] = "zəif"
+            continue
+        if len(scored) > 1 and score - scored[1][0] < AMBIGUITY_GAP:
+            why[target["product_id"]] = "qeyri-müəyyən"
+            continue
+
+        claims.append(Assignment(target["product_id"], index, score))
+
+    taken: set[int] = set()
+    # Bir məhsulun eyni kataloqda BİR NEÇƏ qiymət sətri ola bilər (ölçüldü:
+    # 137-ci kataloqda 3 belə məhsul). Onda məhsul iki fərqli kart qazanır və
+    # ikinci fayl birincinin üstünə yazılır - səssiz, çünki fayl adı
+    # `p<product_id>.jpg`-dir. Məhsul da yalnız bir dəfə uduzmalıdır.
+    assigned: set[int] = set()
+    winners: list[Assignment] = []
+    for claim in sorted(claims, key=lambda c: c.score, reverse=True):
+        if claim.product_id in assigned:
+            continue
+        if claim.card_index in taken:
+            # Eyni kartı iki məhsul istəyir. Xalı yüksək olan aldı; ikincisi
+            # şəkilsiz qalır. Onu «ikinci seçiminə» göndərmirik: ikinci seçim
+            # onsuz da yuxarıdakı 0.05 fərq yoxlamasından zəif çıxıb.
+            why[claim.product_id] = "kart tutulub"
+            continue
+        taken.add(claim.card_index)
+        assigned.add(claim.product_id)
+        winners.append(claim)
+        why.pop(claim.product_id, None)
+
+    return winners, why
+
+
 @dataclass
 class CropReport:
     """Bir kataloq üçün nəticə - CLI bunu çap edir."""
@@ -70,13 +173,15 @@ class CropReport:
     cards: int = 0
     matched: int = 0
     saved: int = 0
-    skipped_weak: int = 0
+    # Atılanlar SƏBƏBƏ GÖRƏ ayrılır: «30 məhsul şəkilsiz qaldı» cümləsi
+    # faydasızdır, «22-si qiymət uyğunluğu tapmadı» isə növbəti addımı göstərir.
+    skipped: dict[str, int] = field(default_factory=dict)
 
     def as_line(self) -> str:
+        atilan = ", ".join(f"{k}: {v}" for k, v in self.skipped.items() if v) or "yoxdur"
         return (
             f"kataloq {self.catalog_id}: {self.pages} səhifə, {self.cards} kart, "
-            f"{self.matched} uyğunluq, {self.saved} şəkil "
-            f"({self.skipped_weak} zəif uyğunluq atıldı)"
+            f"{self.matched} uyğunluq, {self.saved} şəkil (atıldı — {atilan})"
         )
 
 

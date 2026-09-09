@@ -20,13 +20,13 @@ import sys
 from app.db import get_connection
 from app.config import settings
 from ingestion.images import (
-    MATCH_THRESHOLD,
     CropReport,
+    assign_cards,
+    better_reason,
     catalog_pages,
     cell_box,
     _grid_steps,
     save_crop,
-    similarity,
 )
 
 
@@ -72,6 +72,7 @@ def build_for_catalog(catalog_id: int, force: bool) -> CropReport:
             return report
 
         saved: list[tuple[int, str]] = []
+        unmatched: dict[int, str] = {}
         for page in catalog_pages(path):
             report.pages += 1
             layout = parse_page(page)
@@ -82,54 +83,35 @@ def build_for_catalog(catalog_id: int, force: bool) -> CropReport:
 
             col_step, row_step = _grid_steps([c.box for c in cards], page)
 
-            for target in list(targets):
-                # QİYMƏT BİRİNCİ AÇARDIR, mətn ikinci.
-                #
-                # Yalnız mətn oxşarlığı ilə axtaranda şəkillər səhv məhsula
-                # düşürdü: kataloqda «ETTA Dəftər» və «ETTA Plastilin» kimi
-                # sətirlər bir-birinə çox oxşayır və OCR fərqi daha da azaldır.
-                # Qiymət isə rəqəmdir - eyni səhifədə eyni qiymətli kart azdır,
-                # ona görə əvvəlcə qiymətə görə namizədləri daraldırıq.
-                priced = [
-                    c
-                    for c in cards
-                    if c.price is not None and abs(c.price - target["price"]) < 0.005
-                ]
-                pool = priced or cards
+            # Uyğunlaşdırma BÜTÖV halda aparılır: hansı məhsulun hansı kartı
+            # alacağı bütün iddialar hesablanandan sonra qərara alınır
+            # (`ingestion.images.assign_cards`). Məhsul-məhsul gəzsək, kartı
+            # «birinci gələn» alardı və bir kart iki məhsula düşərdi.
+            winners, why = assign_cards(targets, cards)
+            # Səbəb HƏLƏ SAYILMIR: məhsul bu səhifədə tapılmaya bilər, amma
+            # növbətidə tapılar. Sayğac yalnız sonda, şəkilsiz qalanlar üzrə
+            # doldurulur - əks halda hər səhifə eyni məhsulu yenidən sayardı.
+            for product_id, reason in why.items():
+                unmatched[product_id] = better_reason(unmatched.get(product_id), reason)
 
-                scored = sorted(
-                    ((similarity(target["raw_line"], c.as_line()), c) for c in pool),
-                    key=lambda pair: pair[0],
-                    reverse=True,
-                )
-                score, best = scored[0] if scored else (0.0, None)
-
-                if best is None:
-                    continue
-
-                # HƏDD 0.30 İDİ VƏ SƏHV ŞƏKİL VERİRDİ. Ölçüldü: «Düşbərə Tac
-                # 300 q 3,99» sətri «ASH Su qabı 3,99» kartı ilə eyni qiymətə
-                # düşür və qısa sətirlərdə oxşarlıq 0.3-ü keçir - nəticədə
-                # düşbərənin yerinə su qabının şəkli görünürdü. Qiymət
-                # namizədi daraldır, amma TƏK BAŞINA sübut deyil.
-                if score < MATCH_THRESHOLD:
-                    report.skipped_weak += 1
-                    continue
-
-                # İki namizəd bir-birinə çox yaxındırsa, hansının doğru
-                # olduğunu bilmirik - səhv şəkildənsə placeholder yaxşıdır.
-                if len(scored) > 1 and score - scored[1][0] < 0.05:
-                    report.skipped_weak += 1
-                    continue
-
+            for win in winners:
                 report.matched += 1
-                box = cell_box(best.box, col_step, row_step, page)
-                filename = save_crop(page, box, f"p{target['product_id']}")
+                box = cell_box(cards[win.card_index].box, col_step, row_step, page)
+                filename = save_crop(page, box, f"p{win.product_id}")
                 if filename:
-                    saved.append((target["product_id"], filename))
+                    saved.append((win.product_id, filename))
                     report.saved += 1
+                else:
+                    report.skipped["boş kadr"] = report.skipped.get("boş kadr", 0) + 1
                 # Uyğunlaşan məhsul növbəti səhifədə təkrar axtarılmır.
-                targets.remove(target)
+                targets = [t for t in targets if t["product_id"] != win.product_id]
+
+        # Yalnız şəkilsiz qalanlar sayılır: uyğunlaşan məhsul əvvəlki
+        # səhifədə hansısa səbəb almışdısa, o səbəb artıq keçərli deyil.
+        matched_ids = {product_id for product_id, _ in saved}
+        for product_id, reason in unmatched.items():
+            if product_id not in matched_ids:
+                report.skipped[reason] = report.skipped.get(reason, 0) + 1
 
         for product_id, filename in saved:
             conn.execute(

@@ -704,21 +704,41 @@ Boş kadr (tək rəngli sahə) atılır, şəkli tapılmayan məhsul neytral
 placeholder alır (`/static/images/product-placeholder.svg`). **Uydurma məhsul
 şəkli çəkilmir.**
 
-**Ölçülmüş əhatə (2026-09-09):** 194 məhsuldan **73-ünün** şəkli var (≈38%),
+**Ölçülmüş əhatə (2026-09-09):** 194 məhsuldan **62-sinin** şəkli var (≈32%),
 hamısı Araz kataloqlarından. Bravo-nun 8 məhsulunda şəkil **yoxdur** — o data
 kataloq səhifəsindən gəlmir, deməli kəsiləcək kadr da yoxdur.
 
 Şəkillər generasiya olunur, ona görə repo-ya düşmür (`.gitignore`). Təmiz
 klonda hamısı placeholder görünür; bərpa: `python tools/build_images.py`.
 
-**Yoxlanıldı və nəticə pisdir (2026-09-09):** 73 şəklin hamısına gözlə baxıldı
-(`logs/image-check.md`). **21-i (29%) səhv məhsulu göstərir** — «sosis» üçün
-Pringles, «it yemi» üçün plastilin, «paltar yuyucu vasitə» üçün Tuc krekeri.
-Səbəb hədd deyil, iki kod qüsurudur: (1) seçilmiş kart siyahıdan çıxarılmır,
-ona görə **20 məhsul 10 kartı bölüşür** (hash ilə təsdiqlənib) — hər cütdə ən
-azı biri səhvdir; (2) `pool = priced or cards` sətri qiyməti uyğun kart
-tapılmayanda qiymət açarını **tamamilə söndürür** və qərarı yalnız mətnə
-buraxır. Düzəliş hələ edilməyib.
+**Yoxlandı, düzəldildi, yenidən yoxlandı (2026-09-09).** 73 şəklin hamısına
+gözlə baxıldı: **21-i (29%) səhv məhsulu göstərirdi** — «sosis» üçün Pringles,
+«it yemi» üçün plastilin, «paltar yuyucu vasitə» üçün Tuc krekeri. Səbəb hədd
+deyildi, iki kod qüsuru idi:
+
+1. **Uyğunlaşma bir-çoxa idi.** Seçilmiş kart siyahıdan çıxarılmırdı, ona görə
+   iki məhsul eyni kartı «qazanırdı» — 73 fayldan yalnız 63-ü unikal idi.
+   İndi kart da, məhsul da yalnız bir dəfə seçilir və qərar bazadakı sıra ilə
+   deyil, **xal sırası** ilə verilir.
+2. **Qiymət açarı ehtiyac anında sönürdü.** `pool = priced or cards` — qiyməti
+   uyğun kart tapılmayanda süzgəc tamamilə düşür və qərarı yalnız mətn verirdi.
+   İndi qiymət **məcburidir**: uyğunluq yoxdursa məhsul placeholder alır.
+
+Nəticə eyni metodla yenidən sayıldı:
+
+| | Əvvəl | Sonra |
+|---|---|---|
+| Şəkil | 73 | 62 |
+| Doğru | 48 (66%) | **48 (77%)** |
+| Səhv | **21 (29%)** | **10 (16%)** |
+| Unikal kadr | 63/73 | **62/62** |
+
+**Doğru şəkillərin sayı dəyişmədi, səhvlər iki dəfədən çox azaldı** — itirilən
+11 şəklin 9-u onsuz da səhv idi. Qalan 10 səhv şəkil qatına aid deyil: orada
+səhv kartın qiyməti eynidir və `raw_line` həmin kartın mətnini həqiqətən
+saxlayır (#1921: `Penstore Karandaş 12 rəng Penstore Qayçı ASH Su qabi 5.79`) —
+yəni üç kartın yazısı bir məhsul sətrinə yığılıb. Onu `ingestion/layout.py`
+həll etməlidir. Təfərrüat: `logs/image-check.md`.
 
 ### 6. Axtarış səhifəsi (`/search`)
 
@@ -1071,7 +1091,9 @@ worktree-yə köçürməkdir.
 - [x] v2 — `price_snapshots` cədvəli (gündəlik qiymət qatı üçün hazır, **boş**)
 - [x] v2 — trolley dizayn sistemi + interfeysin sadələşdirilməsi (4918px → 1831px)
 - [ ] v2 — baza qiymət (mağaza) qatı: **mənbə tapılmadı**, bax «Mənbələr» bölməsi
-- [x] v3 — məhsul şəkilləri kataloqdan kəsilir (194 məhsuldan 73-ü, ≈38%)
+- [x] v3 — məhsul şəkilləri kataloqdan kəsilir (194 məhsuldan 62-si, ≈32%)
+- [x] v3 — şəkil uyğunlaşması bir-birə oldu + qiymət açarı məcburi: səhv
+      şəkil 29% → **16%** (gözlə sayılıb, `logs/image-check.md`)
 - [x] v3 — `/search` səhifəsi: filtrlər ünvanda, menyu real datadan
 - [x] v3 — ana səhifə trolley strukturuna keçdi (axtarış üstdə, endirimlər siyahı)
 - [x] v3 — OBA marketi koddan, sənəddən və bazadan tamamilə silindi
@@ -1079,4 +1101,4 @@ worktree-yə köçürməkdir.
 ¹ Mənbə seçimi ölçmə tələb etdiyi üçün Həftə 2-dən sonra tamamlandı.
 ² Real droplet-də yox, lokal Docker-də sınanıb — təfərrüat `deploy/README.md`-də.
 
-**Testlər:** 368 — 366 keçir, 2 atlanır (`pytest -q`)
+**Testlər:** 379 — 377 keçir, 2 atlanır (`pytest -q`)

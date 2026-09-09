@@ -385,3 +385,71 @@ yüksək saxlayır.
 - **Yalnız Araz kataloqları yoxlandı** — başqa mənbədə kart quruluşu fərqli
   olsa, nisbət də fərqli olacaq.
 - **Kod dəyişdirilmədi.** Bu, ölçmədir; düzəliş ayrı qərardır.
+
+
+---
+
+## 2026-09-09 — Düzəliş: uyğunlaşma bir-birə oldu, qiymət məcburi
+
+Ölçmədə tapılan iki qüsur düzəldildi. **Sonra eyni metodla yenidən sayıldı** —
+düzəlişin işlədiyini iddia etmək kifayət deyil.
+
+### Nə dəyişdi
+
+| Fayl | Dəyişiklik |
+|---|---|
+| `ingestion/images.py` | **yeni** `assign_cards()` — uyğunlaşdırma məntiqi buraya çıxarıldı və bir-birə edildi; `better_reason()`; `Assignment`; `AMBIGUITY_GAP` |
+| `tools/build_images.py` | döngə `assign_cards()`-a bağlandı; `CropReport.skipped` artıq **səbəbə görə** ayrılır |
+| `tests/test_images.py` | **yeni fayl, 11 test** |
+
+**1. Uyğunlaşma bir-birədir.** Kart tutulandan sonra siyahıdan çıxır; məhsul da
+yalnız bir kart alır (eyni kataloqda bir neçə qiymət sətri olan 3 məhsul var —
+onlar iki kart qazanıb ikinci faylı birincinin üstünə yazırdı, **səssizcə**,
+çünki fayl adı `p<id>.jpg`-dir). Qərar bazadakı sıra ilə deyil, **xal sırası**
+ilə verilir: əvvəl bütün iddialar hesablanır, sonra ən yüksəkdən paylanır.
+
+**2. Qiymət məcburidir.** `pool = priced or cards` silindi. Qiyməti uyğun kart
+yoxdursa məhsul placeholder alır.
+
+**3. Atılma səbəbi hesabatda görünür.** «30 məhsul şəkilsiz qaldı» faydasızdır;
+indi yazılır: `qiymət yoxdur: 72, zəif: 45, kart tutulub: 1`. Səbəb yalnız
+**sonda**, şəkilsiz qalanlar üzrə sayılır — əvvəl hər səhifə eyni məhsulu
+yenidən sayardı.
+
+### Nəticə (eyni metod, gözlə sayılıb)
+
+| | Əvvəl | Sonra |
+|---|---|---|
+| Şəkil | 73 | 62 |
+| Doğru | 48 (66%) | **48 (77%)** |
+| Səhv | **21 (29%)** | **10 (16%)** |
+| Unikal kadr | 63/73 | **62/62** |
+
+Doğru şəkillərin sayı **dəyişmədi**, səhvlər iki dəfədən çox azaldı. SHA-256 ilə
+fayl-fayl müqayisə: 11 məhsul şəkilsiz qaldı (9-u səhv idi, 2-si doğru),
+6 məhsul başqa kart aldı və **hamısı düzəldi** (#1954 flomaster → Tess çayı,
+#1929 Damak → Ulduz Start, #1941 və #1975 təkrar kadrdan qurtuldu).
+
+### Testlər əvvəl YOX İDİ — səhv ona görə keçdi
+
+`assign_cards()`-ın 11 testi yazıldı. İkisi mutasiya ilə təsdiqləndi:
+düzəlişi geri qaytaranda **hər ikisi düşür**
+
+```
+kart tutulmuş sayılmır  -> 1 failed, 9 passed
+qiymət açarı sönür       -> 1 failed, 9 passed
+```
+
+`pytest -q` → **377 keçir, 2 atlanır**, ruff təmiz.
+
+### Nəyə əmin deyiləm
+
+- **Qalan 10 səhv şəkil qatına aid deyil.** Orada səhv kartın qiyməti eynidir
+  və `raw_line` həmin kartın mətnini həqiqətən saxlayır (#1921: `Penstore
+  Karandaş 12 rəng Penstore Qayçı ASH Su qabi 5.79`). Uyğunlaşma öz qaydası ilə
+  düzgün işləyir; səhv daha erkəndə — `ingestion/layout.py` üç kartın yazısını
+  bir sətrə yığır. Bunu şəkil qatında həll etmək mümkün deyil.
+- **İki doğru şəkil itdi** (#1922 şokolad batonçuğu, #1958 kukuruz). Qiymət
+  şərtinin sərtləşməsi onları da kəsdi — əhatə ilə dürüstlük arasında qəsdən
+  edilmiş mübadilədir.
+- **Kadrın sürüşməsinə toxunulmadı** — sol kənar hələ də kəsilir.

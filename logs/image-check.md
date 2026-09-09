@@ -112,8 +112,51 @@ Uyğunlaşma DOĞRU olanda belə çərçivə çox vaxt yerində deyil:
 `is_blank()` bunları tuta bilmir: kadrda mətn və qırmızı qiymət qutusu olduğu
 üçün rəng dispersiyası yüksəkdir, yəni «boş deyil» sayılır.
 
+---
+
+# Düzəlişdən sonra (eyni gün, eyni metod)
+
+İki qüsur düzəldildi: (1) uyğunlaşma **bir-birə** oldu — kart da, məhsul da
+yalnız bir dəfə seçilir və qərar bazadakı sıra ilə deyil, **xal sırası** ilə
+verilir; (2) qiymət uyğunluğu **məcburi** oldu (`pool = priced or cards`
+silindi). Sonra şəkillər sıfırdan qurulub **yenidən gözlə sayıldı**.
+
+| | Əvvəl | Sonra |
+|---|---|---|
+| Şəkil sayı | 73 | **62** |
+| Doğru | 48 (66%) | **48 (77%)** |
+| **Səhv** | **21 (29%)** | **10 (16%)** |
+| Şübhəli | 4 (5%) | 4 (6%) |
+| Unikal kadr | 63 / 73 | **62 / 62** |
+
+**Doğru şəkillərin sayı dəyişmədi (48), səhvlərin sayı isə iki dəfədən çox
+azaldı.** Yəni itirilən 11 şəklin 9-u onsuz da səhv idi. Fayl-fayl müqayisə
+(SHA-256) bunu təsdiqləyir:
+
+- **11 məhsul şəkilsiz qaldı:** #1948, #1953, #1967, #2463, #2474, #2508,
+  #2519, #2526, #2554 (hamısı **səhv** idi) və #1922, #1958 (doğru idi).
+- **6 məhsul BAŞQA kart aldı və hamısı düzəldi:** #1929 (Damak → Ulduz Start),
+  #1941 (Snickers təkrarı → Mini şokolad), #1954 (flomaster → **Tess çayı**),
+  #1975 (Ice Tea təkrarı → I'm tea), #1937, #1978.
+- 56 məhsulun kadrı dəyişmədi.
+
+## Qalan 10 səhv — üçüncü səbəbdəndir
+
+Qalanlar təsadüf deyil: onlarda səhv kartın qiyməti **eynidir** və `raw_line`
+həmin kartın mətnini **həqiqətən içində saxlayır**. Nümunə #1921:
+
+```
+raw_line: «Penstore Karandaş 12 rəng Penstore Qayçı ASH Su qabi 5.79»
+kart:     «ASH Su qabı 5.79»          ← qiymət eyni, mətn sətrin içindədir
+```
+
+Yəni uyğunlaşma öz qaydası ilə **düzgün işləyir**; səhv daha erkəndədir —
+üç ayrı kartın yazısı bir məhsul sətrinə yığılıb. Bunu şəkil qatında həll
+etmək mümkün deyil, `ingestion/layout.py` sətri düzgün bölməlidir.
+
+Qalan 10: #1921, #1927, #1939, #1950, #1956, #1959, #1966, #1968, #1969, #2381.
+
 ## Nə edilmədi
 
-Kod **dəyişdirilmədi** — bu sənəd yalnız ölçmədir. Düzəliş ayrı qərardır və
-ən azı üç addım tələb edir: bir-birə uyğunlaşma, qiymət açarının məcburi
-edilməsi, kadrın öz fotosunun tapılması.
+**Kadrın sürüşməsi** (sol kənarın kəsilməsi, fotonun kadrdan çıxması)
+toxunulmadı — o, ayrıca üçüncü addımdır.
