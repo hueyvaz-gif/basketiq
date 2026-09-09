@@ -36,6 +36,9 @@
   /* Yarımşəffaf ağ: üst panelin blur fonu. Token-dədir, çünki qaydaya görə
      rəng CSS-in içinə hardcode edilmir - `test_rənglər_yalnız_token_lərdən_gəlir`. */
   --bg-translucent: rgba(255, 255, 255, .8);
+  /* Skelet parıltısı: fonun üstündən keçən işıq zolağı. Token-dədir, çünki
+     qaydaya görə rəng CSS-in içinə hardcode edilmir. */
+  --skeleton-sweep: rgba(255, 255, 255, .55);
   --surface: #f5f5f7;     /* köhnə ad, `--bg-subtle` ilə eynidir */
   --surface-2: #ffffff;   /* input fonu */
 
@@ -1268,7 +1271,45 @@ td .row-note { display: block; margin-top: 2px; }
   color: transparent;
 }
 
+/* --- YÜKLƏNMƏ SKELETİ (P2) ---
+   AĞ EKRAN OLMAMALIDIR. Data gələnə qədər səhifə boş qalırdı: istifadəçi
+   ağ sahə görürdü və «sındı, yoxsa yüklənir?» sualının cavabı yox idi.
+   Skelet həmin sualı forma ilə cavablandırır - gələcək məzmunun ölçüsü
+   əvvəlcədən görünür, ona görə data gələndə səhifə də SIÇRAMIR.
+
+   Rəng `--bg-subtle`-dir, boz plastik deyil: eyni palitrada qalır. */
+.skeleton-row {
+  background: var(--bg-subtle);
+  border-radius: var(--r-md);
+  margin-bottom: var(--s2);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-row::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--skeleton-sweep), transparent);
+  animation: shimmer-sweep 1.4s infinite;
+}
+
+.skeleton-row:last-child { margin-bottom: 0; }
+
+/* Kart şəbəkəsi üçün skelet: axtarış nəticələri və «oxşar məhsullar»
+   eyni ölçüdə kartlar çəkir, ona görə skelet də kart formasındadır. */
+.skeleton-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--s3); }
+.skeleton-card { height: 260px; }
+
+/* Hərəkət istəməyən istifadəçi üçün parıltı dayanır - skeletin ÖZÜ qalır,
+   çünki məlumatı forma daşıyır, hərəkət yox. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-row::after { animation: none; }
+  .skeleton { animation: none; }
+}
+
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@keyframes shimmer-sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
 
 .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: var(--s3); }
 
@@ -2040,6 +2081,83 @@ code {
 }
 
 
+
+
+/* ============================================================================
+   SƏBƏT: nişan, «əlavə et» düyməsi, səbət səhifəsi (P1)
+   ============================================================================ */
+
+/* Üst paneldəki rəqəm. Mütləq mövqedədir ki, ikonun ölçüsünü dəyişməsin -
+   nişan görünəndə düymə yerindən tərpənməməlidir. */
+.icon-btn.is-basket { position: relative; }
+.basket-count {
+  position: absolute;
+  top: 2px; right: 2px;
+  min-width: 18px; height: 18px;
+  padding: 0 5px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 11px; font-weight: 600; line-height: 18px;
+  text-align: center;
+}
+.btn.is-basket .basket-count { position: static; margin-left: 4px; }
+
+/* «Səbətə» düyməsi: kartın içində, amma keçidin ÜSTÜNDƏ. Kart bir keçiddir,
+   düymə isə ayrı hərəkətdir - ona görə öz fonu var. */
+.add-btn { gap: 6px; }
+.add-btn.is-added { color: var(--ok-ink); border-color: var(--ok-ink); }
+.pcard-add { width: calc(100% - var(--s3) * 2); margin: 0 var(--s3) var(--s3); }
+.product-add { margin-top: var(--s3); width: 100%; }
+
+/* Səbət sətri: ad + miqdar + sil. Grid, flex deyil - üç sütunun eni sabitdir
+   və uzun ad qalan ikisini sıxışdırmır. */
+.basket-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s2) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.basket-row:last-child { border-bottom: none; }
+
+.basket-name {
+  display: flex; align-items: center; gap: var(--s2);
+  color: inherit; text-decoration: none; min-width: 0;
+}
+.basket-name .thumb { width: 44px; height: 44px; border-radius: var(--r-md); flex: none; }
+.basket-name:hover strong { text-decoration: underline; }
+
+.qty { display: inline-flex; align-items: center; gap: var(--s1); }
+.qty-value { min-width: 24px; text-align: center; font-weight: 600; }
+.icon-btn.is-sm { min-width: 44px; min-height: 44px; font-size: 18px; }
+
+/* Market sətrində avatar və ad YAN-YANA olmalıdır: `.row-label` adi mətn
+   üçün qurulub və avatar `inline-flex` olduğu üçün ad alt sətirə düşürdü
+   (brauzerdə görüldü). */
+#basketTotals .row-label,
+.plan-lines .row-value { display: inline-flex; align-items: center; gap: var(--s2); }
+
+.row.is-best .row-value { color: var(--cheapest); font-weight: 700; }
+.row.is-muted .row-label { color: var(--text-secondary); }
+.row-value.is-quiet { color: var(--text-3); font-weight: 400; }
+
+.plan-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--s3); padding-bottom: var(--s2);
+}
+.plan-kind { font-size: 17px; font-weight: 600; }
+.plan-total { font-size: 28px; font-weight: 700; letter-spacing: -.03em; }
+.plan-lines { margin-top: var(--s2); }
+
+/* Planın səbəbi: kiçik, sakit, amma GÖRÜNƏN. Rəqəm tövsiyəni izah etmir. */
+.plan-note {
+  margin-top: var(--s2);
+  font-size: 13px;
+  color: var(--text-secondary);
+  max-width: var(--measure);
+}
 
 /* ============================================================================
    REKLAM SLOTU (E19/E20/E23)

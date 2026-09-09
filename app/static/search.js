@@ -113,15 +113,23 @@
         ? `<span class="pcard-stores">${t("search.storeCount", { n: item.store_count })}</span>`
         : "";
 
+    // KART ARTIQ <a> DEYİL, <div>-dir.
+    //
+    // Səbəb HTML qaydasıdır: keçidin (`<a>`) içinə düymə qoymaq olmaz -
+    // brauzer onu ya keçid, ya düymə kimi oxuyur və klaviatura naviqasiyası
+    // pozulur. İndi kartın İÇİNDƏ keçid var, düymə isə onun yanındadır.
     return (
-      `<a class="pcard" href="/product/${item.product_id}">` +
+      `<div class="pcard">` +
+      `<a class="pcard-link" href="/product/${item.product_id}">` +
       `<span class="pcard-photo">${off}${productThumb(item)}</span>` +
       `<span class="pcard-body">` +
       (item.brand ? `<span class="pcard-brand">${esc(item.brand)}</span>` : "") +
       `<span class="pcard-name">${esc(item.label)}</span>` +
       `<span class="pcard-meta">${size}${stores}</span>` +
       `<span class="pcard-price">${price(item.price)}</span>` +
-      `</span></a>`
+      `</span></a>` +
+      addButton(item.product_id, "pcard-add") +
+      `</div>`
     );
   }
 

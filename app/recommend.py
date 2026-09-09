@@ -167,6 +167,32 @@ def _bulk_alternatives(labels: dict[str, str]) -> list[dict]:
     return tips
 
 
+def _assign_to_store(items: list[dict], store_id: int, store_name: str) -> list[dict]:
+    """
+    TƏK MARKET planının məzmunu: hər məhsul + həmin marketdəki qiyməti.
+
+    NİYƏ LAZIM OLDU? Əvvəl `assignments` yalnız BÖLÜNMÜŞ planda doldurulurdu.
+    Nəticədə tək market tövsiyə olunanda səbət səhifəsində plan başlığı və cəmi
+    görünürdü, MƏZMUNU isə boş idi - istifadəçi «hansı məhsul neçəyədir?»
+    sualının cavabını tapa bilmirdi. Halbuki rəqəmlər onsuz da əlimizdə idi.
+
+    Marketin satmadığı məhsul ATILMIR: `store: None` ilə qalır və UI onu
+    «bu marketdə qiyməti yoxdur» kimi yazır. Tək market planı yalnız tam
+    əhatəli market üçün seçilir, amma funksiya ondan asılı olmamalıdır.
+    """
+    out: list[dict] = []
+    for item in items:
+        found = (item.get("prices") or {}).get(str(store_id))
+        out.append(
+            {
+                "label": item["label"],
+                "store": store_name if found else None,
+                "price": round(found["price"] * item["qty"], 2) if found else None,
+            }
+        )
+    return out
+
+
 def recommend(compare_data: dict, profile: Profile | None = None) -> Recommendation:
     """
     Müqayisə nəticəsi + profil -> konkret tövsiyə.
@@ -231,6 +257,7 @@ def recommend(compare_data: dict, profile: Profile | None = None) -> Recommendat
             rec.plan = "tek_market"
             rec.stores = [best["store"]]
             rec.total = best["total"]
+            rec.assignments = _assign_to_store(items, best["store_id"], best["store"])
             rec.notes.append(
                 f"Profilə görə yalnız bir markete gedirsən - {best['store']} seçildi."
             )
@@ -269,6 +296,7 @@ def recommend(compare_data: dict, profile: Profile | None = None) -> Recommendat
             rec.plan = "tek_market"
             rec.stores = [best["store"]]
             rec.total = best["total"]
+            rec.assignments = _assign_to_store(items, best["store_id"], best["store"])
             # Səbəbi DƏQİQ yazmaq lazımdır. İki fərqli səbəb var və onları
             # qarışdırsaq, istifadəçi yanlış ayarı dəyişməyə çalışar:
             # "qənaət azdır" -> hədd; "çox market lazımdır" -> market sayı.

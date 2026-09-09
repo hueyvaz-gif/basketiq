@@ -61,6 +61,13 @@
       <button class="lang-btn" type="button" data-lang="ru" aria-selected="false">RU</button>
     </div>
 
+    <!-- Səbət nişanı: hər səhifədən səbətə. -->
+    <a class="icon-btn is-quiet is-basket" href="/basket"
+       aria-label="Səbətim" data-i18n-attr="aria-label:basket.mine">
+      <svg aria-hidden="true"><use href="#icon-basket"></use></svg>
+      <span class="basket-count" data-basket-count hidden>0</span>
+    </a>
+
     <!-- Profilə qısayol. Admin/texniki heç nə burada göstərilmir. -->
     <a class="icon-btn is-quiet" id="profileJump" href="#profileTitle"
        aria-label="Profil və parametrlərə keç" data-i18n-attr="aria-label:nav.profileJump">
@@ -726,6 +733,7 @@
 <!-- ui.js app.js-dən ƏVVƏL: paylaşılan yardımçılar (esc, price, ikon
      xəritəsi) oradadır və məhsul səhifəsi ilə ortaqdır. -->
 <script src="/static/ui.js"></script>
+<script src="/static/basket-badge.js"></script>
 <script src="/static/app.js"></script>
 <script src="/static/store-grid.js"></script>
 <script src="/static/deals.js"></script>

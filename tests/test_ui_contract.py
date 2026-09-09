@@ -255,6 +255,7 @@ SCRIPT_PAGES = {
     "product.html": ["product.js"],
     "store.html": ["store.js"],
     "search.html": ["search.js"],
+    "basket.html": ["basket-page.js"],
 }
 
 
@@ -320,7 +321,9 @@ def test_hər_skript_bir_səhifədə_qoşulub():
         # Paylaşılan köməkçilər DOM elementi axtarmır, ona görə siyahıda
         # yoxdurlar. `i18n.js` də bura düşür: o, HƏR səhifədə yüklənir və
         # yalnız `data-i18n` işarəsi olan elementlərə toxunur.
-        shared = {"ui.js", "icons.js", "store-colors.js", "i18n.js"}
+        # `basket-badge.js` də paylaşılandır: üst paneldəki rəqəm HƏR səhifədə
+        # var və fayl öz elementini tapmasa sakitcə dayanır.
+        shared = {"ui.js", "icons.js", "store-colors.js", "i18n.js", "basket-badge.js"}
         assert set(scripts) == linked - shared, (
             f"{page}: siyahı ilə HTML fərqlənir — "
             f"yalnız HTML-də: {sorted(linked - shared - set(scripts))}, "
@@ -642,7 +645,9 @@ def test_təsdiq_ikinci_kliki_gözləyir():
     `armDeleteButton()`-un özü: silmə YALNIZ eyni düymə artıq gözləyəndə
     çağırılmalıdır. Kimsə şərti götürsə, bir klik yenidən silərdi.
     """
-    js = read_static("app.js")
+    # Funksiya `ui.js`-dədir (P1-də köçürüldü): səbət səhifəsi də silmə
+    # düyməsi çəkir və `app.js`-i o səhifəyə qoşmaq olmur.
+    js = read_static("ui.js")
     yer = js.find("pendingDelete.btn === btn")
     assert yer > 0, "təsdiq şərti tapılmadı — iki addımlı silmə pozulub"
 

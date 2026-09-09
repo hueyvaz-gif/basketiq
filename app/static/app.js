@@ -316,83 +316,12 @@ async function loadCatalogs() {
   }
 }
 
-/* ============================================================================
-   SİLMƏ TƏSDİQİ — iki addım
-
-   NİYƏ `confirm()` DEYİL?
-   Üç səbəb:
-     1. `confirm()` səhifəni BLOKLAYIR - brauzer avtomatlaşdırması (bizim öz
-        Selenium yoxlamalarımız da daxil) dialoq açılan kimi cavab verməyi
-        dayandırır;
-     2. onu üslublandırmaq mümkün deyil - Apple dizayn dilinin ortasında
-        əməliyyat sisteminin boz qutusu açılır;
-     3. mətni ingiliscə düymələrlə gəlir («OK / Cancel»), halbuki interfeys
-        tam azərbaycancadır.
-
-   ƏVƏZİNƏ: düymənin özü iki addımlı olur. Birinci klik onu «Silinsin?»
-   vəziyyətinə keçirir, ikinci klik silir. 5 saniyə ərzində toxunulmasa,
-   düymə öz halına qayıdır; Escape və başqa yerə klik də ləğv edir.
-
-   REAL SƏBƏB: silmə TƏSDİQSİZ idi - admin panelində bir klik kataloqu,
-   onun bütün qiymətlərini və yetim qalan məhsulları geri dönməz silirdi.
-   ============================================================================ */
-
-const DELETE_CONFIRM_MS = 5000;
-let pendingDelete = null;   // {btn, label, timer}
-
-/** Düyməni ilkin (ikon) halına qaytarır. */
-function cancelPendingDelete() {
-  if (!pendingDelete) return;
-  const { btn, label, html, timer } = pendingDelete;
-  clearTimeout(timer);
-  btn.classList.remove("is-confirming");
-  // İlkin məzmun BƏRPA olunur (ikon sabit deyil - səbət çipində başqa ola bilər).
-  btn.innerHTML = html;
-  btn.setAttribute("aria-label", label);
-  pendingDelete = null;
-}
-
-/**
- * Bir «sil» düyməsini iki addımlı edir.
- *
- * `onConfirm` yalnız İKİNCİ klikdə çağırılır - silmə əməliyyatının özü
- * çağıran tərəfdə qalır, bu funksiya yalnız təsdiq mexanikasını bilir.
- */
-function armDeleteButton(btn, onConfirm) {
-  const label = btn.getAttribute("aria-label") || "Sil";
-  const html = btn.innerHTML;
-
-  btn.addEventListener("click", async (event) => {
-    event.stopPropagation();
-
-    // İkinci klik - HƏQİQİ silmə yalnız burada baş verir.
-    if (pendingDelete && pendingDelete.btn === btn) {
-      cancelPendingDelete();
-      btn.disabled = true;
-      await onConfirm();
-      return;
-    }
-
-    // Birinci klik - başqa sətirdə gözləyən təsdiq varsa, o ləğv olunur.
-    cancelPendingDelete();
-    btn.classList.add("is-confirming");
-    btn.textContent = t("common.confirmDelete");
-    btn.setAttribute("aria-label", t("confirm.aria", { label }));
-    pendingDelete = {
-      btn,
-      label,
-      html,
-      timer: setTimeout(cancelPendingDelete, DELETE_CONFIRM_MS),
-    };
-  });
-}
-
-// Başqa yerə klik və Escape təsdiqi ləğv edir - istifadəçi «silinsin?»
-// vəziyyətini qəsdən tərk edə bilməlidir.
-document.addEventListener("click", cancelPendingDelete);
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") cancelPendingDelete();
-});
+// SİLMƏ TƏSDİQİ (`armDeleteButton`) ARTIQ `ui.js`-DƏDİR.
+//
+// Səbəb: səbət səhifəsi (`basket-page.js`) də silmə düyməsi çəkir, `app.js`-i
+// isə oraya qoşmaq olmur - o, yükləndiyi anda yalnız ana səhifədə mövcud olan
+// elementləri axtarır. Təsdiq mexanikasının İKİ nüsxəsi olsaydı, biri
+// dəyişəndə digəri köhnə qalardı və fərq yalnız real silmədə görünərdi.
 
 
 // ---------------------------------------------------------------- matching

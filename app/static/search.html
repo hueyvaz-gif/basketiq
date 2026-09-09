@@ -38,8 +38,10 @@
       <button class="lang-btn" type="button" data-lang="ru" aria-selected="false">RU</button>
     </div>
 
-    <a class="icon-btn is-quiet" href="/" aria-label="Ana səhifə" data-i18n-attr="aria-label:common.home">
+    <a class="icon-btn is-quiet is-basket" href="/basket"
+       aria-label="Səbətim" data-i18n-attr="aria-label:basket.mine">
       <svg aria-hidden="true"><use href="#icon-basket"></use></svg>
+      <span class="basket-count" data-basket-count hidden>0</span>
     </a>
   </div>
 </header>
@@ -70,6 +72,7 @@
 
 <script src="/static/store-colors.js"></script>
 <script src="/static/ui.js"></script>
+<script src="/static/basket-badge.js"></script>
 <script src="/static/search.js"></script>
 </body>
 </html>

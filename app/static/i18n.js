@@ -43,6 +43,90 @@
       ru: "Цены взяты из еженедельных каталогов магазинов и могут отличаться в филиале, а также после окончания срока действия каталога.",
     },
 
+    // ------------------------------------------------------- SƏBƏT SƏHİFƏSİ (P1)
+    "basket.mine": { az: "Səbətim", en: "My basket", ru: "Моя корзина" },
+    "basket.add": { az: "Səbətə", en: "Add", ru: "В корзину" },
+    "basket.added": { az: "Əlavə olundu", en: "Added", ru: "Добавлено" },
+    "basket.addError": {
+      az: "Əlavə olunmadı — yenidən yoxlayın.",
+      en: "Could not add — try again.",
+      ru: "Не добавлено — попробуйте снова.",
+    },
+    "basket.pageSub": {
+      az: "Seçdiyiniz məhsullar, market üzrə cəm və hansı planın sərfəli olduğu.",
+      en: "Your items, the total in each store, and which plan costs less.",
+      ru: "Выбранные товары, сумма по каждому магазину и какой план выгоднее.",
+    },
+    "basket.items": { az: "Səbətdəki məhsullar", en: "Items in the basket", ru: "Товары в корзине" },
+    "basket.totals": { az: "Market üzrə cəm", en: "Total per store", ru: "Сумма по магазинам" },
+    "basket.totalsSub": {
+      az: "Səbətin hamısını satan marketlər müqayisə olunur. Bir məhsulu satmayan market qalib seçilmir — cəmi az görünsə də.",
+      en: "Only stores that sell every item are compared. A store missing an item cannot win — even if its total looks lower.",
+      ru: "Сравниваются только магазины, где есть все товары. Магазин без одного товара не побеждает — даже если сумма меньше.",
+    },
+    "basket.plan": { az: "Tövsiyə olunan plan", en: "Recommended plan", ru: "Рекомендуемый план" },
+    "basket.planSub": {
+      az: "Plan yuxarıdakı səbətdən qidalanır — məhsul əlavə edin və ya silin, plan dərhal yenilənir.",
+      en: "The plan is built from the basket above — add or remove an item and it updates at once.",
+      ru: "План строится из корзины выше — добавьте или удалите товар, и он сразу обновится.",
+    },
+    "basket.planSingle": { az: "Tək market: {store}", en: "One store: {store}", ru: "Один магазин: {store}" },
+    "basket.planSplit": { az: "{n} markete bölünmüş", en: "Split across {n} stores", ru: "Разделено на {n} магазина" },
+    "basket.splitSaving": {
+      az: "{n} markete getsəniz qənaət",
+      en: "Saved by visiting {n} stores",
+      ru: "Экономия при {n} магазинах",
+    },
+    "basket.cheapest": { az: "ən ucuz", en: "cheapest", ru: "дешевле всего" },
+    "basket.noData": {
+      az: "bu marketdə qiymət yoxdur",
+      en: "no price in this store",
+      ru: "в этом магазине нет цены",
+    },
+    "basket.noPriceAnywhere": {
+      az: "heç bir marketdə qiyməti yoxdur",
+      en: "no price in any store",
+      ru: "нет цены ни в одном магазине",
+    },
+    "basket.missingN": {
+      az: "{n} məhsul yoxdur",
+      en: "{n} items missing",
+      ru: "нет {n} товаров",
+    },
+    "basket.notCompared": {
+      az: "müqayisədə iştirak etmir",
+      en: "not part of the comparison",
+      ru: "не участвует в сравнении",
+    },
+    "basket.someUnavailable": {
+      az: "{n} məhsulun heç bir marketdə qiyməti yoxdur — cəm natamamdır.",
+      en: "{n} items have no price in any store — the total is incomplete.",
+      ru: "У {n} товаров нет цены ни в одном магазине — сумма неполная.",
+    },
+    "basket.noPlan": {
+      az: "Plan qurmaq üçün kifayət qədər qiymət yoxdur.",
+      en: "There are not enough prices to build a plan.",
+      ru: "Недостаточно цен, чтобы построить план.",
+    },
+    "basket.emptyTotals": {
+      az: "Səbət boşdur — müqayisə ediləcək bir şey yoxdur.",
+      en: "The basket is empty — nothing to compare yet.",
+      ru: "Корзина пуста — сравнивать нечего.",
+    },
+    "basket.emptyPlan": {
+      az: "Məhsul əlavə edin, plan özü qurulacaq.",
+      en: "Add an item and the plan builds itself.",
+      ru: "Добавьте товар — план построится сам.",
+    },
+    "basket.goSearch": { az: "Məhsul axtar", en: "Search products", ru: "Найти товары" },
+    "basket.loadError": {
+      az: "Səbət yüklənmədi.",
+      en: "Could not load the basket.",
+      ru: "Не удалось загрузить корзину.",
+    },
+    "basket.more": { az: "Bir ədəd artır", en: "Increase by one", ru: "Добавить одну штуку" },
+    "basket.less": { az: "Bir ədəd azalt", en: "Decrease by one", ru: "Убрать одну штуку" },
+
     "nav.panelSelect": { az: "Panel seçimi", en: "Panel selection", ru: "Выбор панели" },
     "nav.user": { az: "İstifadəçi", en: "User", ru: "Пользователь" },
     "nav.admin": { az: "Admin / Developer", en: "Admin / Developer", ru: "Админ / Разработчик" },

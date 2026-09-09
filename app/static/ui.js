@@ -144,3 +144,137 @@ const price = (v) => `${money(v)}<span class="cur">₼</span>`;
 function notice(el, kind, html) {
   el.innerHTML = `<div class="notice ${kind}">${html}</div>`;
 }
+
+/**
+ * SƏBƏTƏ ƏLAVƏ ET — bütün səhifələrin işlətdiyi tək funksiya.
+ *
+ * NİYƏ BURADA? Düymə üç yerdədir: axtarış kartı, məhsul səhifəsi və
+ * məhsul səhifəsindəki «oxşar / eyni brend» kartları. Üç nüsxə olsaydı,
+ * biri `qty` göndərməyi unudardı və səhv yalnız səbətdə görünərdi.
+ *
+ * DÜYMƏ ÖZ VƏZİYYƏTİNİ GÖSTƏRİR: klikdən sonra «Əlavə olundu» yazır və
+ * sönür. Səhifə dəyişmir - istifadəçi axtarışa davam edə bilir. Üst
+ * paneldəki nişan isə `basketiq:basket` hadisəsi ilə dərhal yenilənir.
+ */
+async function addToBasket(productId, btn) {
+  const köhnə = btn ? btn.innerHTML : null;
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await fetch("/api/basket/items", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ product_id: Number(productId), qty: 1 }),
+    });
+    if (!res.ok) throw new Error("http");
+
+    if (btn) {
+      btn.classList.add("is-added");
+      btn.innerHTML = `${icon("check")}${esc(t("basket.added"))}`;
+    }
+    // Nişan və səbət səhifəsi bu hadisəni dinləyir.
+    document.dispatchEvent(new CustomEvent("basketiq:basket"));
+    return true;
+  } catch {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = köhnə;
+      btn.title = t("basket.addError");
+    }
+    return false;
+  }
+}
+
+/** Səbətə əlavə düyməsi - kart və məhsul səhifəsi eyni işarələməni işlədir. */
+const addButton = (productId, cls = "") =>
+  `<button class="btn btn-secondary add-btn ${cls}" type="button" data-add="${productId}">` +
+  `${icon("basket")}<span>${esc(t("basket.add"))}</span></button>`;
+
+// Bütün səhifələrdə TƏK dinləyici: kartlar sonradan çəkilir, ona görə
+// düymələrə tək-tək dinləyici bağlamaq mənasızdır.
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-add]");
+  if (!btn) return;
+  e.preventDefault();     // kart bir keçiddir - düymə onu açmamalıdır
+  e.stopPropagation();
+  addToBasket(btn.dataset.add, btn);
+});
+
+
+/* ============================================================================
+   SİLMƏ TƏSDİQİ — iki addım
+
+   NİYƏ `confirm()` DEYİL?
+   Üç səbəb:
+     1. `confirm()` səhifəni BLOKLAYIR - brauzer avtomatlaşdırması (bizim öz
+        Selenium yoxlamalarımız da daxil) dialoq açılan kimi cavab verməyi
+        dayandırır;
+     2. onu üslublandırmaq mümkün deyil - Apple dizayn dilinin ortasında
+        əməliyyat sisteminin boz qutusu açılır;
+     3. mətni ingiliscə düymələrlə gəlir («OK / Cancel»), halbuki interfeys
+        tam azərbaycancadır.
+
+   ƏVƏZİNƏ: düymənin özü iki addımlı olur. Birinci klik onu «Silinsin?»
+   vəziyyətinə keçirir, ikinci klik silir. 5 saniyə ərzində toxunulmasa,
+   düymə öz halına qayıdır; Escape və başqa yerə klik də ləğv edir.
+
+   REAL SƏBƏB: silmə TƏSDİQSİZ idi - admin panelində bir klik kataloqu,
+   onun bütün qiymətlərini və yetim qalan məhsulları geri dönməz silirdi.
+   ============================================================================ */
+
+const DELETE_CONFIRM_MS = 5000;
+let pendingDelete = null;   // {btn, label, timer}
+
+/** Düyməni ilkin (ikon) halına qaytarır. */
+function cancelPendingDelete() {
+  if (!pendingDelete) return;
+  const { btn, label, html, timer } = pendingDelete;
+  clearTimeout(timer);
+  btn.classList.remove("is-confirming");
+  // İlkin məzmun BƏRPA olunur (ikon sabit deyil - səbət çipində başqa ola bilər).
+  btn.innerHTML = html;
+  btn.setAttribute("aria-label", label);
+  pendingDelete = null;
+}
+
+/**
+ * Bir «sil» düyməsini iki addımlı edir.
+ *
+ * `onConfirm` yalnız İKİNCİ klikdə çağırılır - silmə əməliyyatının özü
+ * çağıran tərəfdə qalır, bu funksiya yalnız təsdiq mexanikasını bilir.
+ */
+function armDeleteButton(btn, onConfirm) {
+  const label = btn.getAttribute("aria-label") || "Sil";
+  const html = btn.innerHTML;
+
+  btn.addEventListener("click", async (event) => {
+    event.stopPropagation();
+
+    // İkinci klik - HƏQİQİ silmə yalnız burada baş verir.
+    if (pendingDelete && pendingDelete.btn === btn) {
+      cancelPendingDelete();
+      btn.disabled = true;
+      await onConfirm();
+      return;
+    }
+
+    // Birinci klik - başqa sətirdə gözləyən təsdiq varsa, o ləğv olunur.
+    cancelPendingDelete();
+    btn.classList.add("is-confirming");
+    btn.textContent = t("common.confirmDelete");
+    btn.setAttribute("aria-label", t("confirm.aria", { label }));
+    pendingDelete = {
+      btn,
+      label,
+      html,
+      timer: setTimeout(cancelPendingDelete, DELETE_CONFIRM_MS),
+    };
+  });
+}
+
+// Başqa yerə klik və Escape təsdiqi ləğv edir - istifadəçi «silinsin?»
+// vəziyyətini qəsdən tərk edə bilməlidir.
+document.addEventListener("click", cancelPendingDelete);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") cancelPendingDelete();
+});

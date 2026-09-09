@@ -273,10 +273,30 @@ def compare(basket_id: int = DEFAULT_BASKET_ID):
             "coverage": {"available": len(prices), "total": len(MARKETS)},
         })
 
+    # HEÇ BİR MARKETDƏ QİYMƏTİ OLMAYAN MƏHSUL MARKETİN GÜNAHI DEYİL.
+    #
+    # Əvvəl «tam əhatə» şərti səbətdəki BÜTÜN məhsullar üzrə hesablanırdı.
+    # Nəticədə səbətdə qiymətsiz bir sətir olan kimi heç bir market tam
+    # sayılmırdı, `best` boş qalırdı və plan ümumiyyətlə qurulmurdu -
+    # istifadəçi bir naməlum məhsula görə BÜTÜN tövsiyəni itirirdi.
+    #
+    # İndi məxrəc «ən azı bir marketdə qiyməti olan» məhsullardır. Qiymətsiz
+    # sətir plandan atılmır: ayrıca sayılır (`cheapest.unavailable`) və UI onu
+    # «heç bir marketdə qiyməti yoxdur» kimi yazır.
+    satıla_bilən = sum(1 for row in item_rows if row["prices"])
+
     results = []
     for entry in store_totals.values():
         entry["total"] = round(entry["total"], 2)
-        entry["complete"] = entry["covered"] == len(items)
+        entry["complete"] = satıla_bilən > 0 and entry["covered"] == satıla_bilən
+        # «Çatışmayan» siyahısı da yalnız SATILA BİLƏN məhsullardan ibarətdir:
+        # heç yerdə olmayan məhsulu hər dörd marketin qarşısına yazmaq
+        # onları haqsız yerə natamam göstərərdi.
+        entry["missing"] = [
+            row["label"]
+            for row in item_rows
+            if row["prices"] and str(entry["store_id"]) not in row["prices"]
+        ]
         results.append(entry)
 
     # Yalnız SƏBƏTİ TAM ƏHATƏ EDƏN marketlər "ən ucuz" ola bilər.

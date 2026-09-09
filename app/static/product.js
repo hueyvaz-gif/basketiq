@@ -47,7 +47,11 @@
           `<span class="product-best-price">${price(cheapest.price)}</span>` +
           `<span class="product-best-store">${esc(cheapest.store)}</span>` +
           `</div>`
-        : "");
+        : "") +
+      // SƏBƏTƏ ƏLAVƏ düyməsi ən ucuz qiymətin ALTINDADIR: istifadəçi əvvəlcə
+      // rəqəmi görür, sonra qərar verir. Qiymətdən yuxarı olsaydı, qərar
+      // rəqəmdən əvvəl istənərdi.
+      addButton(product.id, "product-add");
   }
 
   // --------------------------------------------------------- «Harada al»
@@ -168,14 +172,17 @@
   function card(item) {
     const size = item.size ? `<span class="size-pill">${esc(item.size)}</span>` : "";
     return (
-      `<a class="pcard" href="/product/${item.product_id}">` +
+      `<div class="pcard">` +
+      `<a class="pcard-link" href="/product/${item.product_id}">` +
       `<span class="pcard-photo">${productThumb(item)}</span>` +
       `<span class="pcard-body">` +
       (item.brand ? `<span class="pcard-brand">${esc(item.brand)}</span>` : "") +
       `<span class="pcard-name">${esc(item.label)}</span>` +
       `<span class="pcard-meta">${size}</span>` +
       `<span class="pcard-price">${price(item.price)}</span>` +
-      `</span></a>`
+      `</span></a>` +
+      addButton(item.product_id, "pcard-add") +
+      `</div>`
     );
   }
 

@@ -134,6 +134,19 @@ def dashboard():
     return FileResponse(STATIC_DIR / "index.html", headers={"Cache-Control": NO_CACHE})
 
 
+@app.get("/basket", include_in_schema=False)
+def basket_page():
+    """
+    Səbət səhifəsi — üst paneldəki nişanın açdığı yer.
+
+    NİYƏ AYRICA ÜNVAN? Səbət əvvəl ana səhifənin ortasındakı blok idi:
+    məhsul səhifəsinə keçən istifadəçi onu bir daha görmürdü və «neçəyə
+    düşdü?» sualı üçün geri qayıtmalı olurdu. Ayrıca ünvan həm hər səhifədən
+    əlçatandır, həm də brauzerin geri düyməsi ilə düzgün işləyir.
+    """
+    return FileResponse(STATIC_DIR / "basket.html", headers={"Cache-Control": NO_CACHE})
+
+
 @app.get("/product/{product_id}", include_in_schema=False)
 def product_page(product_id: int):
     """

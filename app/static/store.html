@@ -32,9 +32,12 @@
       <button class="lang-btn" type="button" data-lang="ru" aria-selected="false">RU</button>
     </div>
 
-    <a class="btn btn-secondary" href="/">
+    <!-- Düymə əvvəl «/»-a aparırdı, mətni isə «Səbətə qayıt» idi - ünvan
+         vədi ödəmirdi. İndi həqiqətən səbətə gedir və rəqəm daşıyır. -->
+    <a class="btn btn-secondary is-basket" href="/basket">
       <svg aria-hidden="true"><use href="#icon-basket"></use></svg>
-      <span data-i18n="common.backToBasket">Səbətə qayıt</span>
+      <span data-i18n="basket.mine">Səbətim</span>
+      <span class="basket-count" data-basket-count hidden>0</span>
     </a>
   </div>
 </header>
@@ -85,6 +88,7 @@
 
 <script src="/static/store-colors.js"></script>
 <script src="/static/ui.js"></script>
+<script src="/static/basket-badge.js"></script>
 <script src="/static/store.js"></script>
 </body>
 </html>

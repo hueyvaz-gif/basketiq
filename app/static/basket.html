@@ -1,0 +1,118 @@
+<!--
+  SƏBƏT SƏHİFƏSİ — layihənin ƏSAS sualının tam cavabı.
+
+  NİYƏ AYRICA SƏHİFƏ? Səbət əvvəl ana səhifənin ortasında bir blok idi:
+  istifadəçi məhsul axtarıb məhsul səhifəsinə keçəndə səbətini bir daha
+  görmürdü və «neçəyə düşdü?» sualı üçün geri qayıtmalı olurdu. İndi üst
+  paneldəki nişan hər səhifədən bura gətirir.
+
+  SƏHİFƏNİN QURULUŞU CAVABIN SIRASI İLƏDİR:
+    1. səbətin içi (dəyişdirilə bilir)
+    2. market üzrə cəm - yan-yana, ən ucuzu nişanlı
+    3. tövsiyə olunan plan - hansı məhsulu haradan almalı
+
+  Datası olmayan market SİLİNMİR: sütunu qalır və «bu marketdə qiymət yoxdur»
+  yazır. Səbəb: boş market cəmi 0.00-dır və gizlədilsə, istifadəçi onu «bahalı»
+  yox, «yoxdur» kimi oxumaq imkanını itirər.
+-->
+<title>Səbətim — BasketIQ</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/i18n.js"></script>
+<script src="/static/icons.js"></script>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true"><svg><use href="#icon-basket"></use></svg></span>
+      <span class="brand-name">BasketIQ</span>
+    </a>
+
+    <form class="searchbar is-compact" action="/search" method="get" role="search">
+      <svg class="searchbar-icon" aria-hidden="true"><use href="#icon-search"></use></svg>
+      <input type="search" name="q" placeholder="Məhsul və ya brend axtarın" data-i18n-attr="placeholder:product.searchPlaceholder" autocomplete="off">
+    </form>
+
+    <div class="lang-switch" role="group" aria-label="Dil seçimi"
+         data-i18n-attr="aria-label:nav.language">
+      <button class="lang-btn" type="button" data-lang="az" aria-selected="true">AZ</button>
+      <button class="lang-btn" type="button" data-lang="en" aria-selected="false">EN</button>
+      <button class="lang-btn" type="button" data-lang="ru" aria-selected="false">RU</button>
+    </div>
+
+    <a class="icon-btn is-quiet is-basket is-current" href="/basket"
+       aria-label="Səbətim" data-i18n-attr="aria-label:basket.mine">
+      <svg aria-hidden="true"><use href="#icon-basket"></use></svg>
+      <span class="basket-count" data-basket-count hidden>0</span>
+    </a>
+  </div>
+</header>
+
+<div class="wrap">
+  <main class="panel">
+
+    <div class="page-head">
+      <h1 class="page-title" data-i18n="basket.mine">Səbətim</h1>
+      <p class="page-sub" data-i18n="basket.pageSub">
+        Seçdiyiniz məhsullar, market üzrə cəm və hansı planın sərfəli olduğu.
+      </p>
+    </div>
+
+    <!-- 1. SƏBƏTİN İÇİ — dəyişdirilə bilir -->
+    <section class="card" aria-labelledby="itemsTitle">
+      <div class="card-head">
+        <div class="head-row">
+          <svg aria-hidden="true"><use href="#icon-basket"></use></svg>
+          <h2 class="section-heading" id="itemsTitle" data-i18n="basket.items">Səbətdəki məhsullar</h2>
+        </div>
+      </div>
+      <div id="basketItems">
+        <div class="row"><span class="row-label skeleton">Yüklənir</span></div>
+      </div>
+    </section>
+
+    <!-- 2. MARKET ÜZRƏ CƏM — yan-yana -->
+    <section class="card" id="totalsCard" aria-labelledby="totalsTitle">
+      <div class="card-head">
+        <div class="head-row">
+          <svg aria-hidden="true"><use href="#icon-store"></use></svg>
+          <h2 class="section-heading" id="totalsTitle" data-i18n="basket.totals">Market üzrə cəm</h2>
+        </div>
+        <p class="section-sub" data-i18n="basket.totalsSub">
+          Səbətin hamısını satan marketlər müqayisə olunur. Bir məhsulu
+          satmayan market qalib seçilmir — cəmi az görünsə də.
+        </p>
+      </div>
+      <div id="basketTotals">
+        <div class="row"><span class="row-label skeleton">Yüklənir</span></div>
+      </div>
+    </section>
+
+    <!-- 3. TÖVSİYƏ OLUNAN PLAN -->
+    <section class="card" id="planCard" aria-labelledby="planTitle">
+      <div class="card-head">
+        <div class="head-row">
+          <svg aria-hidden="true"><use href="#icon-sparkle"></use></svg>
+          <h2 class="section-heading" id="planTitle" data-i18n="basket.plan">Tövsiyə olunan plan</h2>
+        </div>
+        <p class="section-sub" data-i18n="basket.planSub">
+          Plan yuxarıdakı səbətdən qidalanır — məhsul əlavə edin və ya silin,
+          plan dərhal yenilənir.
+        </p>
+      </div>
+      <div id="basketPlan">
+        <div class="row"><span class="row-label skeleton">Yüklənir</span></div>
+      </div>
+    </section>
+
+    <p class="fineprint" data-i18n="common.fineprint">
+      Qiymətlər marketlərin dərc etdiyi həftəlik kataloqlardan götürülüb və
+      filialda, eləcə də kataloqun qüvvədə olduğu müddətdən sonra fərqlənə bilər.
+    </p>
+  </main>
+</div>
+
+<script src="/static/ui.js"></script>
+<script src="/static/store-colors.js"></script>
+<script src="/static/basket-badge.js"></script>
+<script src="/static/basket-page.js"></script>
