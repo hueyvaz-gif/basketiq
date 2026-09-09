@@ -419,6 +419,10 @@ Səbəb: `robots.txt`, PSM rejimi, Ollama base URL və model adı **məhsulun i�
 cavabı deyil**. Alış-veriş edən adam onları görməməlidir — amma developer üçün
 onlar bir klik uzaqdadır (`#admin`).
 
+**v4-də bu ayrılıq qapı ilə gücləndi:** istehsalda admin səthi bağlıdır
+(`ADMIN_ENABLED`, bax «v4» bölməsi). Tabın gizlədilməsi yalnız səliqədir —
+əsl qoruma serverdə, router səviyyəsindədir.
+
 **Hər iki panel DOM-dadır**, yalnız biri `display:none`-dur. Panel DOM-da
 olmasaydı, digər skriptlərin `getElementById(...).addEventListener(...)`
 sətirləri `null`-a düşüb faylı qırardı.
@@ -1278,6 +1282,105 @@ ilə **düşür**. Şrift tapılmayanda testlər ötürülür, tesseract tapılm
 düşür; eyni kateqoriyalı mühit boşluğu iki cür davranır. Həlli hələlik `.env`-i
 worktree-yə köçürməkdir.
 
+## v4 — keyfiyyət, əhatə və reklam qatı
+
+Bu blok bir tapşırıqdan çıxdı: **A funksionallıq · B dizayn · C data keyfiyyəti ·
+D əhatə · E reklam**. Aşağıdakılar həmin bölmələrin nəticəsidir.
+
+### C12 — şübhəli qiymət bazaya yazılarkən nişanlanır
+
+Zəncir belədir: qlyanslı kataloq → OCR → LLM → baza → ekran. Hər pillədə səhv
+mümkündür və **heç biri xəta atmır**: «1.29» → «129» ekranda tamamilə inandırıcı
+görünür, çünki rəqəmdir, formatı düzgündür, kartda gözəl dayanır.
+
+`ingestion/quality.py` üç hədlə yoxlayır (hər birinin izahı öz sabitindədir):
+
+| Bayraq | Hədd | Niyə |
+|---|---|---|
+| `deepDiscount` | endirim > 55% | `analytics.SUSPICIOUS_DEPTH` ilə **eyni ədəd** — əks halda ekranda «şübhəli» yazılan sətir bazada təmiz sayılardı |
+| `priceOutlier` | məhsulun öz medianından 4 dəfə uzaq | ərzaq qiyməti 2-3 dəfə dəyişir (mövsüm, endirim, qablaşdırma); 4-dən yuxarı praktiki olaraq OCR səhvidir |
+| `unitOutlier` | kateqoriya medianından 12 dəfə uzaq | bir kateqoriyada həm 0.60 ₼ su, həm 180 ₼ viski var — hədd dar olsaydı, real bahalı məhsullar karantinə düşərdi |
+
+**Sətir ATILMIR, nişanlanır.** Silinsəydi, səhvin niyə baş verdiyini araşdırmaq
+mümkün olmazdı. Nişanlı sətir «bugünün endirimləri» siyahısına buraxılmır və
+admin panelindəki **karantin növbəsində** — səbəb nişanları və xam OCR sətri ilə —
+görünür. Real bazada 195 sətirdən 7-si nişanlandı.
+
+Təsdiq `flags = ''` yazır, `NULL` yox. Fərq görünməzdir, nəticəsi böyükdür:
+`NULL` «hələ yoxlanmayıb» deməkdir və `tools/flag_prices.py` növbəti qaçışda
+həmin sətri yenidən nişanlayardı — yəni admin eyni işi hər dəfə təkrarlayardı.
+
+### B6 — boz «kub» getdi, kateqoriya lövhəsi gəldi
+
+188 məhsuldan **61-inin** şəkli var (≈32%). Qalanı eyni boz placeholder SVG-ni
+alırdı, yəni səhifənin üçdə ikisi eyni kvadrat idi və «yüklənməyib» kimi
+oxunurdu. İndi şəkli olmayan məhsul öz kateqoriyasının **ikonunu və tonunu**
+alır (`--cat-*` tokenləri). Rəng tək siqnal deyil: hər kateqoriyanın həm ayrı
+tonu, həm ayrı ikonu var.
+
+`image_url()` artıq `None` qaytarır — «şəkil varmı?» sualına UI fayl adına
+baxaraq cavab vermir. Şəkil faylı diskdə tapılmasa (`products/` qovluğu
+gitignore-dadır), **tutma mərhələsində bir dinləyici** lövhəni kateqoriyaya
+çevirir; qırıq şəkil nişanı görünmür.
+
+### B11 — admin paneli istehsalda bağlıdır
+
+`ADMIN_ENABLED` defoltu `APP_ENV`-dən gəlir: developmentdə açıq, productionda
+bağlı. `/api/catalogs`, `/api/scrape`, `/api/review` və `/api/admin/ads`
+**router səviyyəsində** `require_admin` arxasındadır və bağlı halda **404**
+(403 yox) verir: «icazən yoxdur» cavabı endpoint-in mövcudluğunu təsdiqləyər
+və axtaran adama xəritə verərdi.
+
+`nav.js` tabı `/api/admin/state` cavabına görə gizlədir. Bu, **səliqədir,
+qoruma deyil** — statik HTML onsuz da brauzerə gedir, qapı serverdədir.
+
+### D14 — market başına emal profili
+
+`ingestion/profiles.py` hər marketin kataloqunun **necə oxunduğunu** saxlayır:
+format, OCR psm, səhifə limiti, Selenium, vəziyyət və ölçülmüş səbəb. Həm
+avtomatik çəkiliş, həm əl ilə yükləmə eyni profildən qidalanır — əvvəl bu
+qərarlar iki ayrı yerdə idi və unudulanda nəticə **səssizcə** kasıblaşırdı
+(Araz üçün `max_pages` itəndə 188 → 69 məhsul).
+
+| Market | Format | Vəziyyət | Səbəb |
+|---|---|---|---|
+| Araz | pdf | işlək | endirim jurnalı, 54 səhifə |
+| Bravo | html | bağlı | Umico JS ilə render olunur, kateqoriya «0 məhsul» qaytarır |
+| Bazar Store | html | bağlı | sayt baxımdadır |
+| Rahat | image | əl ilə | yoxlanmış mənbə tapılmayıb — **uydurma ünvan yazılmır** |
+
+### D15/D16/D17 — natamam əhatə saytı sındırmır
+
+Admin panelində **market əhatəsi** cədvəli: məhsul, qiymət sətri, əhatə faizi,
+son yenilənmə, mənbə vəziyyəti. «Aktivləşdir» düyməsi **yoxdur və qəsdən
+yoxdur**: data düşən kimi market ana səhifədə özü işlək olur.
+
+Müqayisə cədvəlində **dörd sütunun hamısı** qalır. Datasız market «tezliklə»,
+məhsulu satmayan market «—» yazır — iki fərqli hal, iki fərqli mətn.
+
+Ən sakit səhv burada idi: **boş marketin cəmi 0.00-dır**, yəni sıralamada dolu
+marketdən əvvələ keçirdi. «Tam əhatə» şərti onu qalib seçilməkdən saxlayırdı,
+sütun sırasını isə yox — indi datasız market həmişə sonda gəlir.
+
+### E19-E24 — reklam qatı
+
+Ana səhifədə **bir slot**: market şəbəkəsi ilə endirimlər arasında. Boş
+qalanda gizlənmir — «Sizin reklamınız burada ola bilər» yazır və `ADS_CONTACT`
+təyin olunubsa əlaqə düyməsi qoyur (uydurma e-poçt yazılmır).
+
+Yalnız **aktiv VƏ tarix aralığında** olan sifariş göstərilir: müddəti bitən
+reklam öz-özünə dayanır. Hər reklam üç dildə «Reklam» nişanı daşıyır və kart
+forması endirim sətrindən qəsdən fərqlidir — sponsorlu kart yoxlanmış endirimlə
+qarışsaydı, saytın yeganə dəyəri itərdi.
+
+Admin meneceri sifariş yaradır, kreativ yükləyir (PNG/JPG/WEBP, 2 MB; **SVG
+qəsdən yoxdur** — skript daşıya bilər), dayandırır, silir və göstərim/klik
+rəqəmlərini göstərir. Sayğaclar redaktə olunan sahələr siyahısında **deyil**:
+hesabat rəqəmini əl ilə dəyişmək hesabatın özünü mənasız edər.
+
+Nümunə sifariş (`is_sample`) boş bazada avtomatik yaranır və real satışdan
+ayrılır — əks halda hesabatda ödənişli müştəri kimi sayılardı.
+
 ## Status
 
 - [x] Həftə 1 — skelet, konfiqurasiya, DB sxemi, mənbə yoxlayıcı
@@ -1320,4 +1423,15 @@ worktree-yə köçürməkdir.
 ¹ Mənbə seçimi ölçmə tələb etdiyi üçün Həftə 2-dən sonra tamamlandı.
 ² Real droplet-də yox, lokal Docker-də sınanıb — təfərrüat `deploy/README.md`-də.
 
-**Testlər:** 409 — 407 keçir, 2 atlanır (`pytest -q`)
+- [x] v4 (A) — endirim siyahısı ilə yoxlama barışdı, filtr sayğacları cari
+      nəticədən, Enter ilə axtarış, uyğunluq və əhatə nişanları
+- [x] v4 (B) — kateqoriya lövhələri, hero 35% kiçildi, geniş+sıx müqayisə
+      cədvəli, akkordeon iyerarxiyası, **admin istehsalda bağlıdır**
+- [x] v4 (C) — sağlamlıq yoxlaması + karantin növbəsi (195 sətirdən 7-si
+      nişanlandı), loqolar vahid 4:1 kətana normallaşdırıldı
+- [x] v4 (D) — market emal profilləri, admin əhatə cədvəli, dörd sütun
+      həmişə görünür
+- [x] v4 (E) — reklam slotu, sifariş modeli, admin meneceri, nümunə sifariş
+- [ ] v4 — mağaza qiymət qatı hələ də **boş**: mənbələr yuxarıdakı cədvəldədir
+
+**Testlər:** 537 — 535 keçir, 2 atlanır (`pytest -q`)
