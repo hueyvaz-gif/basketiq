@@ -577,3 +577,23 @@ def test_toxunma_hədəfləri_24px_dən_kiçik_deyil():
     assert ölçü, "düymənin ölçüsü tapılmadı"
     en, hündür = int(ölçü.group(1)), int(ölçü.group(2))
     assert en >= 24 and hündür >= 24, f"toxunma hədəfi çox kiçikdir: {en}×{hündür}"
+
+
+def test_silmə_düymələrinin_toxunma_sahəsi_44px_dir():
+    """
+    Apple HIG 44×44 tövsiyə edir — bu, TAPPABLE sahə haqqındadır, görüntünün
+    özü haqqında yox. Ona görə görünən dairə kiçik qalır, `::before` isə onu
+    44-ə tamamlayır. Dairəni böyütsək cədvəl sətirləri və üst panel ağırlaşardı.
+
+    Ölçüldü (brauzerdə): `.icon-btn` görünən 36×36, toxunma 44×44;
+    `.basket-chip-del` görünən 24×24, toxunma 44×44. Qonşu «Sətirlər» düyməsi
+    ilə ara 16px-dir, örtük isə 4px uzanır — kəsişmə yoxdur.
+    """
+    css = read_static("style.css")
+    for selektor, görünən in ((".icon-btn", 36), (".basket-chip-del", 24)):
+        blok = re.search(rf"{re.escape(selektor)}::before \{{(.*?)\}}", css, re.S)
+        assert blok, f"{selektor}::before qaydası tapılmadı — toxunma sahəsi genişlənmir"
+        inset = re.search(r"inset:\s*-(\d+)px", blok.group(1))
+        assert inset, f"{selektor}::before mənfi inset işlətmir"
+        toxunma = görünən + 2 * int(inset.group(1))
+        assert toxunma >= 44, f"{selektor} toxunma sahəsi {toxunma}px — 44 lazımdır"

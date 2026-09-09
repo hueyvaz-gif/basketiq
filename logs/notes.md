@@ -1080,3 +1080,53 @@ Səbət yoxlamadan sonra əvvəlki halına qaytarıldı: 2 sətir (#1, #3).
 
 - **20 və daha çox məhsulla sınanmadı.**
 - **Real toxunma cihazında yoxlanmadı** — yalnız emulyasiya.
+
+---
+
+## 2026-09-09 — Qalan silmə düymələri: toxunma sahəsi 44px
+
+`.icon-btn` (admin kataloq sətri + müqayisə cədvəli) 36×36 idi — WCAG
+minimumundan yuxarı, amma Apple-ın 44×44 tövsiyəsindən aşağı.
+
+### Qərar: GÖRÜNTÜ yox, HƏDƏF böyüdüldü
+
+Apple HIG-in 44pt-i **tappable sahə** haqqındadır, görüntünün özü haqqında yox.
+Dairəni 44px etsək cədvəl sətirləri və üst panel ağırlaşardı; `::before` ilə
+hədəfi genişlətmək isə heç nəyi sürüşdürmür.
+
+| Element | Görünən | Toxunma |
+|---|---|---|
+| `.icon-btn` | 36×36 | **44×44** |
+| `.basket-chip-del` | 24×24 | **44×44** |
+
+`svg`-yə `pointer-events: none` verildi ki, hadisənin hədəfi həmişə düymənin
+özü olsun.
+
+### Kəsişmə yoxlandı
+
+Genişlənən sahə qonşu düyməni uda bilərdi. Ölçüldü: «Sətirlər» ilə «sil»
+arasındakı ara **16px**, örtük isə hər tərəfə **4px** uzanır — kəsişmə yoxdur.
+Brauzerdə təsdiqləndi: «Sətirlər» həm mərkəzindən, həm sağ kənarından
+kliklənir (cədvəl 9617 simvol doldu), «sil» isə təsdiq halına keçir.
+
+### Ölçmə: bütün interaktiv elementlər
+
+Üç səhifədə hər `button/a/input/select` ölçüldü. Nəticə:
+
+| Element | Görünən | Toxunma | Hal |
+|---|---|---|---|
+| `.icon-btn` | 36×36 | 44×44 | ✓ |
+| `.seg-btn` | 111×30 | 111×30 | WCAG ✓, 44-dən aşağı |
+| `.btn` | 174×36 | 174×36 | WCAG ✓, 44-dən aşağı |
+| `select`, `input[type=text]` | 200×43 / 397×35 | eyni | WCAG ✓ |
+| **`input[type=checkbox]`** | **17×17** | **17×17** | **WCAG 2.5.8-dən KİÇİK** |
+
+**Tapıldı, DÜZƏLDİLMƏDİ:** admin panelindəki «OCR-ı məcbur et» checkbox-u
+17×17-dir, yəni WCAG 2.5.8 minimumundan (24×24) kiçik. O, silmə düyməsi
+deyil — tapşırığın hüdudundan kənardır, ona görə toxunmadım.
+
+Mətn idarələri (düymə, input, select) 30–43px hündürlükdədir: WCAG minimumunu
+ödəyir, Apple tövsiyəsindən aşağıdır. Onları böyütmək tipoqrafiyanı və
+səhifənin ritmini dəyişərdi — ayrıca qərardır.
+
+399 test keçir, 2 atlanır, ruff təmiz.
