@@ -45,12 +45,17 @@ from ingestion.quality import (
 # ============================================================================
 
 
-def test_endirim_həddi_yoxlama_bölməsi_ilə_eynidir():
+def test_karantin_həddi_iki_yerdə_eynidir():
     """
-    `analytics.SUSPICIOUS_DEPTH` yoxlama tabında «şübhəli» yazır,
-    `quality.DEEP_DISCOUNT` isə emal zəncirində nişanlayır. İki ədəd
-    ayrılsaydı, EYNİ endirim bir yerdə şübhəli, digər yerdə təmiz sayılardı —
-    tapşırığın A1 bəndi məhz bu ziddiyyətdən yaranmışdı.
+    Hər iki ədəd KARANTİN triggeridir: `quality.DEEP_DISCOUNT` emal zəncirində
+    nişanlayır, `analytics.SUSPICIOUS_DEPTH` isə admin panelinin eyni sətirləri
+    seçməsini təmin edir. Ayrılsaydılar, emal nişanladığı sətri admin növbədə
+    görməzdi.
+
+    DİQQƏT (P4): bu ədəd artıq İSTİFADƏÇİYƏ GÖSTƏRİLƏN hökmü təyin etmir.
+    Dərin endirim öz-özünə «şübhəli» deyil - hökm məhsulun tarixçəsindən
+    çıxarılır. Yəni sətir eyni anda karantində və ekranda «təsdiqlənib»
+    ola bilər: biri data keyfiyyəti, digəri iddianın doğruluğudur.
     """
     assert DEEP_DISCOUNT == SUSPICIOUS_DEPTH
 

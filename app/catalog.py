@@ -279,9 +279,11 @@ def todays_deals(limit: int = 12) -> dict:
             old = float(row["old_price"])
             price = float(row["price"])
             depth = (old - price) / old
-            # Ağlabatmayan dərinlik (>70%) və cüzi endirim (<3%) atılır.
-            if depth > MAX_DEPTH:
-                continue
+            # Cüzi endirim (<3%) atılır. DƏRİN ENDİRİM İSƏ BURADA ATILMIR -
+            # qərar yoxlamadan SONRA verilir (aşağıda). Səbəb: dərinlik özü
+            # heç nə sübut etmir; son istifadə tarixi yaxınlaşan məhsul real
+            # olaraq 70%+ ucuzlaşa bilər və onu «ağlabatmayan» adlandırmaq
+            # istifadəçini ən sərfəli təklifdən uzaqlaşdırmaq deməkdir.
             pct = round(depth * 100, 1)
             if pct < MIN_DISCOUNT_PCT:
                 continue
@@ -327,16 +329,37 @@ def todays_deals(limit: int = 12) -> dict:
             deal["verdict"] = nəticə["verdict"]
             deal["verdict_reasons"] = nəticə["reason_keys"]
 
+        # ÇOX DƏRİN ENDİRİM YALNIZ TƏSDİQLƏNMƏYİBSƏ ATILIR.
+        #
+        # 70%-dən dərin sətir adətən OCR səhvidir (vergül itib, köhnə qiymət
+        # yanlış oxunub) - siyahının başında belə zibil dayanmamalıdır.
+        # Amma tarixçə iddianı TƏSDİQLƏYİRSƏ, endirim realdır: məhsulu
+        # həqiqətən o qiymətə görmüşük. Belə sətri atmaq istifadəçinin
+        # tapdığı ən yaxşı təklifi gizlətmək olardı.
+        best = {
+            açar: deal
+            for açar, deal in best.items()
+            if deal["discount_pct"] <= MAX_DEPTH * 100 or deal["verdict"] == "tesdiqlenib"
+        }
+
         # SIRA HÖKMƏ GÖRƏDİR, dərinliyə görə yox.
         #
         # Əvvəl siyahı yalnız faizə görə sıralanırdı və ən dərin - yəni ən
         # şübhəli - endirim BİRİNCİ dayanırdı. İstifadəçiyə ən çox güvənilən
         # təklif lazımdır, ən böyük rəqəm yox. İndi: təsdiqlənmiş → yoxlanmamış
         # → şübhəli; hər qrupun içində isə faiz böyükdən kiçiyə.
-        RANK = {"tesdiqlenib": 0, "endirim_yoxdur": 1, "tesdiqlenmeyib": 2, "subheli": 3}
+        # «Hələ az müşahidə» şübhədən YUXARIDIR: o, iddianın yalan olduğunu
+        # demir - sadəcə hələ yoxlaya bilmirik.
+        RANK = {
+            "tesdiqlenib": 0,
+            "endirim_yoxdur": 1,
+            "az_musahide": 2,
+            "tesdiqlenmeyib": 3,
+            "subheli": 4,
+        }
         ranked = sorted(
             best.values(),
-            key=lambda d: (RANK.get(d["verdict"], 2), -d["discount_pct"], d["label"]),
+            key=lambda d: (RANK.get(d["verdict"], 3), -d["discount_pct"], d["label"]),
         )[:limit]
 
         açarlar = [d["group_key"] for d in ranked]

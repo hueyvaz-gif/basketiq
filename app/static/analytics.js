@@ -342,11 +342,14 @@
   const VERDICT = {
     subheli:        { rank: 0, row: "is-bad",  pill: "is-red" },
     tesdiqlenmeyib: { rank: 1, row: "is-warn", pill: "is-amber" },
-    endirim_yoxdur: { rank: 2, row: "",        pill: "" },
-    tesdiqlenib:    { rank: 3, row: "is-ok",   pill: "is-green" },
+    // «Hələ az müşahidə» NEYTRALDIR: sarı da deyil, çünki xəbərdarlıq deyil -
+    // sadəcə məlumatın hələ yığılmadığını bildirir (P4).
+    az_musahide:    { rank: 2, row: "",        pill: "" },
+    endirim_yoxdur: { rank: 3, row: "",        pill: "" },
+    tesdiqlenib:    { rank: 4, row: "is-ok",   pill: "is-green" },
   };
 
-  const verdictStyle = (v) => VERDICT[v] || { rank: 2, row: "", pill: "" };
+  const verdictStyle = (v) => VERDICT[v] || { rank: 3, row: "", pill: "" };
 
   async function loadDiscounts() {
     const box = sel("discountList");
@@ -366,10 +369,16 @@
     }
 
     const c = data.counts || {};
+    // «Hələ az müşahidə» sayğacı da göstərilir (P4).
+    //
+    // Olmasaydı, rəqəmlər TOPLANMIRDI: «Yoxlanıldı 8», amma üç sayğacın
+    // cəmi 0 - istifadəçi qalan səkkizin hara getdiyini bilmirdi. Bu hal
+    // nadir deyil: tarixçə qısa olanda BÜTÜN sətirlər bu qrupa düşür.
     const counters = `
       <div class="counter-row">
         <span class="pill is-red">${t("verdict.subheli")} ${c.subheli || 0}</span>
         <span class="pill is-amber">${t("verdict.tesdiqlenmeyib")} ${c.tesdiqlenmeyib || 0}</span>
+        <span class="pill">${t("verdict.az_musahide")} ${c.az_musahide || 0}</span>
         <span class="pill is-green">${t("verdict.tesdiqlenib")} ${c.tesdiqlenib || 0}</span>
         <span class="pill">${t("verdict.checked")} ${data.with_discount_claim}</span>
       </div>`;

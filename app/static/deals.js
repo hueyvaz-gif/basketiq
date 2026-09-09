@@ -48,6 +48,13 @@
       return `<span class="trust is-unknown" title="${esc(t("trust.unverifiedHint"))}">` +
              `${icon("help")}${t("trust.unverified")}</span>`;
     }
+    // «Hələ az müşahidə» (P4): iddianı yoxlaya bilmirik, ONU İNKAR ETMİRİK.
+    // Ayrı nişan lazımdır - əks halda istifadəçi «yoxlanılmayıb» yazısını
+    // «yəqin saxtadır» kimi oxuyur.
+    if (hökm === "az_musahide") {
+      return `<span class="trust is-unknown" title="${esc(t("trust.fewObservationsHint"))}">` +
+             `${icon("help")}${t("trust.fewObservations")}</span>`;
+    }
     return "";
   }
 

@@ -46,21 +46,38 @@ CONFIRM_TOLERANCE = 0.95
 # «bugünün endirimləri» siyahısına ümumiyyətlə buraxılmır.
 IMPLAUSIBLE_DEPTH = 0.70
 
-# ŞÜBHƏ HƏDDİ - sərt süzgəcdən aşağıdır.
+# KARANTİN HƏDDİ - hökm həddi DEYİL.
 #
-# REAL ZİDDİYYƏTDƏN ÇIXIB: «bugünün ən sərfəli endirimləri» −69%-lik sətri
-# BİRİNCİ yerdə göstərirdi, «endirim yoxlaması» bölməsi isə eyni dərinliyi
-# şübhəli sayırdı. İki bölmə eyni datanı iki cür qiymətləndirirdi - istifadəçi
-# hansına inanacağını bilmirdi.
+# TARİXÇƏSİ VAR: əvvəl bu ədəd birbaşa hökm verirdi - 55%-dən dərin hər
+# endirim «şübhəli» sayılırdı. Qayda YANLIŞ İDİ, çünki dərinlik özü heç nə
+# sübut etmir: son istifadə tarixi yaxınlaşan məhsul, mövsüm sonu satışı və
+# ya anbar boşaltma REAL olaraq 60-70% ucuzlaşır. Sayt belə endirimi «saxta»
+# elan edəndə istifadəçini ƏN SƏRFƏLİ təklifdən uzaqlaşdırırdı.
 #
-# İndi hər iki bölmə EYNİ funksiyadan (`verify_claim`) qidalanır və 55%-dən
-# dərin endirim hər yerdə şübhəli sayılır. 55-70% arası sətir siyahıda QALIR,
-# amma «yoxlanılmayıb» nişanı ilə və ƏN AŞAĞI sırada.
+# İNDİ NƏ EDİR? Yalnız data keyfiyyəti üçün nişan qoyur (`ingestion/quality.py`
+# eyni ədədi işlədir): belə sətir admin panelindəki karantin növbəsinə düşür
+# və insan baxır. İstifadəçiyə göstərilən HÖKM isə məhsulun ÖZ tarixçəsindən
+# çıxarılır - aşağıdakı `verify_claim`-ə bax.
 SUSPICIOUS_DEPTH = 0.55
+
+# HÖKM ÜÇÜN LAZIM OLAN ƏN AZ MÜŞAHİDƏ.
+#
+# Bir-iki müşahidə ilə «şübhəli» demək olmaz: məhsulu ilk dəfə görürüksə,
+# elan olunan köhnə qiymətin doğru olub-olmadığını NƏ TƏSDİQ, NƏ TƏKZİB
+# edə bilirik. Əvvəl belə hallar «təsdiqlənməyib» adlanırdı - söz düzgün idi,
+# amma istifadəçi onu «yəqin saxtadır» kimi oxuyurdu.
+#
+# Üç niyə? İki müşahidə ilə maksimum təsadüfi ola bilər (bir kataloqun iki
+# sətri). Üçdə isə qiymətin öz diapazonu yaranır.
+MIN_OBSERVATIONS = 3
 
 VERDICTS = {
     "tesdiqlenib": "Təsdiqlənib",
     "tesdiqlenmeyib": "Təsdiqlənməyib",
+    # «Hələ az müşahidə» AYRICA HALDIR və qəsdən ayrılıb: «təsdiqlənməyib»
+    # sözü istifadəçidə «yəqin saxtadır» təəssüratı yaradırdı, halbuki
+    # məzmunu «hələ yoxlaya bilmirik»dir.
+    "az_musahide": "Hələ az müşahidə",
     "subheli": "Şübhəli",
     "endirim_yoxdur": "Endirim yoxdur",
 }
@@ -272,19 +289,29 @@ def verify_claim(
     max_seen = max(history) if history else None
     nəticə["max_seen"] = max_seen
 
-    if pct >= SUSPICIOUS_DEPTH * 100:
-        nəticə["verdict"] = "subheli"
+    # ---------------------------------------------------------------- qərar
+    #
+    # SIRA VACİBDİR və hər addımın səbəbi var:
+    #
+    #   1. MÜŞAHİDƏ AZDIRSA - heç bir hökm vermirik. Dərinliyə də baxmırıq:
+    #      «60% endirim» tək başına nə saxtadır, nə həqiqi.
+    #   2. KÖHNƏ QİYMƏT ŞİŞİRDİLİBSƏ - şübhəli. Yeganə real sübut budur:
+    #      məhsulu heç vaxt o qiymətə görməmişik.
+    #   3. TARİXÇƏ İDDİANI TƏSDİQLƏYİRSƏ - təsdiqlənib. Endirim NƏ QƏDƏR
+    #      DƏRİN OLURSA OLSUN: son istifadə tarixi yaxınlaşan məhsul həqiqətən
+    #      70% ucuzlaşır və bunu «saxta» adlandırmaq istifadəçini ən sərfəli
+    #      təklifdən uzaqlaşdırmaqdır.
+    #   4. QALAN HALLAR - nə təsdiq, nə təkzib.
+    if len(history) < MIN_OBSERVATIONS:
+        nəticə["verdict"] = "az_musahide"
         nəticə["reasons"].append(
-            f"Endirim {pct}% - ərzaqda bu dərinlikdə endirim praktiki olaraq olmur"
+            f"Bu məhsulun cəmi {len(history)} müşahidəsi var - elan olunan köhnə "
+            f"qiyməti yoxlamaq üçün ən azı {MIN_OBSERVATIONS} lazımdır"
         )
-        nəticə["reason_keys"].append({"key": "reason.tooDeep", "params": {"pct": pct}})
-    elif not history:
-        nəticə["verdict"] = "tesdiqlenmeyib"
-        nəticə["reasons"].append(
-            "Bu məhsulu əvvəllər görməmişik - elan olunan köhnə qiyməti "
-            "yoxlamaq üçün müqayisə nöqtəsi yoxdur"
-        )
-        nəticə["reason_keys"].append({"key": "reason.neverSeen", "params": {}})
+        nəticə["reason_keys"].append({
+            "key": "reason.tooFewObservations",
+            "params": {"n": len(history), "need": MIN_OBSERVATIONS},
+        })
     elif max_seen is not None and old > max_seen * INFLATED_RATIO:
         nəticə["verdict"] = "subheli"
         nəticə["reasons"].append(

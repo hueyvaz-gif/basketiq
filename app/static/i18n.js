@@ -768,6 +768,28 @@
     "verdict.subheli": { az: "Şübhəli", en: "Suspicious", ru: "Подозрительно" },
     "verdict.tesdiqlenmeyib": { az: "Təsdiqlənməyib", en: "Unverified", ru: "Не подтверждено" },
     "verdict.tesdiqlenib": { az: "Təsdiqlənib", en: "Verified", ru: "Подтверждено" },
+    // «Hələ az müşahidə» AYRICA haldır: iddianın yalan olduğunu demir,
+    // sadəcə yoxlaya bilmədiyimizi bildirir (P4).
+    "verdict.az_musahide": {
+      az: "Hələ az müşahidə",
+      en: "Not enough observations yet",
+      ru: "Пока мало наблюдений",
+    },
+    "trust.fewObservations": {
+      az: "Hələ az müşahidə",
+      en: "Too few observations",
+      ru: "Мало наблюдений",
+    },
+    "trust.fewObservationsHint": {
+      az: "Bu məhsulun qiymət tarixçəsi hələ qısadır — elan olunan köhnə qiyməti nə təsdiqləyə, nə təkzib edə bilirik.",
+      en: "We have too little price history for this product — we can neither confirm nor refute the old price.",
+      ru: "История цен этого товара пока короткая — мы не можем ни подтвердить, ни опровергнуть старую цену.",
+    },
+    "reason.tooFewObservations": {
+      az: "Cəmi {n} müşahidə var — yoxlamaq üçün ən azı {need} lazımdır",
+      en: "Only {n} observations — at least {need} are needed to verify",
+      ru: "Всего {n} наблюдений — для проверки нужно минимум {need}",
+    },
     "verdict.endirim_yoxdur": { az: "Endirim yoxdur", en: "No discount", ru: "Скидки нет" },
     "verdict.checked": { az: "Yoxlanıldı", en: "Checked", ru: "Проверено" },
     "health.works": { az: "işləyir", en: "working", ru: "работает" },

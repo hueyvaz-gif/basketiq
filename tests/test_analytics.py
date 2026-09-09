@@ -110,19 +110,43 @@ def _find(group_key: str):
 
 
 def test_tarixcesiz_iddia_saxta_elan_edilmir(senaryo):
-    """Bilmədiyimizi "saxta" adlandırmamalıyıq - yanlış ittiham ən pis səhvdir."""
+    """
+    Bilmədiyimizi "saxta" adlandırmamalıyıq - yanlış ittiham ən pis səhvdir.
+
+    HÖKM ADI DƏYİŞDİ (P4): əvvəl "təsdiqlənməyib" idi. Söz düzgün idi, amma
+    istifadəçi onu "yəqin saxtadır" kimi oxuyurdu. İndi ayrıca hal var:
+    "hələ az müşahidə" - yəni suçlama deyil, məlumatın yoxluğu.
+    """
     senaryo("test|yeni|mehsul", "Yeni məhsul", [
         {"price": 5.99, "old_price": 9.99, "seen_at": "2026-09-01 10:00:00"},
     ])
     check = _find("test|yeni|mehsul")
-    assert check.verdict == "tesdiqlenmeyib"
+    assert check.verdict == "az_musahide"
     assert check.observations == 0
-    assert "görməmişik" in " ".join(check.reasons)
+    assert "müşahidəsi var" in " ".join(check.reasons)
+
+
+def test_iki_musahide_de_azdir(senaryo):
+    """
+    Hədd ÜÇDÜR. İki müşahidə təsadüfi ola bilər - bir kataloqun iki sətri.
+    Sərhəd testi olmasa, hədd "3" yazılıb "2" kimi işləyə bilər.
+    """
+    senaryo("test|iki|musahide", "İki müşahidə", [
+        {"price": 9.00, "seen_at": "2026-08-01 10:00:00"},
+        {"price": 9.50, "seen_at": "2026-08-10 10:00:00"},
+        {"price": 5.99, "old_price": 9.50, "seen_at": "2026-09-01 10:00:00"},
+    ])
+    check = _find("test|iki|musahide")
+    assert check.observations == 2
+    assert check.verdict == "az_musahide"
 
 
 def test_kohne_qiymet_tarixcede_varsa_tesdiqlenir(senaryo):
+    # ÜÇ müşahidə: hökm həddi (P4) bundan azında qərar vermir.
     senaryo("test|tesdiq|mehsul", "Təsdiqlənən məhsul", [
         {"price": 9.90, "seen_at": "2026-08-01 10:00:00"},
+        {"price": 9.80, "seen_at": "2026-08-10 10:00:00"},
+        {"price": 9.90, "seen_at": "2026-08-20 10:00:00"},
         {"price": 5.99, "old_price": 9.90, "seen_at": "2026-09-01 10:00:00"},
     ])
     check = _find("test|tesdiq|mehsul")
@@ -135,6 +159,7 @@ def test_sisirdilmis_kohne_qiymet_subheli_sayilir(senaryo):
     """Məhsul həmişə ~4 AZN olub, indi "köhnə qiymət 12 AZN" yazılır."""
     senaryo("test|subheli|mehsul", "Şübhəli məhsul", [
         {"price": 4.00, "seen_at": "2026-08-01 10:00:00"},
+        {"price": 4.10, "seen_at": "2026-08-08 10:00:00"},
         {"price": 4.20, "seen_at": "2026-08-15 10:00:00"},
         {"price": 5.99, "old_price": 12.00, "seen_at": "2026-09-01 10:00:00"},
     ])
@@ -144,14 +169,42 @@ def test_sisirdilmis_kohne_qiymet_subheli_sayilir(senaryo):
     assert "12.00" in " ".join(check.reasons)
 
 
-def test_hedden_artiq_derin_endirim_subhelidir(senaryo):
-    """Ərzaqda 85% endirim olmur - ya OCR səhvi, ya uydurma."""
-    senaryo("test|derin|mehsul", "Dərin endirim", [
+def test_derin_endirim_tek_basina_subhe_yaratmir(senaryo):
+    """
+    QAYDA DƏYİŞDİ (P4). Əvvəl 55%-dən dərin hər endirim avtomatik «şübhəli»
+    sayılırdı. Bu, YANLIŞ idi: son istifadə tarixi yaxınlaşan məhsul, mövsüm
+    sonu və anbar boşaltma REAL olaraq 70%+ ucuzlaşır. Sayt belə endirimi
+    saxta elan edəndə istifadəçini ən sərfəli təklifdən uzaqlaşdırırdı.
+
+    İndi qərarı məhsulun ÖZ tarixçəsi verir: köhnə qiymət tarixçə ilə
+    uyğundursa, endirim nə qədər dərin olsa da təsdiqlənir.
+    """
+    senaryo("test|derin|real", "Real dərin endirim", [
+        {"price": 10.00, "seen_at": "2026-08-01 10:00:00"},
+        {"price": 9.80, "seen_at": "2026-08-10 10:00:00"},
+        {"price": 10.00, "seen_at": "2026-08-20 10:00:00"},
+        # 85% endirim, amma köhnə qiymət tarixçədə VAR
         {"price": 1.50, "old_price": 10.00, "seen_at": "2026-09-01 10:00:00"},
     ])
-    check = _find("test|derin|mehsul")
+    check = _find("test|derin|real")
+    assert check.discount_pct == 85.0
+    assert check.verdict == "tesdiqlenib"
+
+
+def test_derin_endirim_uydurma_kohne_qiymetle_subhelidir(senaryo):
+    """
+    Əks tərəf: dərinlik yox, UYDURMA köhnə qiymət şübhə yaradır. Məhsul
+    həmişə ~2 AZN olub, indi «köhnə qiymət 10 AZN» yazılır.
+    """
+    senaryo("test|derin|uydurma", "Uydurma dərin endirim", [
+        {"price": 2.00, "seen_at": "2026-08-01 10:00:00"},
+        {"price": 2.10, "seen_at": "2026-08-10 10:00:00"},
+        {"price": 1.95, "seen_at": "2026-08-20 10:00:00"},
+        {"price": 1.50, "old_price": 10.00, "seen_at": "2026-09-01 10:00:00"},
+    ])
+    check = _find("test|derin|uydurma")
     assert check.verdict == "subheli"
-    assert "endirim" in " ".join(check.reasons).lower()
+    assert "10.00" in " ".join(check.reasons)
 
 
 def test_kohne_qiymet_yoxdursa_hokm_verilmir(senaryo):
