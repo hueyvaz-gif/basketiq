@@ -26,11 +26,18 @@ from __future__ import annotations
 
 from statistics import median
 
-# Endirim bu dərinlikdən keçirsə şübhəlidir.
+# Endirim bu dərinlikdən keçirsə, sətir KARANTİNƏ düşür.
 #
-# `app/analytics.py`-dəki `SUSPICIOUS_DEPTH` ilə EYNİ dəyərdir və qəsdən belədir:
-# yoxlama bölməsi ilə emal zənciri eyni hədlə işləməlidir, əks halda ekranda
-# «şübhəli» yazılan sətir bazada təmiz sayılardı.
+# BU, «SAXTA» HÖKMÜ DEYİL - insan baxışı üçün nişandır. `app/analytics.py`
+# eyni ədədi işlədir və ikisi qəsdən bərabərdir: admin panelindəki karantin
+# növbəsi ilə emal zənciri eyni sətirləri seçməlidir.
+#
+# İSTİFADƏÇİYƏ GÖSTƏRİLƏN HÖKM AYRIDIR (P4). Orada dərinlik heç nə sübut
+# etmir: son istifadə tarixi yaxınlaşan məhsul real olaraq 70% ucuzlaşır.
+# Hökm məhsulun ÖZ tarixçəsindən çıxarılır (`analytics.verify_claim`).
+# Yəni dərin endirim həm karantində ola bilər, həm də ekranda «təsdiqlənib»
+# görünə bilər - ziddiyyət deyil: biri data keyfiyyəti, digəri iddianın
+# doğruluğudur.
 DEEP_DISCOUNT = 0.55
 
 # Qiymət məhsulun öz tarixçəsinin medianından bu qədər dəfə uzaqdırsa,
