@@ -1,145 +1,153 @@
 /* ============================================================================
    BasketIQ — dizayn sistemi
 
-   İSTİQAMƏT: Wise + Trolley + fintech dashboard dili.
-   Cəsarətli tipoqrafiya, pill formalar, kartlarda yumşaq kölgə, iri tabular
-   rəqəmlər. Yalnız işıqlı rejim — `prefers-color-scheme: dark` bloku QƏSDƏN
-   yoxdur və `color-scheme: light` sistem dark rejimdə olsa belə brauzerin
-   `input`/`select` sahələrini qaraltmasının qarşısını alır.
+   İSTİQAMƏT: Apple (apple.com) dizayn dili + trolley.co.uk-un kart və
+   müqayisə quruluşu. Yalnız İŞIQLI rejim — `prefers-color-scheme: dark`
+   bloku QƏSDƏN yoxdur və `color-scheme: light` sistem tünd rejimdə olsa belə
+   brauzerin `input`/`select` sahələrini qaraltmasının qarşısını alır.
 
-   ƏSAS QAYDA: RƏNG MƏNA DAŞIYIR, BƏZƏK DEYİL.
-     mavi   = brend, naviqasiya, əsas hərəkət
-     yaşıl  = QƏNAƏT / ən ucuz / təsdiqlənib
-     kəhrəba= diqqət / təsdiqlənməyib
-     qırmızı= bahalı / şübhəli / xəta
+   YAŞIL RƏNG YOXDUR. Əvvəlki palitra trolley-in yaşılı üzərində qurulmuşdu;
+   istifadəçi qərarı ilə tam çıxarıldı — loqo, düymələr, başlıqlar, nişanlar,
+   «ən ucuz» siqnalı. Yeganə vurğu rəngi Apple mavisidir.
+
+   ƏSAS QAYDA DƏYİŞMƏDİ: RƏNG MƏNA DAŞIYIR, BƏZƏK DEYİL.
+     mavi      = brend, naviqasiya, əsas hərəkət, ƏN UCUZ
+     neytral   = təsdiqlənib (Apple təmkini: müsbət hal rəng tələb etmir)
+     boz       = yoxlaya bilmirik (məlumatın YOXLUĞU boz ilə deyilir)
+     qırmızı   = şübhəli / bahalı / xəta
      bənövşəyi = YALNIZ AI (maşının yazdığı mətn)
-   Bir element "gözəl görünsün" deyə rənglənmir. Rəngi görməyən istifadəçi
-   üçün hər siqnalın mətn və ya forma qarşılığı da var.
+   Rəngi görməyən istifadəçi üçün hər siqnalın mətn və ya forma qarşılığı var.
 
    SƏHİFƏ AXINI: verdict -> qrafik -> detallı cədvəl -> istisnalar.
-   Ən böyük element səhifədə TƏKDİR: səbətin ən ucuz cəmi (56px/800).
+   Ən böyük element səhifədə TƏKDİR: səbətin ən ucuz cəmi.
    ============================================================================ */
 
 :root {
   color-scheme: light;
 
   /* ==========================================================================
-     TROLLEY DİZAYN SİSTEMİ (trolley.co.uk-dan çıxarılıb, 2026-09-08)
-     Yalnız İŞIQLI rejim. Tünd blok yoxdur - `test_dark_mode_bloku_yoxdur`.
-     Hər hex trolley palitrasındandır; palitradan kənar rəng uydurulmur.
+     APPLE PALİTRASI (apple.com-dan, 2026-09-09)
+     Hər dəyərin ağ və `--bg-subtle` fonunda kontrastı ÖLÇÜLÜB (aşağıda).
      ========================================================================== */
 
   /* --- Səth --- */
-  --bg: #ffffff;          /* trolley: background */
-  --surface: #f1f3f4;     /* trolley: surface - kart və panel fonu */
-  --surface-2: #ffffff;   /* input fonu (trolley Input: bg #ffffff) */
+  --bg: #ffffff;
+  --bg-subtle: #f5f5f7;   /* Apple-ın açıq boz bölmə fonu */
+  /* Yarımşəffaf ağ: üst panelin blur fonu. Token-dədir, çünki qaydaya görə
+     rəng CSS-in içinə hardcode edilmir - `test_rənglər_yalnız_token_lərdən_gəlir`. */
+  --bg-translucent: rgba(255, 255, 255, .8);
+  --surface: #f5f5f7;     /* köhnə ad, `--bg-subtle` ilə eynidir */
+  --surface-2: #ffffff;   /* input fonu */
 
-  /* --- Mətn --- */
-  --text: #000000;        /* trolley: text-primary */
-  --text-2: #525252;      /* trolley palitrası - kart fonunda 7.02:1 ✓ */
-  /* DİQQƏT: trolley-in `text-muted` rəngi #a9a9a9-dur, amma ölçüldü -
-     kart fonunda cəmi 2.11:1 verir, yəni WCAG AA-dan (4.5:1) KEÇMİR.
-     Marketinq saytında böyük mətn üçün işləyir, məlumat panelində 11-13px
-     etiketlər üçün yox. Palitranın növbəti tonu götürüldü: #7d7d7d (3.70:1) -
-     o da kiçik mətn üçün zəifdir, ona görə KİÇİK ETİKETLƏR `--text-2`
-     işlədir; `--text-3` yalnız ikon, tire və üstüxətli köhnə qiymət üçün
-     qalır (onlar məlumatın özü deyil). */
-  --text-3: #7d7d7d;
+  /* --- Mətn ---
+     ÖLÇÜLDÜ (ağ fonda): --text 16.83:1 ✓ · --text-secondary 5.07:1 ✓
+     --text-tertiary 3.62:1 — AA-dan KEÇMİR. Ona görə o, YALNIZ placeholder,
+     tire və üstüxətli köhnə qiymət üçündür; kiçik etiketlər `--text-secondary`
+     işlədir. Apple da tertiary tonu məhz belə - məlumatın özü üçün deyil,
+     onun kölgəsi üçün - işlədir. */
+  --text: #1d1d1f;
+  --text-secondary: #6e6e73;
+  --text-tertiary: #86868b;
+  --text-2: var(--text-secondary);   /* köhnə adlar - JS və CSS onları oxuyur */
+  --text-3: var(--text-tertiary);
 
-  /* --- Brend ---
-     BREND ARTIQ YAŞILDIR. Əvvəl mavi idi, çünki yaşıl "qənaət" mənasını
-     daşıyırdı. İstifadəçi qərarı ilə trolley-in brend yaşılına keçildi;
-     "ən ucuz" siqnalı isə RƏNGDƏN çıxarılıb ÇƏRÇİVƏ + ✓ nişanına verildi
-     (bax `.price-pill.is-best`). Beləliklə bir yaşıl iki məna daşımır. */
-  --accent: #00a300;
-  --accent-ink: #008000;  /* ağ fonda yaşıl MƏTN üçün - #00a300 mətn kimi zəifdir */
+  /* --- Vurğu ---
+     ÖLÇÜLDÜ: #0071e3 ağ fonda MƏTN kimi 4.70:1 ✓, ağ mətn onun FONUNDA da
+     4.70:1 ✓ — yəni həm yazı, həm düymə kimi AA-dan keçir. */
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --link: #0066cc;         /* mətn içindəki keçid: 5.57:1 ✓ */
+  --accent-ink: #0066cc;   /* köhnə ad */
+  --on-accent: #ffffff;
 
-  /* --- Semantik status (trolley status palitrası) ---
-     DİQQƏT: trolley palitrasında KƏHRƏBA YOXDUR. Əvvəlki `--amber`
-     ("təsdiqlənməyib") mənasını itirmədən trolley-in info mavisinə keçdi:
-     "təsdiqlənməyib" xəbərdarlıq deyil, MƏLUMATDIR - "yoxlaya bilmirik".
-     Beləliklə üç pilləli siqnal qalır: təsdiqlənib / yoxlaya bilmirik / şübhəli. */
-  --ok: #4caf50;          /* trolley: success - FON və nöqtə üçün */
-  --ok-ink: #008000;      /* yaşıl MƏTN üçün: #4caf50 ağ fonda 2.78:1 verir,
-                             #008000 isə 5.14:1 - AA-dan keçir */
-  --info: #0066b7;        /* trolley: info - təsdiqlənməyib, yoxlanılmayıb */
-  --danger: #cc3327;      /* trolley: danger - şübhəli / bahalı / xəta */
-  --ai: #8a005d;          /* trolley palitrası - YALNIZ AI kartı */
+  /* «Ən ucuz» ARTIQ ÖZ TOKEN-İDİR.
+     Əvvəl bu siqnal yaşıl idi, sonra brend yaşıla keçəndə çərçivəyə verildi.
+     İndi brend mavidir və «ən ucuz» da mavidir — ona görə siqnal yenə FORMA
+     ilə gücləndirilir (çərçivə + ✓), rəng tək başına daşımır.
+     Bax `.price-pill.is-best` və `test_ən_ucuz_siqnalı_rənglə_verilmir`. */
+  --cheapest: #0071e3;
 
-  /* Rəngli fon üzərində oxunan mətn tonları. */
-  --on-accent: #000000;   /* trolley btn-primary: yaşıl fonda QARA mətn.
-                             Ölçmə: #00a300 üzərində qara 6.3:1, ağ 3.4:1 -
-                             yəni ağ mətn AA-dan keçmir, qara keçir. */
-  --info-ink: #16369a;    /* info mavisinin daha tünd variantı - mətn üçün */
-  --danger-ink: #cc3327;  /* ağ fonda 5.2:1 - mətn kimi kifayətdir */
+  /* --- Semantik status (yaşılsız) ---
+     --ok mavidir, çünki «təsdiqlənib» müsbət haldır və Apple dilində müsbət
+     hal vurğu ailəsindən gəlir. --info BOZDUR: «yoxlaya bilmirik» məlumatın
+     YOXLUĞUDUR, onu rənglə vurğulamaq yanlış siqnal olardı. */
+  --ok: #0066cc;          /* təsdiqlənib — 5.57:1 ✓ */
+  --ok-ink: #0066cc;
+  --info: #6e6e73;        /* yoxlaya bilmirik — 5.07:1 ✓ */
+  --info-ink: #6e6e73;
+  --danger: #d70015;      /* şübhəli / bahalı / xəta — 5.38:1 ✓
+                             (Apple-ın #ff3b30-u ağ fonda cəmi 3.55:1 verir) */
+  --danger-ink: #d70015;
+  --ai: #8944ab;          /* YALNIZ AI kartı — 6.04:1 ✓ */
 
   /* Yüngül fonlar: ayrı hex yazmaq əvəzinə əsas token ağ səthlə qarışır,
      yəni token dəyişsə bunlar da ardınca dəyişir. */
-  --accent-soft: color-mix(in srgb, var(--accent) 10%, var(--bg));
-  --ok-soft: color-mix(in srgb, var(--ok) 14%, var(--bg));
-  --info-soft: color-mix(in srgb, var(--info) 10%, var(--bg));
-  --danger-soft: color-mix(in srgb, var(--danger) 10%, var(--bg));
-  --ai-soft: color-mix(in srgb, var(--ai) 8%, var(--bg));
+  --accent-soft: color-mix(in srgb, var(--accent) 8%, var(--bg));
+  --ok-soft: color-mix(in srgb, var(--ok) 8%, var(--bg));
+  --info-soft: var(--bg-subtle);
+  --danger-soft: color-mix(in srgb, var(--danger) 8%, var(--bg));
+  --ai-soft: color-mix(in srgb, var(--ai) 7%, var(--bg));
 
   /* --- Market identikliyi ---
-     Hər marketə öz rəng nöqtəsi. Real loqo YOXDUR - `stores` cədvəlində
-     yalnız slug/name/website var - ona görə saxta brend çəkmirik.
-     Palitrada STATUS rəngi (yaşıl/qırmızı) və BREND rəngi OLA BİLMƏZ:
-     əks halda "bu market yaşıldır, yoxsa ucuzdur?" sualı yaranır.
-     Hamısı trolley genişləndirilmiş palitrasındandır. */
-  --store-1: #16369a;
-  --store-2: #1a73e8;
-  --store-3: #008a66;
-  --store-4: #780051;
-  --store-5: #525252;
-  --store-6: #7d7d7d;
+     Dörd marketin REAL loqosu var (`app/static/images/`), yəni bu rənglər
+     yalnız qrafik seriyası və hərf avatarı üçün qalır. Palitrada STATUS rəngi
+     (mavi/qırmızı) OLA BİLMƏZ: əks halda «bu market seçilib, yoxsa ucuzdur?»
+     sualı yaranır. Yaşıl ümumiyyətlə yoxdur. */
+  --store-1: #5856d6;   /* indigo */
+  --store-2: #30b0c7;   /* teal */
+  --store-3: #a2845e;   /* brown */
+  --store-4: #bf5af2;   /* light purple */
+  --store-5: #8e8e93;   /* gray */
+  --store-6: #b25000;   /* dark orange */
 
-  /* --- Sərhəd və kölgə ---
-     Trolley kartı 1px sərhəd + kölgə ilə qurulur (bizim əvvəlki "sərhədsiz,
-     yalnız kölgə" yanaşmamızdan fərqli). Nazik ayırıcılar üçün palitranın
-     açıq boz tonu, güclü sərhəd (input, ghost düymə) üçün #404040. */
-  --line: #dddddd;
-  --border: #404040;
+  /* --- Sərhəd və kölgə (Apple: nazik xətt + yumşaq, az kontrastlı kölgə) --- */
+  --hairline: #d2d2d7;
+  --line: #d2d2d7;      /* köhnə ad */
+  --border: #d2d2d7;
 
-  --shadow: 0 3px 4px rgba(0, 0, 0, .1);                                  /* trolley: raised */
-  --shadow-lift: 0 10px 20px rgba(0, 0, 0, .19), 0 6px 6px rgba(0, 0, 0, .23); /* trolley: floating */
-  --hairline: #dddddd;
+  --shadow: 0 4px 16px rgba(0, 0, 0, .06);
+  --shadow-lift: 0 8px 24px rgba(0, 0, 0, .10);
 
-  /* --- Forma: trolley radius şkalası, defolt 10px --- */
-  --r-card: 10px;
-  --r-md: 10px;
-  --r-sm: 6px;
-  --r-xs: 3px;
-  --r-pill: 9999px;
+  /* --- Forma: Apple radius şkalası --- */
+  --r-pill: 980px;      /* düymələr - Apple-ın öz dəyəri */
+  --r-card: 18px;
+  --r-md: 12px;         /* input və axtarış */
+  --r-sm: 8px;          /* nişanlar */
+  --r-xs: 6px;
 
-  /* --- Boşluq: trolley 5px şəbəkəsi --- */
-  --s1: 5px; --s2: 10px; --s3: 15px; --s4: 20px; --s5: 30px; --s6: 40px;
+  /* --- Boşluq: 8px şəbəkəsi (Apple), trolley-in 5px-indən daha səxavətli --- */
+  --s1: 8px; --s2: 16px; --s3: 24px; --s4: 32px; --s5: 48px; --s6: 64px;
 
-  --content: 1024px;      /* trolley: max content width */
+  --content: 1024px;
   --measure: 68ch;
 
-  --font: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI",
-          system-ui, sans-serif;
+  /* SF ailəsi sistemdən gəlir - şəbəkədən şrift YÜKLƏNMİR.
+     Apple saytı da məhz belə edir: San Francisco əməliyyat sistemindədir,
+     olmayan yerdə Helvetica Neue -> Arial zəncirinə düşür. */
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+          "Helvetica Neue", Helvetica, Arial, sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  /* Trolley hərəkət şkalası: 125ms / 150ms, ease-in-out */
-  --ease: .125s ease-in-out;
-  --ease-slow: .15s ease-in-out;
+  --ease: .2s ease;
+  --ease-slow: .3s ease;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   font-family: var(--font);
-  font-size: 15px;
+  font-size: 17px;          /* Apple gövdə ölçüsü (əvvəl 15px) */
   font-weight: 400;
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
-  line-height: 1.55;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.47;
 }
 
-h1, h2, h3 { font-weight: 700; letter-spacing: -.025em; line-height: 1.15; }
+/* Apple başlıq şkalası: çəki 600 (700 deyil), sıx hərf aralığı, dar sətir.
+   700 çəki SF-də «qışqırır»; Apple səhifələrində iri başlıqlar 600-dədir. */
+h1, h2, h3 { font-weight: 600; letter-spacing: -.02em; line-height: 1.08; }
 
 /* Bütün rəqəm sahələri bərabər enli olsun: sütunda rəqəmlər sürüşməsin və
    "19.65" ilə "8.10" eyni yerdə bitsin. */
@@ -170,7 +178,18 @@ table.lines .num, .row-value {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: var(--bg);
+  /* Apple-ın öz üst paneli: yarımşəffaf ağ + doyğunluq artırılmış blur.
+     `saturate(180%)` altdakı rəngli məzmunun blur zamanı solmasının qarşısını
+     alır - Apple məhz bu dəyəri işlədir. Blur dəstəklənməyən brauzerdə
+     `background` tam ağ qalır, yəni panel yenə oxunur. */
+  background: var(--bg-translucent);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--hairline);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .topbar { background: var(--bg); }
 }
 
 .topbar-inner {
@@ -183,57 +202,77 @@ table.lines .num, .row-value {
   gap: var(--s3);
 }
 
-.brand { display: flex; align-items: center; gap: 10px; }
+/* Loqo həm `<div>`, həm `<a>` ola bilir (məhsul/axtarış səhifələrində keçiddir).
+   Keçid olanda brauzerin mavi altıxətti brendi «link» kimi göstərirdi. */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  text-decoration: none;
+}
 
+a.brand:hover .brand-name { color: var(--text-secondary); }
+
+/* Loqo nişanı: rəngli fon YOXDUR.
+   Əvvəl 36px yaşıl kvadrat idi. Apple dilində brend nişanı səhifədə rəng
+   ləkəsi yaratmır - o, mətnlə eyni tonda, sadəcə formadır. */
 .brand-mark {
-  width: 36px; height: 36px;
+  width: 28px; height: 28px;
   display: grid; place-items: center;
-  border-radius: var(--r-sm);
-  background: var(--accent);
-  color: var(--on-accent);
+  color: var(--text);
   flex: none;
 }
 
-.brand-mark svg { width: 21px; height: 21px; }
+.brand-mark svg { width: 22px; height: 22px; }
 
-.brand-name { font-size: 19px; font-weight: 700; letter-spacing: -.03em; }
+.brand-name {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  color: var(--text);
+}
 
-/* --- Segmented control: "chunky" pill toggle (Wise tərzi) --- */
+/* --- Segmented control (Apple) ---
+   Yol boz, SEÇİLMİŞ seqment AĞDIR və yüngül kölgə ilə «qalxır».
+   Əvvəlki variantda seçilmiş seqment doldurulmuş yaşıl idi - o, düymə kimi
+   görünürdü, halbuki bu, rejim keçididir, hərəkət deyil. Apple-ın öz
+   seqmentli idarəsi məhz bu cür işləyir: rəng yox, HÜNDÜRLÜK fərqi. */
 .segmented {
   display: flex;
-  gap: var(--s1);
-  padding: 5px;
+  gap: 2px;
+  padding: 2px;
   border-radius: var(--r-pill);
-  background: var(--surface);
-  box-shadow: var(--shadow);
+  background: var(--bg-subtle);
 }
 
 .seg-btn {
   display: flex;
   align-items: center;
-  gap: var(--s2);
+  gap: var(--s1);
   font-family: var(--font);
   font-size: 14px;
-  font-weight: 700;
-  color: var(--text-2);
+  font-weight: 500;
+  color: var(--text-secondary);
   background: transparent;
   border: none;
   border-radius: var(--r-pill);
-  padding: 10px 18px;
+  padding: 7px 16px;
   cursor: pointer;
   white-space: nowrap;
-  transition: background var(--ease), color var(--ease);
+  transition: background var(--ease), color var(--ease), box-shadow var(--ease);
 }
 
 .seg-btn svg { width: 16px; height: 16px; flex: none; }
-.seg-btn:hover { color: var(--text); background: var(--surface-2); }
+.seg-btn:hover { color: var(--text); }
 
 .seg-btn[aria-selected="true"] {
-  background: var(--accent);
-  color: var(--surface);
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .10), 0 0 0 .5px rgba(0, 0, 0, .04);
 }
 
-.seg-btn[aria-selected="true"]:hover { background: var(--accent); }
+.seg-btn[aria-selected="true"]:hover { background: var(--bg); }
 
 
 /* ============================================================================
@@ -245,13 +284,23 @@ table.lines .num, .row-value {
 /* Bölmələr arasında SABİT məsafə - hər karta ayrıca margin yazılmır */
 /* Bölmələr arası məsafə v2-də sıxıldı (8.4): 24px -> 15px.
    Kart daxili boşluq trolley spesifikasiyasındakı 20px-də qalır. */
-.panel { display: flex; flex-direction: column; gap: var(--s3); }
+.panel { display: flex; flex-direction: column; gap: var(--s4); }
 
-.page-title { font-size: 30px; }
+/* Hero: Apple şkalası - iri, 600 çəki, çox sıx hərf aralığı, dar sətir.
+   `clamp()` kiçik ekranda 32px-ə enir, geniş ekranda 56px-də dayanır. */
+.page-title {
+  font-size: clamp(32px, 5vw, 56px);
+  font-weight: 600;
+  letter-spacing: -.02em;
+  line-height: 1.05;
+  color: var(--text);
+}
 
 .page-sub {
-  color: var(--text-2);
-  font-size: 16px;
+  color: var(--text-secondary);
+  font-size: 19px;
+  font-weight: 400;
+  line-height: 1.42;
   margin-top: var(--s2);
   max-width: var(--measure);
 }
@@ -259,23 +308,24 @@ table.lines .num, .row-value {
 /* Bölmə başlığı - NORMAL CASE, qalın.
    Köhnə dizaynda hər başlıq 12px boz UPPERCASE idi: səhifədə hər şey eyni
    çəkidə görünürdü və göz "əsas nədir?" sualına cavab tapmırdı. */
-.section-heading { font-size: 21px; font-weight: 700; letter-spacing: -.025em; color: var(--text); }
-.subheading { font-size: 17px; }
+.section-heading { font-size: 24px; font-weight: 600; letter-spacing: -.02em; color: var(--text); }
+.subheading { font-size: 19px; font-weight: 600; }
 
-.section-sub { color: var(--text-2); font-size: 14px; margin-top: 6px; max-width: var(--measure); }
+.section-sub { color: var(--text-secondary); font-size: 15px; margin-top: 6px; max-width: var(--measure); }
 
 .card-head { margin-bottom: var(--s3); }
+.head-row svg { color: var(--text-secondary); }
 .head-row { display: flex; align-items: center; gap: var(--s2); }
 .head-row svg { width: 19px; height: 19px; color: var(--text-3); flex: none; }
 
 /* İkinci dərəcəli metadata üçün uppercase QALIR - kiçik, sakit, əsas
    məzmunla yarışmır. */
 .eyebrow {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-2);
-  text-transform: uppercase;
-  letter-spacing: .08em;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: none;      /* Apple: bölmə etiketi CAPS deyil */
+  letter-spacing: 0;
 }
 
 .flush { margin-top: 0 !important; }
@@ -289,11 +339,22 @@ table.lines .num, .row-value {
    KARTLAR — trolley: 1px sərhəd + kölgə (əvvəl sərhədsiz idi)
    ============================================================================ */
 
+/* Apple ritmi: BÖLMƏ boz altlıqdır, onun İÇİNDƏKİ kartlar ağdır.
+   Əvvəlki variantda hər ikisi ağ idi və nazik çərçivələr üst-üstə düşürdü —
+   səthlərin ierarxiyası itirdi. İndi `.card` boz altlıqdır: çərçivəsiz,
+   kölgəsiz, sadəcə fon fərqi. Ağ səth (`.card.is-raised`, `.store-card`,
+   hero paneli) onun üzərində qalxır. */
 .card {
-  background: var(--surface);
-  border: 1px solid var(--line);
+  background: var(--bg-subtle);
+  border: none;
   border-radius: var(--r-card);
-  padding: var(--s4);
+  padding: var(--s3);
+}
+
+/* Ağ, qalxmış kart - boz bölmənin içində istifadə olunur. */
+.card.is-raised {
+  background: var(--bg);
+  border: 1px solid var(--hairline);
   box-shadow: var(--shadow);
 }
 
@@ -340,12 +401,15 @@ table.lines .num, .row-value {
    yoxdur, amma qaydalar işlənir. */
 .stat.is-accent .stat-icon { color: var(--accent); }
 
+/* Apple-da bölmə etiketi CAPS deyil: kiçik, sakit, adi yazılış.
+   CAPS + hərf aralığı 2010-cu illərin dashboard dilidir; SF-də oxunuşu
+   pisləşdirir və səhifəni «idarə paneli» kimi göstərir. */
 .stat-label {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-2);
-  text-transform: uppercase;
-  letter-spacing: .08em;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .stat-value {
@@ -386,11 +450,11 @@ table.lines .num, .row-value {
 }
 
 .basket-mini-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-secondary);
   margin-right: var(--s1);
 }
 
@@ -490,16 +554,18 @@ table.lines .num, .row-value {
    PILL / BADGE — hamısı tam dəyirmi
    ============================================================================ */
 
+/* Status çipi tam dəyirmi qalır (hal bildirir), ÖLÇÜ nişanı isə 8px
+   radiusludur (`.badge`) - Apple şkalasında etiket və hal fərqli formadadır. */
 .pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 11px;
   border-radius: var(--r-pill);
-  background: var(--surface-2);
-  color: var(--text-2);
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
   white-space: nowrap;
   letter-spacing: -.01em;
 }
@@ -513,6 +579,8 @@ table.lines .num, .row-value {
 
 /* Solid variant - sayğac badge-ləri üçün */
 .pill.solid-green { background: var(--ok); color: var(--on-accent); }
+/* `is-green` adı palitradan qalıb - artıq yaşıl deyil, vurğu ailəsindəndir.
+   Sinif adı JS-də işlədilir, ona görə dəyişdirilmir; rəngi token verir. */
 
 
 /* ============================================================================
@@ -623,13 +691,13 @@ table.lines { width: 100%; border-collapse: separate; border-spacing: 0; font-si
 
 table.lines th {
   text-align: left;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: .08em;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: none;
+  letter-spacing: 0;
   padding: var(--s2) var(--s3);
-  background: var(--surface-2);
+  background: var(--bg);
   white-space: nowrap;
 }
 
@@ -660,24 +728,24 @@ table.lines td.na { color: var(--text-3); }
   gap: 5px;
   padding: 5px 11px;
   border-radius: var(--r-pill);
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
-/* «Ən ucuz» siqnalı RƏNGLƏ VERİLMİR.
-   Səbəb: brend rəngi artıq yaşıldır (trolley). Yaşıl fon işlətsək, "ucuz"
-   ilə "brend" eyni siqnala düşərdi. Ona görə fərq FORMA ilə verilir:
-   çərçivə + ✓ nişanı. Rəng yenə tək siqnal deyil - ikon və ekran oxuyucusu
-   üçün gizli mətn qalır. */
+/* «Ən ucuz» siqnalı YALNIZ rənglə verilmir.
+   Rəng `--cheapest`-dir (mavi), amma o, brendin də rəngidir - ona görə siqnal
+   FORMA ilə gücləndirilir: çərçivə + ✓ nişanı + ekran oxuyucusu üçün gizli
+   mətn. Fon NEYTRAL qalır; dolu mavi fon işlətsək, «ucuz» ilə «seçilmiş»
+   eyni görünərdi. */
 .price-pill.is-best {
   background: var(--bg);
-  color: var(--text);
-  border: 2px solid var(--accent);
+  color: var(--cheapest);
+  border: 2px solid var(--cheapest);
   padding: 3px 10px;   /* 2px sərhəd əlavə olunduğu üçün daxili boşluq azalır */
 }
 .price-pill svg { width: 13px; height: 13px; }
 
-.cell-sub { display: block; font-size: 12px; color: var(--text-2); margin-top: 2px; }
+.cell-sub { display: block; font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
 
 
 /* ============================================================================
@@ -690,9 +758,9 @@ table.lines td.na { color: var(--text-3); }
   width: 38px; height: 38px;
   flex: none;
   display: grid; place-items: center;
-  border-radius: var(--r-sm);
-  background: color-mix(in srgb, currentColor 11%, var(--surface));
-  color: var(--text-2);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, currentColor 10%, var(--bg-subtle));
+  color: var(--text-secondary);
   transition: background var(--ease);
 }
 
@@ -739,45 +807,48 @@ table.lines tbody tr:hover .avatar { background: color-mix(in srgb, currentColor
    olduğunu seçə bilmir, yəni "primary" anlayışı mənasını itirir.
    ============================================================================ */
 
+/* Apple düyməsi: pill, mavi fon, AĞ mətn, çəki 500, KÖLGƏSİZ.
+   Kölgə silindi - Apple düyməsi səthdən qalxmır, sadəcə rənglə ayrılır.
+   Çəki 700-dən 500-ə endi: SF-də 700 düymənin içində ağır görünür. */
 .btn {
   font-family: var(--font);
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 500;
   letter-spacing: -.01em;
   color: var(--on-accent);
   background: var(--accent);
   border: none;
   border-radius: var(--r-pill);
-  padding: 10px 20px;
+  padding: 8px 20px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: var(--s2);
-  transition: background var(--ease), transform var(--ease), box-shadow var(--ease);
-  box-shadow: var(--shadow);
+  gap: var(--s1);
+  transition: background var(--ease), transform var(--ease);
 }
 
 .btn svg { width: 17px; height: 17px; }
-.btn:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 88%, var(--text)); box-shadow: var(--shadow-lift); }
-.btn:active:not(:disabled) { transform: scale(.98); }
-.btn:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
+.btn:hover:not(:disabled) { background: var(--accent-hover); }
+.btn:active:not(:disabled) { transform: scale(.97); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
 
+/* İkinci dərəcəli: DOLĞUSUZ, yalnız mavi mətn (Apple-ın «Learn more» üslubu) */
 .btn-secondary {
-  background: var(--surface);
+  background: var(--bg-subtle);
   color: var(--text);
 }
 
-.btn-secondary:hover:not(:disabled) { background: var(--surface-2); }
+.btn-secondary:hover:not(:disabled) { background: color-mix(in srgb, var(--text) 8%, var(--bg-subtle)); }
 
 .btn-ghost {
   background: transparent;
-  color: var(--accent-ink);
-  box-shadow: none;
-  padding: 8px 14px;
-  font-size: 14px;
+  color: var(--link);
+  padding: 8px 12px;
+  font-size: 17px;
+  font-weight: 400;
 }
 
-.btn-ghost:hover:not(:disabled) { background: var(--accent-soft); box-shadow: none; }
+.btn-ghost:hover:not(:disabled) { background: transparent; text-decoration: underline; }
 
 /* --- Yalnız ikonlu düymə (sil) ---
    Köhnə "×" 12px mətn idi: barmaqla vurulmurdu və gözə dəymirdi. */
@@ -909,19 +980,19 @@ table.lines tbody tr:hover .avatar { background: color-mix(in srgb, currentColor
 .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: var(--s3); }
 
 .badge {
-  font-size: 12px;
-  font-weight: 700;
-  padding: 5px 12px;
-  border-radius: var(--r-pill);
-  background: var(--surface-2);
-  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: var(--r-sm);   /* 8px - ölçü etiketi, hal çipi deyil */
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
 }
 
-.badge strong { color: var(--text); font-weight: 700; }
+.badge strong { color: var(--text); font-weight: 600; }
 .badge.ok   { background: var(--ok-soft); color: var(--ok-ink); }
 .badge.warn { background: var(--info-soft); color: var(--info-ink); }
 
-.hint { font-size: 14px; color: var(--text-2); max-width: var(--measure); }
+.hint { font-size: 15px; color: var(--text-secondary); max-width: var(--measure); }
 
 
 /* ============================================================================
@@ -1287,22 +1358,27 @@ code {
   gap: var(--s3);
 }
 
+/* Market kartı: ağ fon, nazik neytral xətt, 18px radius, mərkəzdə loqo.
+   DÜZ KÜNC ARTIQ YOXDUR - o, trolley-in öz kvadrat çərçivəsindən gəlirdi;
+   Apple şkalasında bütün kartlar eyni radiusdadır.
+   ÇƏRÇİVƏ HOVER-DƏ RƏNGLƏNMİR: kartın bütün «xrom»u neytraldır, rəng yalnız
+   loqonun özündən gəlir. Hover siqnalı QALXMADIR (kölgə + 2px yuxarı). */
 .store-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
-  padding: var(--s4) var(--s3);
-  border: 1px solid var(--line);
-  border-radius: 0;              /* düz künc - bax yuxarıdakı izah */
+  gap: 4px;
+  padding: var(--s3);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
   background: var(--bg);
   color: inherit;
   text-decoration: none;
   text-align: center;
-  transition: border-color var(--ease), box-shadow var(--ease);
+  transition: box-shadow var(--ease), transform var(--ease);
 }
 
-.store-card:hover { border-color: var(--accent); box-shadow: var(--shadow); }
+.store-card:hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
 .store-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Loqo qutusu: hündürlüyü SABİTDİR ki, fərqli ölçülü loqolar şəbəkəni
@@ -1346,9 +1422,9 @@ code {
 
 .store-logo-box.has-logo .store-wordmark { display: none; }
 
-.store-card-name { font-size: 15px; font-weight: 700; }
+.store-card-name { font-size: 17px; font-weight: 600; letter-spacing: -.01em; color: var(--text); }
 
-.store-card-meta { font-size: 12px; color: var(--text-2); }
+.store-card-meta { font-size: 14px; color: var(--text-secondary); }
 
 /* Hazır olmayan market: fərqli, amma OXUNAQLI.
    `opacity` işlətmirik - o, mətnin kontrastını WCAG həddindən aşağı salır.
@@ -1530,19 +1606,27 @@ code {
    AXTARIŞ PANELİ (trolley: səhifənin ən üst elementi)
    ============================================================================ */
 
+/* Axtarış (trolley quruluşu, Apple görünüşü): tam enli pill, boz fon,
+   solda ikon, ağır düymə yoxdur. Sərhəd görünməz dərəcədə nazikdir - Apple
+   axtarış sahəsini FONLA ayırır, çərçivə ilə deyil. */
 .searchbar {
   display: flex;
   align-items: center;
   gap: var(--s2);
-  padding: 6px 6px 6px var(--s3);
-  background: var(--surface);
-  border: 1px solid var(--line);
+  padding: 5px 5px 5px var(--s3);
+  background: var(--bg-subtle);
+  border: 1px solid transparent;
   border-radius: var(--r-pill);
+  transition: border-color var(--ease), background var(--ease);
 }
 
-.searchbar:focus-within { border-color: var(--accent); background: var(--bg); }
+.searchbar:focus-within {
+  border-color: var(--accent);
+  background: var(--bg);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 12%, transparent);
+}
 
-.searchbar-icon { width: 19px; height: 19px; color: var(--text-3); flex: none; }
+.searchbar-icon { width: 19px; height: 19px; color: var(--text-tertiary); flex: none; }
 
 .searchbar input {
   flex: 1 1 auto;
@@ -1550,14 +1634,16 @@ code {
   border: 0;
   background: transparent;
   font: inherit;
-  font-size: 15px;
+  font-size: 17px;
   color: var(--text);
-  padding: var(--s2) 0;
+  padding: 10px 0;
 }
 
 /* Brauzerin öz fokus çərçivəsi pill formanı pozur - fokus konteynerdədir. */
 .searchbar input:focus { outline: none; }
-.searchbar input::placeholder { color: var(--text-2); }
+/* Placeholder tertiary tondadır (Apple belə edir). O, MƏLUMAT deyil - sahənin
+   nə gözlədiyini pıçıldayır, ona görə AA tələbi ondan getmir. */
+.searchbar input::placeholder { color: var(--text-tertiary); }
 .searchbar .btn { flex: none; border-radius: var(--r-pill); }
 
 
@@ -1569,21 +1655,32 @@ code {
    yan-yana sığır. Müqayisə məhz enə ehtiyac duyur.
    ============================================================================ */
 
-.deal-list { display: flex; flex-direction: column; }
+/* Siyahı boz bölmənin içində AĞ səthdir - Apple-da sətir siyahısı həmişə
+   öz kartında yaşayır, boz fonun üstündə sərbəst dayanmır. */
+.deal-list {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  overflow: hidden;
+}
 
 .deal-row {
   display: grid;
   grid-template-columns: 28px 132px minmax(0, 1fr);
   gap: var(--s3);
   align-items: start;
-  padding: var(--s3) 0;
+  padding: var(--s3);
   border-top: 1px solid var(--hairline);
   color: inherit;
   text-decoration: none;
+  transition: background var(--ease);
 }
 
 .deal-row:first-child { border-top: 0; }
-.deal-row:hover .deal-title { color: var(--accent-ink); }
+.deal-row:hover { background: var(--bg-subtle); }
+.deal-row:hover .deal-title { color: var(--link); }
 .deal-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
 /* Sıra nömrəsi: siyahı ən böyük endirimdən başlayır, nömrə bunu təsdiqləyir. */
@@ -1604,7 +1701,7 @@ code {
   display: block;
   width: 132px; height: 132px;
   border-radius: var(--r-md);
-  background: var(--surface);
+  background: var(--bg-subtle);
   overflow: hidden;
 }
 
@@ -1614,51 +1711,59 @@ code {
 
 /* Faiz nişanı şəklin üstündədir (trolley də belədir) - göz əvvəlcə şəklə
    düşür, rəqəm isə orada onu qarşılayır. */
+/* Endirim nişanı: şəklin üstündə, NEYTRAL tünd (Apple təmkini).
+   Əvvəl doldurulmuş brend rəngi idi - şəbəkədə bir neçə kart yan-yana
+   duranda səhifə rəngli ləkələrə çevrilirdi. İndi rəng yalnız məhsulun öz
+   şəklindən gəlir, nişan isə mətn tonundadır. */
 .deal-flag {
   position: absolute;
-  top: 6px; left: 6px;
-  padding: 3px var(--s2);
-  border-radius: var(--r-pill);
-  background: var(--accent);
-  color: var(--on-accent);
-  font-size: 12px;
-  font-weight: 700;
+  top: 8px; left: 8px;
+  padding: 3px 10px;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--text) 88%, transparent);
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
 .deal-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 
 .deal-brand {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 600;
   letter-spacing: -.02em;
+  color: var(--text);
 }
 
-.deal-title { font-size: 14px; color: var(--text-2); line-height: 1.35; }
+.deal-title { font-size: 15px; color: var(--text-secondary); line-height: 1.4; }
 
 .deal-meta { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; margin-top: 3px; }
 
 /* Ölçü nişanı: trolley-də ad altında tünd pill kimi durur. */
+/* Ölçü nişanı: NEYTRAL, açıq boz - tünd dolğu Apple dilində çox ağırdır. */
 .size-pill {
   display: inline-block;
-  padding: 2px var(--s2);
-  border-radius: var(--r-pill);
-  background: var(--text);
-  color: var(--bg);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .02em;
+  padding: 3px 9px;
+  border-radius: var(--r-sm);
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
-.deal-save { font-size: 12px; font-weight: 700; color: var(--accent-ink); }
+.deal-save { font-size: 15px; font-weight: 500; color: var(--link); }
 
+/* «MÖVCUDDUR» etiketi: Apple-da bölmə etiketi kiçik CAPS deyil, adi kiçik
+   mətndir. Hərf aralığı azaldıldı, çəki 500-ə endi. */
 .deal-avail {
   margin-top: var(--s2);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--text-3);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-secondary);
 }
 
 /* Market qiymət sütunları: loqo üstdə, qiymət altda - yan-yana. */
@@ -2017,11 +2122,11 @@ code {
 .filter-group { margin-bottom: var(--s4); }
 
 .filter-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-secondary);
   margin-bottom: var(--s2);
 }
 

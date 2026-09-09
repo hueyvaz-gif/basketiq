@@ -423,45 +423,69 @@ onlar bir klik uzaqdadır (`#admin`).
 olmasaydı, digər skriptlərin `getElementById(...).addEventListener(...)`
 sətirləri `null`-a düşüb faylı qırardı.
 
-### Dizayn dili: trolley.co.uk dizayn sistemi
+### Dizayn dili: Apple (apple.com) + trolley quruluşu
 
-Vizual sistem **trolley.co.uk**-dan çıxarılıb (`skills/trolley-design-design`)
-və olduğu kimi tətbiq edilib: **Poppins** şrifti, **5px** boşluq şəbəkəsi,
-**10px** radius, 1px sərhədli kartlar, 1024px konteyner. Yalnız işıqlı rejim.
+**v3-də palitra tam dəyişdi** (istifadəçinin açıq qərarı): vizual dil
+**apple.com**-dan gəlir, səhifə QURULUŞU isə trolley.co.uk-dan qalır — kart
+şəbəkəsi, «harada al» sətirləri, axtarış üstdə. Yalnız işıqlı rejim.
 
-**Rəng məna daşıyır, bəzək deyil.** Hər hex trolley palitrasındandır —
-palitradan kənar rəng uydurulmur:
+**YAŞIL TAMAMİLƏ ÇIXARILDI** — loqo, düymələr, başlıqlar, nişanlar, «ən ucuz»
+siqnalı, hətta favikon. Yeganə vurğu Apple mavisidir; qalan rəng yalnız
+**məzmundan** gəlir (market loqoları öz brend rənglərini saxlayır).
 
-| Rəng | Məna | Harada |
+| Token | Dəyər | Məna |
 |---|---|---|
-| yaşıl `#00a300` | brend, naviqasiya, əsas hərəkət | logo, tab, primary düymə |
-| yaşıl `#4caf50` | təsdiqlənib / uğurlu | status nöqtəsi, hökm nişanı |
-| mavi `#0066b7` | **təsdiqlənməyib / yoxlaya bilmirik** | natamam market zolağı, şərtli cavab fonu |
-| qırmızı `#cc3327` | bahalı / şübhəli / xəta | sil düyməsi, status |
-| moruğu `#8a005d` | **yalnız AI** | AI kartı və nişanı |
+| `--accent` | `#0071e3` | brend, naviqasiya, əsas hərəkət |
+| `--accent-hover` | `#0077ed` | düymə hover |
+| `--link` | `#0066cc` | mətn içindəki keçid |
+| `--cheapest` | `#0071e3` | **ən ucuz qiymət** |
+| `--ok` | `#0066cc` | təsdiqlənib |
+| `--info` | `#6e6e73` | yoxlaya bilmirik |
+| `--danger` | `#d70015` | bahalı / şübhəli / xəta |
+| `--ai` | `#8944ab` | **yalnız AI** |
 
-**Brend rəngi v2-də mavidən yaşıla keçdi** — istifadəçinin açıq qərarı.
-Bu, bir problem yaradırdı: yaşıl əvvəl «qənaət» demək idi, yəni eyni rəng iki
-məna daşıyacaqdı. Həll: **«ən ucuz» siqnalı rəngdən çıxarıldı** və formaya
-verildi — neytral fon + brend rəngli çərçivə + ✓ nişanı.
-`test_ən_ucuz_siqnalı_rənglə_verilmir` bunu kilidləyir: kimsə dolu yaşıl fonu
-geri qaytarsa, qapı sınır.
+**Şrift şəbəkədən yüklənmir.** Poppins linki silindi: SF ailəsi
+(`-apple-system` → `BlinkMacSystemFont` → `SF Pro`) əməliyyat sistemindədir,
+olmayan yerdə `Helvetica Neue` → `Arial` zəncirinə düşür. Nəticə: iki xarici
+sorğu az, şrift sıçraması yox.
 
-**Kəhrəba token-i silindi**, çünki trolley palitrasında turuncu/kəhrəba yoxdur.
-«Təsdiqlənməyib» xəbərdarlıq deyil, **məlumatdır** («yoxlaya bilmirik») — ona
-görə info mavisinə keçdi. Üç pilləli siqnal qalır.
+**Şkalalar:** radius — düymə `980px`, kart `18px`, input `12px`, nişan `8px`;
+boşluq — **8px** şəbəkəsi (trolley-in 5px-i əvəzinə); kölgə — `0 4px 16px
+rgba(0,0,0,.06)`, hover `0 8px 24px rgba(0,0,0,.10)`.
 
-**Kontrast ölçüldü, gözlə qiymətləndirilmədi.** Trolley palitrasının üç yeri
-WCAG AA-dan (4.5:1) keçmirdi:
+**Kontrast ÖLÇÜLDÜ, gözlə qiymətləndirilmədi** (ağ fonda):
 
-| Cüt | Ölçmə | Həll |
+| Token | Ölçmə | Qərar |
 |---|---|---|
-| `text-muted #a9a9a9` kart fonunda | **2.11:1** | kiçik etiketlər `#525252`-yə (7.02:1) |
-| `#4caf50` mətn kimi ağ fonda | **2.78:1** | mətn üçün `--ok-ink: #008000` (5.14:1) |
-| **ağ** mətn yaşıl düymədə | **3.37:1** | qara mətn (6.24:1) — trolley-in öz komponent spesifikasiyası da belədir |
+| `--text #1d1d1f` | **16.83:1** | ✓ |
+| `--text-secondary #6e6e73` | **5.07:1** | ✓ — kiçik etiketlər buradan gəlir |
+| `--text-tertiary #86868b` | **3.62:1** | AA-dan KEÇMİR → yalnız placeholder, tire, üstüxətli köhnə qiymət |
+| `--accent #0071e3` mətn kimi | **4.70:1** | ✓ |
+| **ağ** mətn `--accent` fonda | **4.70:1** | ✓ — düymə mətni ağ qala bilir |
+| Apple qırmızısı `#ff3b30` | **3.55:1** | zəif → tünd variant `#d70015` (5.38:1) |
 
-Yəni palitra marketinq saytı üçün qurulub; məlumat panelindəki 11–13px
-etiketlərdə oxunmurdu. Palitradan kənara çıxmadan daha tünd tonları götürüldü.
+**«Ən ucuz» yenə YALNIZ rənglə verilmir.** İndi o, brendlə eyni mavidir, ona
+görə siqnal formaya söykənir: neytral fon + `--cheapest` çərçivə + ✓ nişanı +
+ekran oxuyucusu üçün gizli mətn. `test_ən_ucuz_siqnalı_yalnız_rənglə_verilmir`
+bunu kilidləyir — kimsə dolu mavi fon qaytarsa, qapı sınır.
+
+**Səth ierarxiyası (Apple ritmi):** səhifə ağdır, **bölmə** boz altlıqdır
+(`--bg-subtle #f5f5f7`, çərçivəsiz), bölmənin **içindəki kartlar** ağdır.
+Əvvəlki keçiddə hər ikisi ağ idi və nazik çərçivələr üst-üstə düşürdü.
+
+**Üst panel** yarımşəffafdır: `backdrop-filter: saturate(180%) blur(20px)`.
+`saturate(180%)` altdakı rəngli məzmunun blur zamanı solmasının qarşısını alır —
+Apple məhz bu dəyəri işlədir. Blur dəstəklənməyən brauzerdə `@supports` bloku
+fonu tam ağ saxlayır.
+
+**Segmented control** (İstifadəçi / Admin) Apple-ın öz idarəsi kimi qurulub:
+yol boz, seçilmiş seqment **ağ** və yüngül kölgə ilə qalxır. Əvvəl seçilmiş
+seqment doldurulmuş yaşıl idi — düymə kimi görünürdü, halbuki bu, rejim
+keçididir, hərəkət deyil.
+
+**Kiçik CAPS etiketlər silindi** (`MARKET`, `MÖVCUDDUR`, `MAKSİMUM QİYMƏT`).
+CAPS + geniş hərf aralığı dashboard dilidir; SF-də oxunuşu pisləşdirir. İndi
+adi yazılış, 13px, çəki 500.
 
 **Market rəng nöqtələri** kimlik bildirir, status yox — ona görə palitrada
 brend yaşılı, `#4caf50` və `#cc3327` **yoxdur**. Rəng market ADINDAN hesablanır
@@ -1199,6 +1223,8 @@ worktree-yə köçürməkdir.
       sətir sayı 3 → **0**
 - [x] v3 — kadrın sürüşməsi: sütun addımına alt hədd, kəsilən brend adları bərpa
       olundu (Flomaster, Heineken, Raffaello...)
+- [x] v3 — interfeys Apple dizayn dilinə keçdi: yaşıl tam çıxarıldı, tək vurğu
+      `#0071e3`, SF şrifti sistemdən, boz bölmə + ağ kart ritmi
 - [x] v3 — `/search` səhifəsi: filtrlər ünvanda, menyu real datadan
 - [x] v3 — ana səhifə trolley strukturuna keçdi (axtarış üstdə, endirimlər siyahı)
 - [x] v3 — OBA marketi koddan, sənəddən və bazadan tamamilə silindi

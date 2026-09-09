@@ -31,18 +31,21 @@
   // color-mix() dəyərləri getComputedStyle-dan həmişə hesablanmış gəlmir,
   // ona görə YALNIZ sadə token-lər oxunur, çalarlar isə burada qurulur.
   //
-  // TOKEN ADLARI v2-də DƏYİŞDİ. Əvvəl burada `--green` və `--amber` oxunurdu;
-  // trolley palitrasına keçəndə onlar `--ok` və `--info` oldu. Bu sətirlər
-  // yenilənməsəydi, `cssVar()` boş qaytarıb SƏSSİZCƏ köhnə hardcode rəngə
-  // düşərdi - qrafik yenə çəkilər, sadəcə səhifə ilə fərqli rəngdə olardı.
-  // Ehtiyat dəyərlər də palitranın özündən götürülüb.
+  // TOKEN ADLARI İKİ DƏFƏ DƏYİŞDİ. Əvvəl `--green`/`--amber`, sonra
+  // `--ok`/`--info`, indi isə «ən ucuz» öz token-ini aldı: `--cheapest`.
+  // Bu sətirlər yenilənməsəydi, `cssVar()` boş qaytarıb SƏSSİZCƏ köhnə
+  // hardcode rəngə düşərdi - qrafik yenə çəkilər, sadəcə səhifə ilə fərqli
+  // rəngdə olardı. Ehtiyat dəyərlər də Apple palitrasının özündəndir.
+  //
+  // `cheapest` adı `green`-i əvəz etdi: dəyər artıq yaşıl deyil və dəyişənin
+  // adı rəngi yox, MƏNANI daşımalıdır.
   const TOKENS = {
-    accent: cssVar("--accent", "#00a300"),
-    green: cssVar("--ok", "#4caf50"),
-    amber: cssVar("--info", "#0066b7"),
-    text2: cssVar("--text-2", "#525252"),
-    text: cssVar("--text", "#000000"),
-    surface: cssVar("--surface", "#f1f3f4"),
+    accent: cssVar("--accent", "#0071e3"),
+    cheapest: cssVar("--cheapest", "#0071e3"),
+    info: cssVar("--info", "#6e6e73"),
+    text2: cssVar("--text-2", "#6e6e73"),
+    text: cssVar("--text", "#1d1d1f"),
+    surface: cssVar("--surface", "#f5f5f7"),
   };
 
   /** #RRGGBB -> rgba(...) — şəffaflıq üçün. */
@@ -230,10 +233,10 @@
     // leqenda var və rəng marketi tanıdır.
     const min = Math.min(...values);
     const fill = values.map((v, i) =>
-      v === min ? TOKENS.green : alpha(colorFor(stores[i]), 0.75)
+      v === min ? TOKENS.cheapest : alpha(colorFor(stores[i]), 0.75)
     );
     const hover = values.map((v, i) =>
-      v === min ? TOKENS.green : colorFor(stores[i])
+      v === min ? TOKENS.cheapest : colorFor(stores[i])
     );
 
     const options = baseOptions("AZN");

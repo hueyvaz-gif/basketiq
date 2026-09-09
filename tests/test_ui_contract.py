@@ -301,41 +301,47 @@ def test_semantik_rənglər_təyin_olunub():
     Rəng MƏNA daşıyır, bəzək deyil. Hər token bir siqnaldır; biri dəyişsə,
     UI-da həmin məna itər.
 
-    PALİTRA DƏYİŞDİ (trolley dizayn sistemi, istifadəçinin açıq qərarı).
-    Əvvəl brend MAVİ idi, çünki yaşıl «qənaət» mənasını daşıyırdı. İndi brend
-    trolley-in yaşılıdır, «ən ucuz» siqnalı isə rəngdən çıxarılıb ÇƏRÇİVƏYƏ
-    verilib — bax `test_ən_ucuz_siqnalı_rənglə_verilmir`. Beləliklə bir yaşıl
-    iki məna daşımır.
+    PALİTRA APPLE DİLİNƏ KEÇDİ (istifadəçinin açıq qərarı, 2026-09-09).
+    YAŞIL TAM ÇIXARILDI — loqo, düymələr, nişanlar, «ən ucuz» siqnalı.
+    Yeganə vurğu Apple mavisidir.
 
-    Kəhrəba token-i YOXDUR: trolley palitrasında turuncu/kəhrəba yoxdur.
-    «Təsdiqlənməyib» xəbərdarlıq deyil, məlumatdır — ona görə info mavisidir.
+    Hər dəyərin ağ fonda kontrastı ölçülüb və AA-dan keçir:
+      #0071e3 4.70:1 · #0066cc 5.57:1 · #6e6e73 5.07:1 · #d70015 5.38:1 ·
+      #8944ab 6.04:1. Apple-ın öz #ff3b30 qırmızısı cəmi 3.55:1 verdiyi üçün
+      onun tünd variantı götürülüb.
+
+    --info BOZDUR və bu, qəsdəndir: «yoxlaya bilmirik» məlumatın YOXLUĞUDUR,
+    onu rənglə vurğulamaq yanlış siqnal olardı.
     """
     css = read_static("style.css")
     expected = {
-        "--accent": "#00a300",   # brend, naviqasiya, əsas hərəkət
-        "--ok": "#4caf50",       # təsdiqlənib / uğurlu
-        "--info": "#0066b7",     # təsdiqlənməyib / yoxlaya bilmirik
-        "--danger": "#cc3327",   # bahalı / şübhəli / xəta
-        "--ai": "#8a005d",       # YALNIZ AI kartı
+        "--accent": "#0071e3",     # brend, naviqasiya, əsas hərəkət
+        "--accent-hover": "#0077ed",
+        "--link": "#0066cc",       # mətn içindəki keçid
+        "--cheapest": "#0071e3",   # ƏN UCUZ — öz token-i
+        "--ok": "#0066cc",         # təsdiqlənib
+        "--info": "#6e6e73",       # yoxlaya bilmirik — neytral
+        "--danger": "#d70015",     # bahalı / şübhəli / xəta
+        "--ai": "#8944ab",         # YALNIZ AI kartı
     }
     for token, value in expected.items():
         assert re.search(rf"{token}:\s*{value};", css, re.I), f"{token} != {value}"
 
 
-def test_ən_ucuz_siqnalı_rənglə_verilmir():
+def test_ən_ucuz_siqnalı_yalnız_rənglə_verilmir():
     """
-    Brend rəngi yaşıl olduğu üçün «ən ucuz» DOLU YAŞIL FON işlədə bilməz —
-    əks halda eyni yaşıl həm brendi, həm ucuzluğu bildirərdi.
+    «Ən ucuz» rəngi brendin rəngi ilə EYNİDİR (hər ikisi Apple mavisi), ona
+    görə dolu mavi fon işlədilə bilməz — «ucuz» ilə «seçilmiş» eyni görünərdi.
 
-    Siqnal forma ilə verilir: çərçivə + ✓ nişanı. Kimsə fonu geri qaytarsa,
-    bu test düşəcək.
+    Siqnal forma ilə gücləndirilir: çərçivə + ✓ nişanı, fon neytral.
+    Kimsə dolu fon qaytarsa, bu test düşəcək.
     """
     css = read_static("style.css")
     block = re.search(r"\.price-pill\.is-best\s*\{(.*?)\}", css, re.S)
     assert block, ".price-pill.is-best qaydası tapılmadı"
     rule = block.group(1)
     assert "border:" in rule, "«ən ucuz» çərçivəsi yoxdur"
-    assert "var(--accent)" in rule, "çərçivə brend rəngindən gəlməlidir"
+    assert "var(--cheapest)" in rule, "çərçivə «ən ucuz» token-indən gəlməlidir"
     assert "background: var(--bg)" in rule, "fon neytral qalmalıdır"
 
 
@@ -367,7 +373,7 @@ def test_səth_rəngləri_işıqlıdır():
     """Tünd fon heç vaxt yaranmamalıdır - layihə yalnız işıqlı rejimdədir."""
     css = read_static("style.css")
     assert re.search(r"--bg:\s*#ffffff;", css, re.I), "səhifə fonu dəyişib"
-    assert re.search(r"--surface:\s*#f1f3f4;", css, re.I), "kart fonu dəyişib"
+    assert re.search(r"--bg-subtle:\s*#f5f5f7;", css, re.I), "bölmə fonu dəyişib"
 
 
 def test_market_palitrasında_status_rəngi_yoxdur():
@@ -384,7 +390,7 @@ def test_market_palitrasında_status_rəngi_yoxdur():
 
     # Brend rəngi də bura daxildir: market nöqtəsi brendlə eyni yaşıl olsa,
     # «bu market seçilib?» sualı yaranar.
-    status = {"#4CAF50", "#CC3327", "#00A300"}
+    status = {"#0071E3", "#0066CC", "#D70015", "#8944AB", "#6E6E73"}
     clash = status & {c.upper() for c in palette}
     assert not clash, f"market palitrasında status rəngi var: {clash}"
 

@@ -750,3 +750,72 @@ göründüyünə.
   çaşdırır.
 - **2.2 bir kataloqda ölçülüb.** Başqa dizaynda qiymət qutusunun karta nisbəti
   fərqli ola bilər; onda alt hədd ya artıq, ya az olacaq.
+
+---
+
+## 2026-09-09 — İnterfeys Apple dizayn dilinə keçdi
+
+İstifadəçinin açıq tapşırığı: trolley.co.uk-un səxavətli, kart əsaslı QURULUŞU
+qalsın, bütün yaşıl tema isə apple.com vizual dili ilə əvəz olunsun. Yalnız
+işıqlı rejim, funksionallıq və azərbaycanca mətn toxunulmadan.
+
+### Nə dəyişdi
+
+| Fayl | Dəyişiklik |
+|---|---|
+| `app/static/style.css` | `:root` tam yenidən yazıldı (Apple palitrası, şkalalar); üst panel, segmented control, axtarış, kart, düymə, nişan, market kartı, endirim sətri, cədvəl başlığı yenidən quruldu |
+| `app/static/analytics.js` | `TOKENS.green/amber` → `cheapest/info`; ehtiyat dəyərlər yeni palitradan |
+| 4 HTML səhifə | Poppins linkləri silindi, favikonun yaşıl konturu mətn tonuna keçdi |
+| `tests/test_ui_contract.py` | palitra, səth və «ən ucuz» testləri yeni sistemə uyğunlaşdırıldı |
+
+### Nəyi ölçdüm
+
+**1. Kontrast (ağ fonda), tətbiqdən ƏVVƏL:**
+
+| Token | Ölçmə |
+|---|---|
+| `--text #1d1d1f` | 16.83:1 ✓ |
+| `--text-secondary #6e6e73` | 5.07:1 ✓ |
+| `--text-tertiary #86868b` | **3.62:1 — AA-dan keçmir** |
+| `--accent #0071e3` mətn kimi | 4.70:1 ✓ |
+| ağ mətn `--accent` fonda | 4.70:1 ✓ |
+| Apple qırmızısı `#ff3b30` | **3.55:1 — zəif** |
+
+Ona görə `--text-tertiary` YALNIZ placeholder və dekorativ elementlərə verildi
+(istifadəçinin spesifikasiyası da onu məhz placeholder üçün istəyirdi), qırmızı
+isə tünd variantla (`#d70015`, 5.38:1) əvəz olundu.
+
+**2. Yaşıl qalığı:** `grep` ilə yoxlandı — CSS, JS və HTML-də yaşıl hex
+qalmadı. Yalnız `analytics.js`-dəki tarixçə şərhində «green» sözü var
+(token adının niyə dəyişdiyini izah edir).
+
+**3. Mobil 380px (CDP ilə emulyasiya):** üfüqi sürüşmə **yoxdur**
+(`scrollLeft` 0 qalır, `body` 380px). Cədvəl öz `.table-scroll` konteynerində
+sürüşür — 640px cədvəl 284px-lik qutunun içindədir.
+
+**4. Brauzer:** dörd səhifə də konsol xətasız açılır, yüklənməyən şəkil yoxdur.
+
+**5. Testlər:** 395 keçir, 2 atlanır, ruff təmiz.
+
+### Qərarlar (və niyə)
+
+- **`--info` BOZDUR.** «Yoxlaya bilmirik» məlumatın YOXLUĞUDUR; onu rənglə
+  vurğulamaq yanlış siqnal olardı. Apple təmkini: rəng yalnız vurğuya və
+  problemə qalır.
+- **Bölmə boz, kart ağ.** İlk keçiddə hər ikisi ağ idi və nazik çərçivələr
+  üst-üstə düşürdü — səthlərin ierarxiyası itdi. Ekran şəklinə baxıb düzəldildi.
+- **Kiçik CAPS etiketlər silindi.** CAPS + geniş hərf aralığı dashboard
+  dilidir; SF-də oxunuşu pisləşdirir.
+- **Şrift şəbəkədən yüklənmir.** Poppins getdi, SF sistemdən gəlir.
+
+### Nəyə əmin deyiləm
+
+- **`--text-tertiary` 3.62:1-dir.** İstifadəçinin spesifikasiyası onu
+  placeholder üçün istəyir və Apple da belə edir, amma bu, AA-dan keçmir.
+  Məlumat daşıyan heç bir yerdə işlədilmir — yalnız placeholder, tire və
+  üstüxətli köhnə qiymət.
+- **Yalnız dörd səhifə brauzerdə yoxlandı** (ana, axtarış, məhsul, market).
+  Admin paneli açıq vəziyyətdə ekranda yoxlanmadı — testlər keçir, amma
+  vizual yoxlama edilmədi.
+- **Chrome uzantısı qoşulu deyil**, ona görə yoxlama Selenium + başsız Chrome
+  ilə aparıldı.
