@@ -26,3 +26,13 @@ app/static/images/products/*
 # Yuklenen reklam kreativleri generasiya olunur; numune banner repoda qalir
 app/static/images/ads/*
 !app/static/images/ads/sample-banner.svg
+
+# Brauzer yoxlamasi ucun Playwright (Node). `package.json` REPODADIR - hansi
+# alet ve hansi versiya isledildiyi qeyde alinmalidir; qovlugun ozu yox.
+node_modules/
+
+# Git worktree qovlugu: eyni reponun ikinci nusxesidir, ozu-ozunu saxlamamalidir.
+.claude/worktrees/
+
+# Dizayn skill paketi (16 MB ekran sekli) - alet paketidir, layihe menbeyi deyil.
+trolley-design-design/
