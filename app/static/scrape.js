@@ -18,15 +18,31 @@
     const box = sel("sourceList");
     try {
       const sources = await (await fetch("/api/scrape/sources")).json();
+
+      // DÖRD MARKETİN HAMISI GÖRÜNÜR (D14). Çəkilə bilməyən mənbə siyahıdan
+      // ÇIXARILMIR - onda «niyə yalnız bir market var?» sualı cavabsız qalardı.
+      // Əvəzində düyməsi sönür və yanında ölçülmüş səbəb yazılır.
       box.innerHTML = sources
-        .map(
-          (s) => `<label class="check">
-                    <input type="radio" name="scrapeSource" value="${html(s.key)}">
-                    <span><strong>${html(s.store)}</strong> — ${html(s.note || s.page_url)}</span>
-                  </label>`
-        )
+        .map((s) => {
+          const bağlı = !s.scrapeable;
+          return `<label class="check${bağlı ? " is-off" : ""}">
+                    <input type="radio" name="scrapeSource" value="${html(s.key)}"
+                           ${bağlı ? "disabled" : ""}>
+                    <span>
+                      <strong>${html(s.store)}</strong>
+                      <span class="pill">${html(s.format)}</span>
+                      <span class="pill ${bağlı ? "is-amber" : "is-green"}">${html(
+                        t("source." + s.status, s.status)
+                      )}</span>
+                      <span class="check-note">${html(s.note || s.page_url || "")}</span>
+                    </span>
+                  </label>`;
+        })
         .join("");
-      const first = box.querySelector("input");
+
+      // Defolt seçim yalnız İŞLƏK mənbədən olur - əks halda düyməyə basan
+      // istifadəçi bağlı mənbə ilə qarşılaşardı.
+      const first = box.querySelector("input:not([disabled])");
       if (first) first.checked = true;
     } catch {
       box.innerHTML = `<div class="notice error">${t("scrape.listError")}</div>`;

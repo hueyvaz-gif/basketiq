@@ -284,6 +284,48 @@
     },
     "review.was": { az: "əvvəl", en: "was", ru: "было" },
 
+    // ------------------------------------------------ NATAMAM ƏHATƏ (D16/D17)
+    "compare.noData": { az: "tezliklə", en: "coming soon", ru: "скоро" },
+    "bars.noData": {
+      az: "kataloq hələ gəlməyib",
+      en: "catalogue not loaded yet",
+      ru: "каталог ещё не загружен",
+    },
+    "bars.notSelling": {
+      az: "səbətdəki məhsulları satmır",
+      en: "does not sell the basket items",
+      ru: "не продаёт товары из корзины",
+    },
+    "bars.notCompared": {
+      az: "Müqayisədə iştirak etmir",
+      en: "Not part of the comparison",
+      ru: "Не участвует в сравнении",
+    },
+
+    // ----------------------------------------------------- MARKET ƏHATƏSİ (D15)
+    "coverage.title": { az: "Market əhatəsi", en: "Store coverage", ru: "Охват магазинов" },
+    "coverage.sub": {
+      az: "Datası olan market ana səhifədə avtomatik işlək olur — ayrıca aktivləşdirmə addımı yoxdur. Kataloq yüklə və ya mənbədən çək.",
+      en: "A store goes live automatically once it has data — there is no separate activation step. Upload a catalogue or fetch the source.",
+      ru: "Магазин включается автоматически, как только появляются данные — отдельного шага активации нет. Загрузите каталог или заберите источник.",
+    },
+    "coverage.market": { az: "Market", en: "Store", ru: "Магазин" },
+    "coverage.share": { az: "Əhatə", en: "Coverage", ru: "Охват" },
+    "coverage.updated": { az: "Son yenilənmə", en: "Last updated", ru: "Обновлено" },
+    "coverage.source": { az: "Mənbə", en: "Source", ru: "Источник" },
+    "coverage.never": { az: "heç vaxt", en: "never", ru: "никогда" },
+    "coverage.live": { az: "işlək", en: "live", ru: "активен" },
+    "coverage.loadError": {
+      az: "Əhatə cədvəli yüklənmədi.",
+      en: "Could not load the coverage table.",
+      ru: "Не удалось загрузить таблицу охвата.",
+    },
+
+    // ------------------------------------------------------ MƏNBƏ VƏZİYYƏTİ (D14)
+    "source.active": { az: "işlək", en: "live", ru: "активен" },
+    "source.manual": { az: "əl ilə", en: "manual", ru: "вручную" },
+    "source.blocked": { az: "bağlı", en: "blocked", ru: "недоступен" },
+
     "admin.statusTitle": { az: "Sistem statusu", en: "System status", ru: "Состояние системы" },
     "admin.scrapeTitle": { az: "Mənbədən avtomatik çək", en: "Fetch automatically from a source", ru: "Автоматическая загрузка из источника" },
     "admin.scrapeSub": {

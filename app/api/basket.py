@@ -22,7 +22,7 @@ from ai.sanitize import strip_reasoning
 
 from app.db import db_cursor, get_connection
 from app.profile import get_profile
-from app.stores import MARKETS, display_names
+from app.stores import MARKETS, display_names, market_for
 from ingestion.normalize import display_label, display_size
 
 router = APIRouter(prefix="/api/basket", tags=["basket"])
@@ -154,23 +154,37 @@ def _all_stores() -> list[dict]:
     conn = get_connection()
     try:
         names = display_names(conn)
-        if not names:
-            return []
-        rows = conn.execute(
-            "SELECT DISTINCT s.id FROM stores s JOIN prices pr ON pr.store_id = s.id"
-        ).fetchall()
-        stores = [
-            {"id": row["id"], "name": names[row["id"]]}
-            for row in rows
-            if row["id"] in names
-        ]
-        # Sıra REYESTRDƏKİ sıradır, əlifba deyil: marketlər hər səhifədə eyni
-        # ardıcıllıqla görünsün.
-        order = {market.name: i for i, market in enumerate(MARKETS)}
-        stores.sort(key=lambda s: order.get(s["name"], len(order)))
-        return stores
+        # Datası olan marketlərin baza id-si.
+        by_slug: dict[str, int] = {}
+        for row in conn.execute(
+            "SELECT DISTINCT s.id AS id, s.slug AS slug FROM stores s "
+            "JOIN prices pr ON pr.store_id = s.id"
+        ):
+            market = market_for(row["slug"])
+            if market and row["id"] in names:
+                by_slug.setdefault(market.slug, row["id"])
     finally:
         conn.close()
+
+    # DÖRD MARKETİN HAMISI QAYIDIR (D17) - datası olmayan da.
+    #
+    # ƏVVƏL YALNIZ DATASI OLANLAR GƏLİRDİ və müqayisə cədvəlində iki sütun
+    # görünürdü. İstifadəçiyə isə dörd market vəd olunub: iki sütun «bu sayt
+    # yalnız iki marketi bilir» kimi oxunur, halbuki səbəb datanın hələ
+    # gəlməməsidir. İndi sütun qalır, içi «tezliklə» yazır.
+    #
+    # `id` NONE OLA BİLƏR: market heç vaxt data almayıbsa, `stores` cədvəlində
+    # sətri də yoxdur. Ona görə daxili açar SLUG-dır - iki id-siz market eyni
+    # `None` açarına düşüb bir-birini əvəz edərdi.
+    return [
+        {
+            "id": by_slug.get(market.slug),
+            "slug": market.slug,
+            "name": market.name,
+            "available": market.slug in by_slug,
+        }
+        for market in MARKETS
+    ]
 
 
 @router.get("/compare")
@@ -196,16 +210,29 @@ def compare(basket_id: int = DEFAULT_BASKET_ID):
         _c.close()
 
     item_rows = []
-    store_totals = {s["id"]: {"store_id": s["id"], "store": s["name"], "total": 0.0,
-                              "covered": 0, "missing": [], "cheapest_count": 0}
-                    for s in stores}
+    # Açar SLUG-dır, id yox: datası olmayan marketin id-si `None`-dur və iki
+    # belə market eyni açara düşüb bir-birini silərdi.
+    store_totals = {
+        s["slug"]: {
+            "store_id": s["id"],
+            "slug": s["slug"],
+            "store": s["name"],
+            "available": s["available"],
+            "total": 0.0,
+            "covered": 0,
+            "missing": [],
+            "cheapest_count": 0,
+        }
+        for s in stores
+    }
 
     for item in items:
         label = display_label(item["name"], item.get("brand"))
         prices: dict[int, dict] = {}
 
         for store in stores:
-            found = price_map.get((item["group_key"], store["id"]))
+            # Datası olmayan marketin id-si yoxdur - sorğu da mənasızdır.
+            found = price_map.get((item["group_key"], store["id"])) if store["id"] else None
             if found:
                 prices[store["id"]] = {
                     "price": found["price"],
@@ -218,7 +245,7 @@ def compare(basket_id: int = DEFAULT_BASKET_ID):
             cheapest_store = min(prices, key=lambda sid: prices[sid]["price"])
 
         for store in stores:
-            entry = store_totals[store["id"]]
+            entry = store_totals[store["slug"]]
             found = prices.get(store["id"])
             if found:
                 entry["total"] += found["price"] * item["qty"]
@@ -261,7 +288,13 @@ def compare(basket_id: int = DEFAULT_BASKET_ID):
         for entry in results:
             entry["diff"] = round(entry["total"] - best["total"], 2) if entry["complete"] else None
 
-    results.sort(key=lambda r: (not r["complete"], r["total"]))
+    # SIRA: tam əhatə edənlər (ucuzdan bahaya) -> natamamlar -> DATASIZ market.
+    #
+    # `available` açarı sonradan əlavə olundu və səbəbi realdır: datasız
+    # marketin cəmi 0.00-dır, yəni «ucuzdan bahaya» sıralamada o, datası olan
+    # marketdən ƏVVƏLƏ keçirdi. Cədvəldə bu, boş sütunun dolu sütunu qabaqlaması
+    # deməkdir - üstəlik sıra qiymət dəyişdikcə oynayırdı.
+    results.sort(key=lambda r: (not r["complete"], not r["available"], r["total"]))
 
     savings = None
     if best and len(complete) > 1:

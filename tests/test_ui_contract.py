@@ -246,6 +246,7 @@ SCRIPT_PAGES = {
         "advisor.js",
         "analytics.js",
         "review.js",
+        "coverage.js",
         "scrape.js",
         "profile.js",
     ],

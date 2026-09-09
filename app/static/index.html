@@ -450,6 +450,27 @@
       </div>
     </section>
 
+    <!-- --- Market əhatəsi (D15) ---
+         «Hansı marketin datası var, nə qədər, nə vaxt gəlib?» sualının
+         YEGANƏ yeri. Aktivləşdirmə düyməsi yoxdur: market datası düşən kimi
+         ana səhifədə özü işlək olur - əl ilə açmaq «aktiv, amma boş» market
+         hallı yaradardı. -->
+    <section class="card" aria-labelledby="coverageTitle">
+      <div class="card-head">
+        <div class="head-row">
+          <svg aria-hidden="true"><use href="#icon-chart"></use></svg>
+          <h2 class="section-heading" id="coverageTitle" data-i18n="coverage.title">Market əhatəsi</h2>
+        </div>
+      </div>
+      <p class="section-sub" data-i18n="coverage.sub">
+        Datası olan market ana səhifədə avtomatik işlək olur — ayrıca
+        aktivləşdirmə addımı yoxdur. Kataloq yüklə və ya mənbədən çək.
+      </p>
+      <div class="table-scroll" id="coverageTable">
+        <div class="row"><span class="row-label skeleton">Yüklənir</span></div>
+      </div>
+    </section>
+
     <!-- --- Karantin növbəsi (C12) ---
          Sağlamlıq yoxlaması şübhəli qiyməti istifadəçidən gizlədir. Gizlətmək
          isə tək başına kifayət deyil: yanlış-müsbət (real bahalı məhsul) yalnız
@@ -628,6 +649,7 @@
 <script src="/static/scrape.js"></script>
 <script src="/static/analytics.js"></script>
 <script src="/static/review.js"></script>
+<script src="/static/coverage.js"></script>
 <script src="/static/profile.js"></script>
 </body>
 </html>

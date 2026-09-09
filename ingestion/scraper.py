@@ -41,6 +41,7 @@ from bs4 import BeautifulSoup
 
 from app.config import settings
 from ingestion.ingest import IngestError, find_by_source_url, ingest_bytes
+from ingestion.profiles import profile_for
 from ingestion.robots import RobotsRules, robots_url_for
 
 PDF_EXT = (".pdf",)
@@ -317,6 +318,37 @@ def discover(source: Source, use_selenium: bool = False) -> tuple[list[str], boo
     return find_catalog_links(html, source.page_url), True
 
 
+def apply_profile(
+    key: str,
+    max_pages: int | None,
+    psm: int | None,
+    force_ocr: bool,
+    use_selenium: bool,
+) -> tuple[int | None, int | None, bool, bool]:
+    """
+    MARKETİN ÖZ EMAL PROFİLİNİ tətbiq edir (D14).
+
+    Qayda birdir: ÇAĞIRANIN AÇIQ DƏYƏRİ ÜSTÜNDÜR. Profil yalnız boş qalan
+    yeri doldurur - əks halda admin panelindən verilən ayar səssizcə
+    üstələnərdi və istifadəçi «niyə mənim seçdiyim psm işləmir?» sualı ilə
+    qalardı.
+
+    NİYƏ AYRICA FUNKSİYA? Bu məntiq `scrape_source()`-un içində olsaydı,
+    yalnız real şəbəkə çəkilişi ilə yoxlana bilərdi. Ayrı funksiya kimi
+    testi bir sətirdir - və məhz bu default-lar ötən dəfə unudulub nəticəni
+    üç dəfə kasıblaşdırmışdı (20 səhifə -> 188 yerinə 69 məhsul).
+    """
+    profile = profile_for(key)
+    if profile is None:
+        return max_pages, psm, force_ocr, use_selenium
+    return (
+        profile.max_pages if max_pages is None else max_pages,
+        profile.psm if psm is None else psm,
+        force_ocr or profile.force_ocr,
+        use_selenium or profile.use_selenium,
+    )
+
+
 def scrape_source(
     key: str,
     max_files: int = 1,
@@ -337,6 +369,10 @@ def scrape_source(
         raise ScrapeError(
             f"Naməlum mənbə: '{key}'. Mövcud: {', '.join(sorted(SOURCES))}"
         )
+
+    max_pages, psm, force_ocr, use_selenium = apply_profile(
+        key, max_pages, psm, force_ocr, use_selenium
+    )
 
     report = ScrapeReport(source=source.key, store=source.store, page_url=source.page_url)
 

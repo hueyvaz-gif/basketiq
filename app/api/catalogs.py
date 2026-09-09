@@ -16,6 +16,7 @@ from app.config import settings
 from app.security import require_admin
 from app.db import db_cursor, get_connection
 from ingestion.cleaner import clean_text
+from ingestion.profiles import profile_for_store_name
 from ingestion.ingest import (  # noqa: F401  (slugify/get_or_create_store xaricdən də işlənir)
     IngestError,
     get_or_create_store,
@@ -50,13 +51,20 @@ async def upload_catalog(
     OCR bahalı əməliyyatdır, boş yerə təkrarlamırıq.
     """
     content = await file.read()
+
+    # MARKETİN EMAL PROFİLİ (D14): forma «avtomatik» seçilibsə (psm=0),
+    # marketə xas ölçülmüş ayar işə düşür. Beləcə əl ilə yüklənən kataloq da
+    # avtomatik çəkilişlə EYNİ qaydalarla oxunur - iki axının nəticəsi
+    # bir-birindən fərqlənmir.
+    profile = profile_for_store_name(store)
     try:
         result = ingest_bytes(
             content=content,
             filename=file.filename or "catalog",
             store=store,
-            force_ocr=force_ocr,
-            psm=psm if psm > 0 else None,
+            force_ocr=force_ocr or bool(profile and profile.force_ocr),
+            psm=psm if psm > 0 else (profile.psm if profile else None),
+            max_pages=profile.max_pages if profile else None,
         )
     except IngestError as e:
         raise HTTPException(e.status, e.message)

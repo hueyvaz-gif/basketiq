@@ -11,6 +11,9 @@ Testlər iki tərəfi də yoxlayır:
      qoyulsa, sayt istehsalda ümumiyyətlə işləməzdi.
 """
 
+import os
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -147,22 +150,30 @@ def test_istifadəçi_routerləri_qapının_arxasında_deyil():
 
 def test_defolt_istehsalda_bağlıdır():
     """
-    Qapının DEFOLTU vacibdir: unudulan konfiqurasiya istehsalda açıq panel
+    Qapının DEFOLTU vacibdir: unudulan konfiqurasiya istehsalda AÇIQ panel
     deməkdir. `.env` faylı olmayan serverdə də bağlı olmalıdır.
+
+    AYRI PROSESDƏ yoxlanılır. `importlib.reload(app.config)` ilə cəhd edildi
+    və REAL ZƏRƏR VERDİ: reload YENİ `settings` obyekti yaradır, `app/security.py`
+    isə köhnəsini saxlayır. Nəticədə sonrakı testlərdə qapı «bağlandı» deyilib
+    açıq qalırdı - səhv yalnız tam qaçışda görünürdü, tək testdə yox.
     """
-    import importlib
+    import subprocess
+    import sys
 
-    import app.config as config
+    mühit = {
+        **os.environ,
+        "APP_ENV": "production",
+        "PYTHONIOENCODING": "utf-8",
+    }
+    mühit.pop("ADMIN_ENABLED", None)
 
-    əvvəlki = config.os.environ.get("APP_ENV")
-    config.os.environ["APP_ENV"] = "production"
-    config.os.environ.pop("ADMIN_ENABLED", None)
-    try:
-        yenidən = importlib.reload(config)
-        assert yenidən.settings.admin_enabled is False
-    finally:
-        if əvvəlki is None:
-            config.os.environ.pop("APP_ENV", None)
-        else:
-            config.os.environ["APP_ENV"] = əvvəlki
-        importlib.reload(config)
+    nəticə = subprocess.run(
+        [sys.executable, "-c", "from app.config import settings; print(settings.admin_enabled)"],
+        capture_output=True,
+        text=True,
+        env=mühit,
+        cwd=Path(__file__).resolve().parent.parent,
+    )
+    assert nəticə.returncode == 0, nəticə.stderr
+    assert nəticə.stdout.strip() == "False", f"istehsalda panel açıq qalır: {nəticə.stdout!r}"

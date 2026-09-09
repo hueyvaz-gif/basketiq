@@ -699,15 +699,19 @@ function renderBars(data) {
   const max = Math.max(...selling.map((s) => s.total), 0.01);
 
   const emptyRows = notSelling
-    .map(
-      (s) => `<div class="bar-row is-empty">
+    .map((s) => {
+      // İki fərqli səbəb, iki fərqli mətn (D16): datası olmayan market
+      // «satmır» demək deyil - onun kataloqu hələ gəlməyib.
+      const səbəb = s.available === false ? t("bars.noData") : t("bars.notSelling");
+      const hal = s.available === false ? t("common.soon") : t("bars.notCompared");
+      return `<div class="bar-row is-empty">
         <div class="bar-name">
           ${storeAvatar(s.store, "is-sm")}
-          <span>${esc(s.store)}<small>səbətdəki məhsulları satmır</small></span>
+          <span>${esc(s.store)}<small>${esc(səbəb)}</small></span>
         </div>
-        <div class="bar-empty">Müqayisədə iştirak etmir</div>
-      </div>`
-    )
+        <div class="bar-empty">${esc(hal)}</div>
+      </div>`;
+    })
     .join("");
 
   box.innerHTML = `<div class="bars">${selling
@@ -748,7 +752,13 @@ function renderCompareTable(data) {
             ${stores
               .map((s) => {
                 const best = data.best && s.store_id === data.best.store_id;
-                return `<th scope="col" class="num">${storeChip(s.store, best)}</th>`;
+                // D17: datası olmayan market SÜTUNU QALIR, üstünə «Tezliklə»
+                // yazılır. Sütunu silsək, istifadəçi dörd market vədinin
+                // əvəzinə iki sütun görər və səbəbini bilməzdi.
+                const soon = s.available === false
+                  ? `<span class="pill is-amber">${t("common.soon")}</span>`
+                  : "";
+                return `<th scope="col" class="num">${storeChip(s.store, best)}${soon}</th>`;
               })
               .join("")}
             <th scope="col"><span class="sr-only">${t("col.action")}</span></th>
@@ -759,6 +769,14 @@ function renderCompareTable(data) {
             .map((item) => {
               const cells = stores
                 .map((s) => {
+                  // D16: BOŞ XANA OLMUR. İki fərqli hal var və ikisi eyni
+                  // görünsəydi, istifadəçi «bu market bahadır» qənaətinə
+                  // gələrdi:
+                  //   market datasızdır      -> «tezliklə»
+                  //   market bu məhsulu satmır -> «—»
+                  if (s.available === false) {
+                    return `<td class="num na">${t("compare.noData")}</td>`;
+                  }
                   const p = item.prices[String(s.store_id)];
                   if (!p) return `<td class="num na">—</td>`;
                   const cheap = item.cheapest_store_id === s.store_id;

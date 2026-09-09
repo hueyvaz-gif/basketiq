@@ -1158,6 +1158,14 @@ a.btn { text-decoration: none; }
 .notice.warn  { background: var(--info-soft); }
 .notice.error { background: var(--danger-soft); }
 
+
+/* Bağlı mənbə (D14): seçilə bilmir, amma OXUNUR. Mətn solğunlaşdırılmır -
+   səbəb izahı elə burada yazılır və onu oxumaq lazımdır. Siqnal kursorda
+   və sönük radio düyməsindədir. */
+.check.is-off { cursor: not-allowed; }
+.check.is-off input { cursor: not-allowed; }
+.check-note { display: block; color: var(--text-secondary); font-size: 13px; margin-top: 2px; }
+
 .row {
   display: flex;
   align-items: center;

@@ -14,6 +14,8 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 
 from app.config import settings
 from app.security import require_admin
+from app.stores import market_for
+from ingestion.profiles import PROFILES
 from ingestion.scraper import SOURCES, ScrapeError, robots_allows, scrape_source
 
 # ADMİN SƏTHİ (B11): panel bağlı olanda bütün endpoint-lər 404 qaytarır.
@@ -46,17 +48,28 @@ def list_sources(check_robots: bool = False):
     "icazə hələ də varmı?" sualına cavab. Defolt olaraq söndürülüb, çünki
     bu, şəbəkə sorğusudur və UI-ın açılışını yavaşladar.
     """
+    # SİYAHI DÖRD MARKETİN HAMISINI GÖSTƏRİR (D14/D15).
+    #
+    # Əvvəl yalnız çəkilə bilən mənbə (`SOURCES`) qayıdırdı - admin panelində
+    # bir sətir görünürdü və «qalan üç market niyə yoxdur?» sualının cavabı
+    # heç yerdə yazılmırdı. İndi hər market öz VƏZİYYƏTİ və ölçülmüş səbəbi
+    # ilə görünür; çəkilə bilməyənin düyməsi sadəcə sönük olur.
     out = []
-    for source in SOURCES.values():
+    for slug, profile in PROFILES.items():
+        source = SOURCES.get(slug)
+        market = market_for(slug)
         item = {
-            "key": source.key,
-            "store": source.store,
-            "page_url": source.page_url,
-            "note": source.note,
+            "key": slug,
+            "store": market.name if market else slug,
+            "page_url": profile.page_url,
+            "note": profile.note,
+            "format": profile.fmt,
+            "status": profile.status,
+            "scrapeable": profile.scrapeable and source is not None,
         }
-        if check_robots:
+        if check_robots and profile.page_url:
             try:
-                item["robots_allowed"] = robots_allows(source.page_url)
+                item["robots_allowed"] = robots_allows(profile.page_url)
             except Exception as e:
                 item["robots_allowed"] = None
                 item["robots_error"] = f"{type(e).__name__}: {e}"
