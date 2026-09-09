@@ -617,3 +617,28 @@ def test_seçim_sətirləri_44px_hündürlükdədir():
         assert int(hündür.group(1)) >= 44, (
             f"{selektor} sətri {hündür.group(1)}px — 44 lazımdır"
         )
+
+
+def test_düymələrin_hündürlüyü_44px_dir():
+    """
+    Apple HIG-in 44px tappable ölçüsü indi düymələrin ÖZ hündürlüyüdür —
+    görünməyən örtüyə ehtiyac qalmır.
+
+    ÖLÇÜLDÜ (brauzerdə): `.btn` 44px, segmented yolu 44px (seqment 40 +
+    2×2 daxili boşluq). Üst panel 93px-ə qalxdı — ekran şəkli ilə baxıldı,
+    tarazlığı pozmur.
+    """
+    css = read_static("style.css")
+
+    blok = re.search(r"\.btn \{(.*?)\}", css, re.S)
+    assert blok, ".btn qaydası tapılmadı"
+    hündür = re.search(r"min-height:\s*(\d+)px", blok.group(1))
+    assert hündür and int(hündür.group(1)) >= 44, "düymə 44px-dən alçaqdır"
+
+    # Segmented: seqmentin hündürlüyü + yolun daxili boşluğu 44-ə çatmalıdır.
+    seg = re.search(r"\.seg-btn \{(.*?)\}", css, re.S)
+    yol = re.search(r"\.segmented \{(.*?)\}", css, re.S)
+    assert seg and yol, "segmented qaydaları tapılmadı"
+    seg_h = int(re.search(r"min-height:\s*(\d+)px", seg.group(1)).group(1))
+    yol_p = int(re.search(r"padding:\s*(\d+)px", yol.group(1)).group(1))
+    assert seg_h + 2 * yol_p >= 44, f"segmented yolu {seg_h + 2 * yol_p}px — 44 lazımdır"

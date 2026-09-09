@@ -487,6 +487,33 @@ keçididir, hərəkət deyil.
 CAPS + geniş hərf aralığı dashboard dilidir; SF-də oxunuşu pisləşdirir. İndi
 adi yazılış, 13px, çəki 500.
 
+### Toxunma hədəfləri: 44px (Apple HIG)
+
+Apple HIG interaktiv element üçün **44×44** tappable sahə tövsiyə edir — bu,
+GÖRÜNTÜ deyil, HƏDƏF ölçüsüdür. Ona görə iki yanaşma işlədilir:
+
+| Element | Görünən | Toxunma | Necə |
+|---|---|---|---|
+| `.btn`, `.btn-ghost` | 44px | 44px | `min-height` — düymənin özü |
+| `.segmented` yolu | 44px | 44px | seqment 40 + 2×2 daxili boşluq |
+| `.icon-btn` | 36×36 | **44×44** | görünməyən `::before` örtüyü |
+| `.basket-chip-del` | 24×24 | **44×44** | görünməyən `::before` örtüyü |
+| `.check`, `.filter-opt` | — | 44px sətir | `min-height` (hədəf `<label>`-dir) |
+
+**Niyə bəzi yerdə örtük, bəzi yerdə həqiqi ölçü?** Cədvəl sətrindəki və üst
+paneldəki dairəvi ikon düyməsini 44px etsək sətirlər və panel ağırlaşır; orada
+hədəf `::before` ilə genişlənir, görüntü kiçik qalır. Düymələr isə onsuz da
+mətn daşıyır — onların 44px olması səhifəni ağırlaşdırmır, əksinə Apple
+ritminə salır.
+
+**Örtük qonşunu udmur:** ölçüldü — «Sətirlər» ilə «sil» arasındakı ara 16px,
+örtük hər tərəfə 4px uzanır. Brauzerdə təsdiqləndi: «Sətirlər» həm
+mərkəzindən, həm sağ kənarından kliklənir.
+
+**`svg`-yə `pointer-events: none`** verilir ki, hadisənin hədəfi həmişə
+düymənin özü olsun — `<use>` elementi hədəfə çevriləndə klik zənciri
+gözlənilməz davranır (ölçülüb).
+
 ### Silmə təsdiqi: iki addım, `confirm()` YOX
 
 Admin panelində «sil» düyməsi **təsdiqsiz** idi — bir klik kataloqu, onun bütün
@@ -1259,4 +1286,4 @@ worktree-yə köçürməkdir.
 ¹ Mənbə seçimi ölçmə tələb etdiyi üçün Həftə 2-dən sonra tamamlandı.
 ² Real droplet-də yox, lokal Docker-də sınanıb — təfərrüat `deploy/README.md`-də.
 
-**Testlər:** 400 — 398 keçir, 2 atlanır (`pytest -q`)
+**Testlər:** 404 — 402 keçir, 2 atlanır (`pytest -q`)

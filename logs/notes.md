@@ -1171,3 +1171,45 @@ düşür.
 - **Digər mətn idarələri (düymə, input, select) 30-43px qalır.** WCAG
   minimumunu ödəyir, Apple tövsiyəsindən aşağıdır. Onları böyütmək
   tipoqrafiyanı və səhifə ritmini dəyişərdi — ayrıca qərardır.
+
+---
+
+## 2026-09-09 — Düymələr də 44px
+
+Son addım: `.btn` və segmented control Apple-ın 44px ölçüsünə qaldırıldı.
+
+### Fərq: örtük yox, HƏQİQİ hündürlük
+
+İkon düymələrində hədəf `::before` ilə genişlənirdi, çünki dairəni böyütmək
+cədvəl sətirlərini ağırlaşdırardı. Düymələr isə onsuz da mətn daşıyır —
+onların 44px olması səhifəni ağırlaşdırmır, əksinə Apple ritminə salır.
+Ona görə burada `min-height: 44px` işlədildi, padding isə yan boşluğa qaldı.
+
+### Ölçmə (brauzerdə, dəyişiklikdən sonra)
+
+| Element | Görünən | Toxunma |
+|---|---|---|
+| `.btn` | **44px** | 44px |
+| `.segmented` yolu | **44px** | 44px (seqment 40 + 2×2) |
+| `.icon-btn` | 36×36 | 44×44 (örtük) |
+| `.basket-chip-del` | 24×24 | 44×44 (örtük) |
+| `.check` / `.filter-opt` | 44px sətir | 44px |
+| `select` | 43px | — |
+| `input[type=text]` | 41-45px | — |
+
+Üst panel 93px-ə qalxdı. Ekran şəkli ilə baxıldı: tarazlıq pozulmur, segmented
+control və loqo eyni oxda qalır. Yükləmə formasında düymə (44px) ilə input
+(41px) arasında 3px fərq var — gözlə seçilmir.
+
+### Yoxlamalar
+
+- dörd səhifə: konsol xətası 0, yüklənməyən şəkil 0
+- mobil 380px: üfüqi sürüşmə yoxdur
+- test əlavə olundu, mutasiya ilə təsdiqləndi: düyməni 36px-ə endirəndə düşür
+
+402 test keçir, 2 atlanır, ruff təmiz.
+
+### Nəyə əmin deyiləm
+
+- **`select` və `input` toxunulmadı** — onlar düymə deyil, tapşırığın
+  hüdudundan kənardır. 41-45px aralığındadırlar, yəni 44-dən 1-3px fərqlə.
