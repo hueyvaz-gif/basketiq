@@ -1366,7 +1366,8 @@ sütun sırasını isə yox — indi datasız market həmişə sonda gəlir.
 
 Ana səhifədə **bir slot**: market şəbəkəsi ilə endirimlər arasında. Boş
 qalanda gizlənmir — «Sizin reklamınız burada ola bilər» yazır və `ADS_CONTACT`
-təyin olunubsa əlaqə düyməsi qoyur (uydurma e-poçt yazılmır).
+təyin olunubsa əlaqə düyməsi qoyur (uydurma e-poçt yazılmır — ünvan
+`.env`-dədir, `.env.example`-də isə yalnız nümunə qalır).
 
 Yalnız **aktiv VƏ tarix aralığında** olan sifariş göstərilir: müddəti bitən
 reklam öz-özünə dayanır. Hər reklam üç dildə «Reklam» nişanı daşıyır və kart
@@ -1380,6 +1381,48 @@ hesabat rəqəmini əl ilə dəyişmək hesabatın özünü mənasız edər.
 
 Nümunə sifariş (`is_sample`) boş bazada avtomatik yaranır və real satışdan
 ayrılır — əks halda hesabatda ödənişli müştəri kimi sayılardı.
+
+### Brauzer yoxlaması — testlərin GÖRMƏDİYİ dörd qüsur
+
+Bütün v4 bloku testlərlə yaşıl keçirdi. Sonra səhifə **Playwright** ilə üç
+enlikdə (390 / 768 / 1440 px) və dörd səhifədə açıldı — və dörd qüsur çıxdı.
+Hər biri eyni cinsdəndir: **DOM doğrudur, görüntü yanlışdır**, yəni heç bir
+statik test onu tuta bilməzdi.
+
+**1. Səhifə üfüqi sürüşürdü (390px-də 584px), sürüşən sahədə isə heç nə yox
+idi** — ağ boşluq. Səbəb cədvəlin içindəki `.sr-only` mətnləridir: onlar
+`position: absolute`-dur və `.table-scroll` mövqedə olmadığı üçün qapsayan
+blokları səhifənin özü olur. Yəni `overflow-x: auto` onları **kəsmir**
+(`overflow-x: hidden` də kömək etmədi — sınandı; işləyən yeganə variant
+qapsayıcını mövqeyə salmaqdır). Qüsur köhnə idi, amma D17-də cədvəl iki sütun
+genişləndiyi (978px) üçün görünən oldu.
+
+**2. Üst panel dar ekrana sığmırdı:** brend + iki tab + üç dil düyməsi +
+profil ikonu 390px-də 474px tuturdu; «RU» və profil ekrandan kənarda qalırdı.
+Düymələri kiçiltmək olardı, amma bu, 44px toxunma hədəfi qaydasını pozardı —
+ona görə panel dar ekranda **sarınır**.
+
+**3. Nişanların yarısı görünmürdü:** `.pill`-in defolt fonu da, `--info-soft`
+da `--bg-subtle`-dir — kartın fonu ilə eyni. «Tezliklə», «bağlı», «pdf» və
+«Vahid qiyməti normadan kənar» adi mətn kimi oxunurdu. Rəngi dəyişmədik,
+nazik sərhəd əlavə etdik; öz fonu olan nişanlar (yaşıl, qırmızı, vurğu)
+sərhədsiz qalır.
+
+**4. Nümunə banner oxunmurdu:** 960×240 kətan 220px-lik qutuda mətni ~8px-ə
+salırdı. Kətan 440×150-yə, qutu 260×110-a gətirildi.
+
+**Beşinci (əlaqə ünvanı təyin olunandan sonra):** boş slotda «Reklam ver»
+düyməsi görünəndə sağ üst küncdəki «Reklam yeri» nişanı onun üstünə düşürdü.
+Boş variantda nişan mütləq mövqedən çıxarıldı.
+
+İşləkliyi də ölçüldü, təkcə görüntü yox: Enter ilə axtarış, karantin təsdiqi
+(növbə 7 → 6, sonra baza geri qaytarıldı), reklamın dayandırılması (slot boş
+vəziyyətə keçir) və klik sayğacı (1 → 2, yönləndirmə düzgün). Konsol təmiz,
+uğursuz sorğu yoxdur.
+
+> **Qeyd:** Chrome uzantısı qoşulmadığı üçün yoxlama layihənin öz Playwright
+> asılılığı ilə aparıldı. Skript `logs/`-da saxlanmır — birdəfəlik ölçmədir;
+> nəticələr yuxarıdadır.
 
 ## Status
 
@@ -1432,6 +1475,8 @@ ayrılır — əks halda hesabatda ödənişli müştəri kimi sayılardı.
 - [x] v4 (D) — market emal profilləri, admin əhatə cədvəli, dörd sütun
       həmişə görünür
 - [x] v4 (E) — reklam slotu, sifariş modeli, admin meneceri, nümunə sifariş
+- [x] v4 — brauzer yoxlaması (390/768/1440 px): üfüqi sürüşmə, üst panel
+      daşması, görünməyən nişanlar və oxunmayan banner düzəldildi
 - [ ] v4 — mağaza qiymət qatı hələ də **boş**: mənbələr yuxarıdakı cədvəldədir
 
-**Testlər:** 537 — 535 keçir, 2 atlanır (`pytest -q`)
+**Testlər:** 538 — 536 keçir, 2 atlanır (`pytest -q`)
