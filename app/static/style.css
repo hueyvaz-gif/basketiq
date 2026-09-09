@@ -875,6 +875,22 @@ a.btn { text-decoration: none; }
 .icon-btn:hover:not(:disabled) { background: var(--danger); color: var(--on-accent); }
 .icon-btn:disabled { opacity: .4; cursor: not-allowed; }
 
+/* Təsdiq gözləyən hal: dairə genişlənib «Silinsin?» yazısına çevrilir.
+   Rəng TƏK siqnal deyil - mətnin özü nə baş verəcəyini deyir, yəni rəngi
+   görməyən istifadəçi də başa düşür. */
+.icon-btn.is-confirming {
+  width: auto;
+  padding: 0 14px;
+  background: var(--danger);
+  color: var(--bg);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.icon-btn.is-confirming:hover { background: color-mix(in srgb, var(--danger) 82%, var(--text)); }
+
 /* Header-dəki qısayol: <a>-dır, ona görə mətn stilləri sıfırlanır.
    `is-quiet` = qırmızı hover YOXDUR - bu, silmə düyməsi deyil, keçiddir. */
 .icon-btn.is-quiet { text-decoration: none; background: var(--surface); box-shadow: var(--shadow); }

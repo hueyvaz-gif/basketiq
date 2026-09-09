@@ -489,3 +489,52 @@ def test_dəyişməyən_fayl_304_qaytarır():
                         headers={"If-None-Match": first.headers["etag"]})
     assert second.status_code == 304
     assert not second.content
+
+
+# ------------------------------------------------ silmə təsdiqi (real risk)
+
+
+def test_kataloq_silinməsi_təsdiq_tələb_edir():
+    """
+    Admin panelində «sil» düyməsi TƏSDİQSİZ idi: bir klik kataloqu, onun
+    bütün qiymətlərini və yetim qalan məhsulları geri dönməz silirdi.
+    Canlı yoxlama zamanı görüldü (`logs/notes.md`, 2026-09-09).
+
+    İndi düymə iki addımlıdır. Bu test STATİKDİR — o, yalnız `DELETE`
+    sorğusunun təsdiq şərtinin İÇİNDƏ olduğunu yoxlayır; davranışın özü
+    brauzerdə ayrıca yoxlanılıb.
+    """
+    js = read_static("app.js")
+
+    blok = re.search(
+        r"if \(pendingDelete && pendingDelete\.btn === btn\) \{(.*?)\n    \}", js, re.S
+    )
+    assert blok, "təsdiq şərti tapılmadı — iki addımlı silmə pozulub"
+    assert 'method: "DELETE"' in blok.group(1), (
+        "kataloq silmə sorğusu təsdiq şərtinin içində deyil"
+    )
+
+    # Şərtdən KƏNARDA kataloq silən başqa sorğu qalmamalıdır.
+    qalan = js.replace(blok.group(0), "")
+    assert not re.search(r"/api/catalogs/\$\{[^}]+\}`?, \{ method: \"DELETE\"", qalan), (
+        "təsdiqdən kənar silmə sorğusu var"
+    )
+
+
+def test_silmə_təsdiqi_native_confirm_işlətmir():
+    """
+    `confirm()` səhifəni BLOKLAYIR — brauzer avtomatlaşdırması (bizim öz
+    Selenium yoxlamalarımız da daxil) dialoq açılan kimi cavab verməyi
+    dayandırır. Üstəlik onu üslublandırmaq mümkün deyil və düymələri
+    ingiliscə gəlir, halbuki interfeys tam azərbaycancadır.
+    """
+    scripts = sorted({name for names in SCRIPT_PAGES.values() for name in names})
+    assert scripts, "skript siyahısı boşdur"
+    for name in scripts:
+        # Şərhlər çıxarılır: `app.js`-də məhz BU QƏRARIN izahı var və orada
+        # `confirm()` sözü keçir. Şərhi saymasaq, test öz sənədini cəzalandırardı.
+        kod = re.sub(r"/\*.*?\*/", "", read_static(name), flags=re.S)
+        kod = re.sub(r"^\s*//.*$", "", kod, flags=re.M)
+        assert not re.search(r"(?<![.\w])confirm\s*\(", kod), (
+            f"{name} native confirm() işlədir"
+        )

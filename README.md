@@ -487,6 +487,26 @@ keçididir, hərəkət deyil.
 CAPS + geniş hərf aralığı dashboard dilidir; SF-də oxunuşu pisləşdirir. İndi
 adi yazılış, 13px, çəki 500.
 
+### Silmə təsdiqi: iki addım, `confirm()` YOX
+
+Admin panelində «sil» düyməsi **təsdiqsiz** idi — bir klik kataloqu, onun bütün
+qiymətlərini və yetim qalan məhsulları geri dönməz silirdi. Canlı yoxlama
+zamanı göründü.
+
+İndi düymə **iki addımlıdır**: birinci klik onu «Silinsin?» vəziyyətinə keçirir
+(qırmızı pill), ikinci klik silir. 5 saniyə toxunulmasa öz halına qayıdır;
+**Escape** və başqa yerə klik də ləğv edir.
+
+**Niyə native `confirm()` deyil?** Üç səbəb: (1) səhifəni **bloklayır** —
+brauzer avtomatlaşdırması, o cümlədən bizim öz Selenium yoxlamalarımız, dialoq
+açılan kimi cavab verməyi dayandırır; (2) üslublandırmaq mümkün deyil — Apple
+dizayn dilinin ortasında əməliyyat sisteminin boz qutusu açılır; (3) düymələri
+ingiliscə gəlir («OK / Cancel»), halbuki interfeys tam azərbaycancadır.
+`test_silmə_təsdiqi_native_confirm_işlətmir` bunu kilidləyir.
+
+Rəng **tək siqnal deyil**: düymənin öz mətni («Silinsin?») nə baş verəcəyini
+deyir, yəni rəngi görməyən istifadəçi də başa düşür.
+
 **Market rəng nöqtələri** kimlik bildirir, status yox — ona görə palitrada
 brend yaşılı, `#4caf50` və `#cc3327` **yoxdur**. Rəng market ADINDAN hesablanır
 (`app/static/store-colors.js` — hash xananı təklif edir, toqquşma əlifba
@@ -1232,4 +1252,4 @@ worktree-yə köçürməkdir.
 ¹ Mənbə seçimi ölçmə tələb etdiyi üçün Həftə 2-dən sonra tamamlandı.
 ² Real droplet-də yox, lokal Docker-də sınanıb — təfərrüat `deploy/README.md`-də.
 
-**Testlər:** 397 — 395 keçir, 2 atlanır (`pytest -q`)
+**Testlər:** 399 — 397 keçir, 2 atlanır (`pytest -q`)

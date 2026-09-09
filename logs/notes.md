@@ -912,3 +912,57 @@ beləcə canlı sınandı.
 - **«Mənbədən çək» ümumiyyətlə sınanmadı.**
 - **Silmə düyməsinin təsdiq dialoqu yoxdur** — bu, dizayn qərarıdır, amma
   admin panelində bir səhv klik kataloqu aparır. Düzəldilmədi, qeyd edildi.
+
+---
+
+## 2026-09-09 — Silmə düyməsinə iki addımlı təsdiq
+
+Canlı yoxlamada tapılmışdı: admin panelində «sil» **təsdiqsiz** idi — bir klik
+kataloqu, qiymətlərini və yetim məhsulları geri dönməz silirdi.
+
+### Niyə native `confirm()` DEYİL
+
+1. **Səhifəni bloklayır.** Brauzer avtomatlaşdırması — o cümlədən bu layihənin
+   öz Selenium yoxlamaları — dialoq açılan kimi cavab verməyi dayandırır.
+   Yəni `confirm()` qoysaydım, düymələri bir daha canlı yoxlaya bilməzdim.
+2. **Üslublandırmaq mümkün deyil.** Apple dizayn dilinin ortasında əməliyyat
+   sisteminin boz qutusu açılır.
+3. **Düymələri ingiliscədir** («OK / Cancel»), interfeys isə tam azərbaycanca.
+
+### Necə işləyir
+
+Düymənin ÖZÜ iki addımlı olur: birinci klik onu «Silinsin?» qırmızı pilinə
+çevirir, ikinci klik silir. Ləğv üç yolla: 5 saniyə gözləmə, **Escape**, və ya
+başqa yerə klik. Başqa sətirdə təsdiq gözləyirsə, yeni klik onu da ləğv edir.
+
+Rəng **tək siqnal deyil** — düymənin mətni nə baş verəcəyini deyir.
+
+### Canlı yoxlandı (Selenium, real server)
+
+| Addım | Nəticə |
+|---|---|
+| Birinci klik | mətn «Silinsin?», sinif `is-confirming`, siyahı **dəyişmədi** (4) |
+| Escape | düymə ikon halına qayıtdı |
+| İki ardıcıl klik | kataloq silindi, siyahı 4 → 3 |
+| Konsol xətası | yoxdur |
+
+Ekran şəkli ilə də təsdiqləndi: dairəvi zibil ikonu qırmızı «Silinsin?»
+pilinə çevrilir.
+
+### Testlər
+
+İki statik test (`test_kataloq_silinməsi_təsdiq_tələb_edir`,
+`test_silmə_təsdiqi_native_confirm_işlətmir`). **Mutasiya ilə təsdiqləndi:**
+təsdiq şərtini götürəndə və `confirm()` qaytaranda hər ikisi düşür.
+
+397 test keçir, 2 atlanır, ruff təmiz.
+
+### Nəyə əmin deyiləm
+
+- **Statik testlər davranışı yox, KODUN FORMASINI yoxlayır.** Davranış
+  brauzerdə ayrıca yoxlanıldı, amma bu yoxlama test dəstində deyil — kimsə
+  məntiqi başqa cür pozsa (məsələn taymeri sıfır etsə), testlər tutmaya bilər.
+- **Səbətdən məhsul silmək təsdiqsiz qaldı** — o, geri qaytarıla biləndir
+  (məhsulu yenidən əlavə etmək olar), ona görə eyni qoruma verilmədi.
+- **Silinən kataloqun boş market sətri hələ də qalır** — ayrı məsələdir,
+  `tools/purge_store.py` ilə təmizlənir.

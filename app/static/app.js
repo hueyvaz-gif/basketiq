@@ -304,18 +304,84 @@ async function loadCatalogs() {
     $("#catalogList").querySelectorAll("[data-lines]").forEach((b) =>
       b.addEventListener("click", () => showLines(b.dataset.lines))
     );
-    $("#catalogList").querySelectorAll("[data-del]").forEach((b) =>
-      b.addEventListener("click", async () => {
-        b.disabled = true;
-        await fetch(`/api/catalogs/${b.dataset.del}`, { method: "DELETE" });
-        await Promise.all([loadCatalogs(), loadHealth()]);
-        $("#resultCard").classList.add("hidden");
-      })
-    );
+    $("#catalogList").querySelectorAll("[data-del]").forEach(armDeleteButton);
   } catch {
     $("#catalogList").innerHTML = `<div class="row"><span class="row-value">Siyahı yüklənmədi</span></div>`;
   }
 }
+
+/* ============================================================================
+   SİLMƏ TƏSDİQİ — iki addım
+
+   NİYƏ `confirm()` DEYİL?
+   Üç səbəb:
+     1. `confirm()` səhifəni BLOKLAYIR - brauzer avtomatlaşdırması (bizim öz
+        Selenium yoxlamalarımız da daxil) dialoq açılan kimi cavab verməyi
+        dayandırır;
+     2. onu üslublandırmaq mümkün deyil - Apple dizayn dilinin ortasında
+        əməliyyat sisteminin boz qutusu açılır;
+     3. mətni ingiliscə düymələrlə gəlir («OK / Cancel»), halbuki interfeys
+        tam azərbaycancadır.
+
+   ƏVƏZİNƏ: düymənin özü iki addımlı olur. Birinci klik onu «Silinsin?»
+   vəziyyətinə keçirir, ikinci klik silir. 5 saniyə ərzində toxunulmasa,
+   düymə öz halına qayıdır; Escape və başqa yerə klik də ləğv edir.
+
+   REAL SƏBƏB: silmə TƏSDİQSİZ idi - admin panelində bir klik kataloqu,
+   onun bütün qiymətlərini və yetim qalan məhsulları geri dönməz silirdi.
+   ============================================================================ */
+
+const DELETE_CONFIRM_MS = 5000;
+let pendingDelete = null;   // {btn, label, timer}
+
+/** Düyməni ilkin (ikon) halına qaytarır. */
+function cancelPendingDelete() {
+  if (!pendingDelete) return;
+  const { btn, label, timer } = pendingDelete;
+  clearTimeout(timer);
+  btn.classList.remove("is-confirming");
+  btn.innerHTML = icon("trash");
+  btn.setAttribute("aria-label", label);
+  pendingDelete = null;
+}
+
+/** Bir «sil» düyməsini iki addımlı edir. */
+function armDeleteButton(btn) {
+  const label = btn.getAttribute("aria-label") || "Sil";
+
+  btn.addEventListener("click", async (event) => {
+    event.stopPropagation();
+
+    // İkinci klik - HƏQİQİ silmə yalnız burada baş verir.
+    if (pendingDelete && pendingDelete.btn === btn) {
+      cancelPendingDelete();
+      btn.disabled = true;
+      await fetch(`/api/catalogs/${btn.dataset.del}`, { method: "DELETE" });
+      await Promise.all([loadCatalogs(), loadHealth()]);
+      $("#resultCard").classList.add("hidden");
+      return;
+    }
+
+    // Birinci klik - başqa sətirdə gözləyən təsdiq varsa, o ləğv olunur.
+    cancelPendingDelete();
+    btn.classList.add("is-confirming");
+    btn.textContent = "Silinsin?";
+    btn.setAttribute("aria-label", `${label} — təsdiq üçün yenidən basın`);
+    pendingDelete = {
+      btn,
+      label,
+      timer: setTimeout(cancelPendingDelete, DELETE_CONFIRM_MS),
+    };
+  });
+}
+
+// Başqa yerə klik və Escape təsdiqi ləğv edir - istifadəçi «silinsin?»
+// vəziyyətini qəsdən tərk edə bilməlidir.
+document.addEventListener("click", cancelPendingDelete);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") cancelPendingDelete();
+});
+
 
 // ---------------------------------------------------------------- matching
 
