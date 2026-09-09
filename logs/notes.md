@@ -1330,3 +1330,40 @@ təsdiqləndi:** bir dili silmək və yanlış açar yazmaq testləri düşürü
   qiymət müqayisəsini yanlış göstərərdi.
 - **Tərcümələri ana dili daşıyıcısı yoxlamayıb.** Mən yazdım; xüsusən rus
   dilində üslub fərqləri ola bilər.
+
+---
+
+## 2026-09-09 — Üç dil brauzerdə yoxlandı
+
+### Yolda tapılan tələ: server köhnə kodu daşıyırdı
+
+İlk yoxlamada backend cümlələri EN və RU rejimində **azərbaycanca qalırdı**.
+Kodda səhv axtarmağa başladım — səhv orada deyildi: uvicorn `--reload` olmadan
+işləyirdi, yəni `app/analytics.py` və `app/api/profile.py` dəyişiklikləri
+prosesə çatmamışdı. Serveri yenidən başladandan sonra API açarları qaytardı və
+tərcümə göründü.
+
+**Yoxlama ardıcıllığı belə olmalıdır:** əvvəlcə API-nin ÖZÜNÜ yoxla
+(`/api/profile` → `summary_keys` varmı), sonra brauzerə bax. Mən əksini etdim
+və beş dəqiqə kodda səhv axtardım.
+
+### Nəticə (dörd səhifə, üç dil)
+
+| | AZ | EN | RU |
+|---|---|---|---|
+| `<html lang>` | az | en | ru |
+| Başlıq | qiymət kəşfiyyatı | price intelligence | аналитика цен |
+| Axtar düyməsi | Axtar | Search | Найти |
+| Hökm nişanı | Şübhəli | Suspicious | Подозрительно |
+| **Endirim səbəbi** | Endirim 70.6% - ərzaqda… | A 70.6% discount — a cut this deep… | Скидка 70.6% — такой глубины… |
+| **Profil xülasəsi** | 1 nəfərlik ev; həftəlik büdcə… | household of 1; weekly budget… | семья из 1 чел.; недельный бюджет… |
+
+Məhsul və market səhifələri də dili saxlayır. **Konsol xətası yoxdur.**
+
+Məhsul adları («it yemi», «düşbərə») hər üç dildə azərbaycanca qalır — onlar
+datadır.
+
+### Nəyə əmin deyiləm
+
+- **Admin panelinin bütün blokları üç dildə görülmədi** — yalnız istifadəçi
+  paneli, məhsul, axtarış və market səhifələri ekranda yoxlanıldı.
