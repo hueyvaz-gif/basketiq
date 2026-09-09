@@ -673,6 +673,71 @@ Real Claude cavabı (ölçülüb, 3 rəqəmin hamısı təsdiqlənib):
 Qeyd **keşlənir** (`ai/cache.py`), keş açarı isə fakt blokunun özüdür: qiymət
 dəyişəndə qeyd avtomatik yenidən yazılır.
 
+### 5. Məhsul şəkilləri: kataloqdan kəsilir, saytdan endirilmir
+
+Trolley şəkilləri marketin öz onlayn mağazasından götürür. **Bizdə belə mənbə
+yoxdur** — ölçülüb (`logs/sources.md`): Araz-ın data ünvanlarını `robots.txt`
+qadağan edir, Bravo-nun kataloq səhifəsi «0 məhsul» qaytarır, Bazar Store-un
+saytı baxımdadır.
+
+Amma şəkil əlimizdədir — sadəcə kataloq səhifəsinin **içindədir**.
+`ingestion/layout.py` onsuz da hər məhsulun qiymət qutusunu tapır; kataloq
+kartlar şəbəkəsi olduğu üçün iki qonşu qiymət qutusu arasındakı məsafə xananın
+ölçüsünü verir. Şəkil qiymətin üstündədir:
+
+```
+xana = qiymət qutusunun mərkəzi
+       yuxarı  → bir sıra addımı
+       yanlara → yarım sütun addımı
+```
+
+**Məhsulu şəklə nə bağlayır?** `prices.raw_line` — kartın OCR-dan çıxan orijinal
+sətri. O sütun şəffaflıq üçün yazılırdı, indi işə yaradı: səhifə yenidən analiz
+olunur və kartların sətirləri `raw_line` ilə tutuşdurulur (`difflib`).
+
+**Yalnız mətn oxşarlığı səhvə apardı** — düşbərənin yerinə su qabı düşdü.
+Namizədləri **qiymət** daraldır, hədd `MATCH_THRESHOLD = 0.55`, iki namizəd
+bir-birinə yaxın olanda şəkil **verilmir**. Səbəb sadədir: səhv şəkil
+placeholder-dən pisdir — istifadəçi başqa məhsulu görüb qiyməti ona aid sayır.
+
+Boş kadr (tək rəngli sahə) atılır, şəkli tapılmayan məhsul neytral
+placeholder alır (`/static/images/product-placeholder.svg`). **Uydurma məhsul
+şəkli çəkilmir.**
+
+**Ölçülmüş əhatə (2026-09-09):** 194 məhsuldan **73-ünün** şəkli var (≈38%),
+hamısı Araz kataloqlarından. Bravo-nun 8 məhsulunda şəkil **yoxdur** — o data
+kataloq səhifəsindən gəlmir, deməli kəsiləcək kadr da yoxdur.
+
+Şəkillər generasiya olunur, ona görə repo-ya düşmür (`.gitignore`). Təmiz
+klonda hamısı placeholder görünür; bərpa: `python tools/build_images.py`.
+
+### 6. Axtarış səhifəsi (`/search`)
+
+Şəkilli kart şəbəkəsi + üç filtr: market, kateqoriya, maksimum qiymət.
+
+**Filtr vəziyyəti ÜNVANDADIR, JS dəyişənində yox:**
+
+```
+/search?q=süd&market=araz&category=içkilər&max_price=5
+```
+
+Yəni nəticə paylaşıla və brauzerin «geri» düyməsi ilə gəzilə bilər. Vəziyyət
+yalnız yaddaşda qalsaydı, istifadəçi filtri seçib linki göndərəndə qarşı tərəf
+başqa səhifə görərdi.
+
+**Filtr menyusu real datadan qurulur** (`facets`) — boş kateqoriya menyuda
+görünmür. Seçilə bilən, amma heç bir nəticə verməyən filtr istifadəçini
+aldadır.
+
+### Ana səhifə trolley strukturuna keçdi
+
+Axtarış paneli **yuxarıya** qalxdı, market şəbəkəsi onun altındadır. Endirimlər
+artıq kart şəbəkəsi deyil — trolley-dəki kimi **nömrələnmiş siyahıdır**:
+şəkil + ad + ölçü + marketlərin qiymətləri yan-yana. Səbət bloku aşağı köçdü.
+
+**Alış-veriş yoxdur:** nə «səbətə əlavə et» düyməsi, nə checkout, nə ödəniş.
+Səbət burada alış siyahısıdır, sifariş deyil — məqsəd qiyməti göstərməkdir.
+
 ### İkon kitabxanası bir faylda
 
 Üç səhifə eyni 30 ikonu işlədir. Sprite HTML-in içində qalsaydı, üç nüsxə
@@ -925,6 +990,14 @@ python tools/match_stats.py --reset
 
 # Səs əmrini uçdan-uca yoxlayır
 python tools/voice_check.py qeyd.ogg
+
+# Kataloq səhifələrindən məhsul şəkillərini kəsir -> app/static/images/products/
+python tools/build_images.py
+python tools/build_images.py --catalog 12 --force
+
+# Marketi bazadan tamamilə silir (əvvəl ehtiyat nüsxə götürür)
+python tools/purge_store.py <slug>          # quru qaçış: nə siləcəyini göstərir
+python tools/purge_store.py <slug> --apply  # həqiqətən silir
 ```
 
 ## OCR dil faylları
@@ -959,8 +1032,14 @@ səssiz idi: testlər yaşıl keçirdi, sadəcə səhifədə tanımadığın mə
 görünürdü. Tapılma yolu da təsadüfi oldu — səbətdə iki naməlum məhsul
 göründü və `basket_items`-ə yazan bütün kod axtarıldı.
 
-**Nəticə:** 321 test keçir, 5-i atlanır (boş test bazasında məntiqli olaraq),
+**Nəticə:** 366 test keçir, 2-si atlanır (boş test bazasında məntiqli olaraq),
 istifadəçinin datası toxunulmur.
+
+**Bir mühit tələsi:** `.env` gitignore-dadır, yəni git worktree-yə köçmür və
+`TESSERACT_CMD` boş qalır — həmin worktree-də 8 OCR testi `TesseractNotFoundError`
+ilə **düşür**. Şrift tapılmayanda testlər ötürülür, tesseract tapılmayanda isə
+düşür; eyni kateqoriyalı mühit boşluğu iki cür davranır. Həlli hələlik `.env`-i
+worktree-yə köçürməkdir.
 
 ## Status
 
@@ -983,8 +1062,12 @@ istifadəçinin datası toxunulmur.
 - [x] v2 — `price_snapshots` cədvəli (gündəlik qiymət qatı üçün hazır, **boş**)
 - [x] v2 — trolley dizayn sistemi + interfeysin sadələşdirilməsi (4918px → 1831px)
 - [ ] v2 — baza qiymət (mağaza) qatı: **mənbə tapılmadı**, bax «Mənbələr» bölməsi
+- [x] v3 — məhsul şəkilləri kataloqdan kəsilir (194 məhsuldan 73-ü, ≈38%)
+- [x] v3 — `/search` səhifəsi: filtrlər ünvanda, menyu real datadan
+- [x] v3 — ana səhifə trolley strukturuna keçdi (axtarış üstdə, endirimlər siyahı)
+- [x] v3 — OBA marketi koddan, sənəddən və bazadan tamamilə silindi
 
 ¹ Mənbə seçimi ölçmə tələb etdiyi üçün Həftə 2-dən sonra tamamlandı.
 ² Real droplet-də yox, lokal Docker-də sınanıb — təfərrüat `deploy/README.md`-də.
 
-**Testlər:** 326 — 321 keçir, 5 atlanır (`pytest -q`)
+**Testlər:** 368 — 366 keçir, 2 atlanır (`pytest -q`)

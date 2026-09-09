@@ -250,3 +250,80 @@ Claude-dur, Ollama ehtiyatdır.
   yanlışlaşan iddia qalmış ola bilər.
 - Status siyahısında «v2 — mağaza qatı» bəndi **açıq** (`[ ]`) qaldı, çünki
   mənbə tapılmadı. Bu, tamamlanmamış iş kimi görünür — real vəziyyət elə odur.
+
+---
+
+## 2026-09-09 — v3: trolley strukturu, məhsul şəkilləri, axtarış səhifəsi
+
+İstinad sayta (trolley.co.uk) yenidən baxıldı və struktur ona uyğunlaşdırıldı.
+**Alış-veriş yoxdur** — nə səbətə əlavə düyməsi, nə checkout, nə ödəniş.
+Məqsəd yalnız qiymət göstərmək və müqayisə etməkdir.
+
+### Nə dəyişdi
+
+| Fayl | Dəyişiklik |
+|---|---|
+| `tools/purge_store.py` | **yeni** — market + qiymətləri + yetim məhsulları silir, əvvəl ehtiyat nüsxə götürür |
+| `ingestion/images.py` | **yeni** — kataloq səhifəsindən məhsulun xanasını kəsir |
+| `tools/build_images.py` | **yeni** — CLI: kataloqları gəzir, şəkilləri yazır, hesabat çap edir |
+| `app/db.py` | `products.image_path` sütunu (miqrasiya) |
+| `app/static/search.html` / `search.js` | **yeni** `/search` səhifəsi: şəkilli kart şəbəkəsi + filtrlər |
+| `app/catalog.py` | `search()` + `facets` (filtr menyusu real datadan qurulur) |
+| `app/static/index.html` / `deals.js` | axtarış paneli yuxarı, endirimlər kart şəbəkəsi deyil **nömrələnmiş siyahı** |
+| `app/static/product.js` / `product.html` | iki sütun: solda kimlik + böyük şəkil, sağda qiymətlər; «Bugünkü qiymət» zolağı |
+| `tests/test_ui_contract.py` | **yeni** `test_hər_səhifə_müqavilədə_qeydiyyatdadır` |
+
+**OBA tamamilə silindi** — kod, testlər, sənədlər və baza. Uydurma slug testlərdə
+«kənar-market» adlandırıldı; `grep -i oba` bütün layihədə boş qayıdır.
+
+### Məhsul şəkilləri: niyə kəsirik, endirmirik
+
+Trolley şəkilləri marketin onlayn mağazasından götürür. Bizdə belə mənbə
+**yoxdur** (`logs/sources.md`-də ölçülüb). Yeganə real mənbə həftəlik kataloq
+şəklidir — məhsulun fotosu **onun içindədir**.
+
+`layout.py` onsuz da hər məhsulun qiymət qutusunu tapır. Kataloq kartlar
+şəbəkəsi olduğu üçün iki qonşu qiymət qutusu arasındakı məsafə xananın
+ölçüsünü verir; şəkil qiymətin üstündədir, deməli xana = qiymət qutusunun
+mərkəzindən yuxarı bir sıra addımı, yanlara yarım sütun addımı.
+
+Məhsulu şəklə `prices.raw_line` bağlayır. **Yalnız mətn oxşarlığı səhvə
+aparırdı** — düşbərənin yerinə su qabı düşürdü. Namizədləri qiymət daraldır,
+hədd `MATCH_THRESHOLD = 0.55`, iki namizəd yaxın olanda şəkil **verilmir**.
+Səhv şəkil placeholder-dən pisdir: istifadəçi başqa məhsulu görüb qiyməti ona
+aid sayır.
+
+### Nəyi ölçdüm
+
+**1. Şəkil əhatəsi (bazadan, 2026-09-09):** 194 məhsuldan **73-ünün** şəkli var
+(≈38%). Hamısı Araz kataloqlarındandır. **Bravo-nun 8 məhsulunun heç birində
+şəkil yoxdur** — Bravo datası kataloq səhifəsindən gəlmir, deməli kəsiləcək
+kadr da yoxdur. Qalan məhsullar neytral placeholder alır.
+
+**2. Testlər:** `pytest -q` → **366 keçdi / 2 atlandı**, `ruff` təmiz.
+
+**3. Yeni test real səhvdən çıxdı.** `search.html` yaradıldı, səhifə siyahısı
+əl ilə yazıldığı üçün yenilənmədi və **yeni səhifə heç bir testə düşmürdü** —
+bütün testlər isə yaşıl keçirdi. İndi siyahı fayl sistemi ilə tutuşdurulur;
+ikon yoxlaması da qovluqdan oxuyur, siyahıdan yox.
+
+### Yolda tapılan mühit tələsi
+
+Bu worktree-də `pytest` **8 testdə düşürdü**:
+`TesseractNotFoundError: tesseract is not installed`. Səbəb kod deyil —
+`.env` fayl gitignore-dadır, yəni worktree-yə köçmür, `TESSERACT_CMD` isə boş
+qalır. `.env` köçürüldükdən sonra 366 test keçdi.
+
+Diqqətçəkən tərəfi: şrift tapılmayanda testlər **ötürülür**
+(`pytest.skip("TrueType şrift tapılmadı")`), tesseract tapılmayanda isə xam
+istisna ilə **düşür**. Eyni kateqoriyalı mühit boşluğu iki cür davranır.
+
+### Nəyə əmin deyiləm
+
+- **Şəkil bağlantısı yoxlanmayıb, ölçülüb.** 73 şəklin hər birinə baxıb
+  «bu, doğrudan həmin məhsuldur» demədim. 0.55 həddi zəif uyğunluqları atır,
+  amma **yanlış-müsbət sayı bilinmir**.
+- **Şəkillər repo-ya düşmür** (`.gitignore`). Təmiz klonda bütün məhsullar
+  placeholder ilə görünəcək; şəkilləri `tools/build_images.py` yenidən qurur.
+- **`/search` yalnız mövcud datada sınandı** — 194 məhsul. Səhifələmə davranışı
+  (böyük nəticə dəsti) real datada yoxlanmayıb.
