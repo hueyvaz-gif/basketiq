@@ -297,3 +297,33 @@ qatında deyil, **atribut çıxarmadadır**.
 cədvəlinə isə toxunmur — ona görə əvvəlki emalın məhsulu qiymətsiz qalır.
 Yenidən emaldan sonra 46 belə sətir vardı. `tools/purge_orphans.py` ilə
 silindi: **234 → 188 məhsul, yetim 0**.
+
+
+---
+
+# Beşinci addım: atribut çıxarma
+
+Yuxarıda «qalan 6 səhv artıq şəkil səhvi deyil, LLM yanlış ad çıxarır»
+yazılmışdı. Diaqnostika bunu yalnız qismən təsdiqlədi.
+
+**Sınandı və ATILDI:** adın xam sətirdə əsaslandırılması. Gözlə təsdiqlənmiş
+60 hökmlə ölçüldü — ən yaxşı variant 6 səhvdən 3-ünü tutub 50 doğrudan 10-nu
+atır. Səbəb: model bəzən dünya biliyi ilə doğru ad verir («Heineken» → «pivə»).
+
+**Tapıldı və düzəldildi:** ölçü qiymətə bərabər olan 3 sətir (`unit_price`
+tam 1.0 — saxta «ən sərfəli» lideri). `price_reused_as_size()` onları tutur,
+məhsulu deyil yalnız ölçünü atır.
+
+## Yekun
+
+| | Başlanğıc | Uyğunlaşma | + layout | + yenidən emal | + atribut |
+|---|---|---|---|---|---|
+| Şəkil | 73 | 62 | 51 | 60 | **61** |
+| Doğru | 48 (66%) | 48 (77%) | 42 (82%) | 50 (83%) | **52 (85%)** |
+| **Səhv** | **21 (29%)** | 10 (16%) | 6 (12%) | 6 (10%) | **6 (10%)** |
+
+Qalan 6 səhvin təsnifatı:
+- **sətir qarışığı (2):** #1927, #2600 — bir sətirdə iki kartın yazısı qalıb;
+- **qiymət toqquşması (1):** #2614 — çıxarma düzdür, kart eyni qiymətlidir;
+- **brenddən uydurma ad (3):** #1939 Zabava→dondurma, #2381 ETTA→qaymaq,
+  #2609 Süfrə→duz. Bunlar üçün ölçdüyüm yeganə həll faydadan çox zərər verir.

@@ -742,7 +742,7 @@ Boş kadr (tək rəngli sahə) atılır, şəkli tapılmayan məhsul neytral
 placeholder alır (`/static/images/product-placeholder.svg`). **Uydurma məhsul
 şəkli çəkilmir.**
 
-**Ölçülmüş əhatə (2026-09-09):** 188 məhsuldan **60-ının** şəkli var (≈32%),
+**Ölçülmüş əhatə (2026-09-09):** 188 məhsuldan **61-inin** şəkli var (≈32%),
 hamısı Araz kataloqlarından. Şəkil yalnız ilk 20 səhifədən kəsilir
 (`build_images`), məhsullar isə 54 səhifənin hamısından gəlir — fərq buradandır. Bravo-nun 8 məhsulunda şəkil **yoxdur** — o data
 kataloq səhifəsindən gəlmir, deməli kəsiləcək kadr da yoxdur.
@@ -765,12 +765,12 @@ deyildi, iki kod qüsuru idi:
 
 Nəticə eyni metodla yenidən sayıldı:
 
-| | Başlanğıc | Uyğunlaşma | + layout | + yenidən emal |
-|---|---|---|---|---|
-| Şəkil | 73 | 62 | 51 | **60** |
-| Doğru | 48 (66%) | 48 (77%) | 42 (82%) | **50 (83%)** |
-| Səhv | **21 (29%)** | 10 (16%) | 6 (12%) | **6 (10%)** |
-| Unikal kadr | 63/73 | 62/62 | 51/51 | **60/60** |
+| | Başlanğıc | Uyğunlaşma | + layout | + yenidən emal | + atribut |
+|---|---|---|---|---|---|
+| Şəkil | 73 | 62 | 51 | 60 | **61** |
+| Doğru | 48 (66%) | 48 (77%) | 42 (82%) | 50 (83%) | **52 (85%)** |
+| Səhv | **21 (29%)** | 10 (16%) | 6 (12%) | 6 (10%) | **6 (10%)** |
+| Unikal kadr | 63/73 | 62/62 | 51/51 | 60/60 | **61/61** |
 
 Üçüncü addımdan sonra `raw_line` köhnə qalmışdı, ona görə dördüncü addımda
 **kataloq bütöv yenidən emal olundu** (54 səhifə OCR → LLM → baza). Nəticə:
@@ -998,6 +998,41 @@ Data itkisi **sıfır**. Siyahı ƏL İLƏ doldurulur: adları avtomatik oxşarl
 görə birləşdirmək təhlükəlidir — «Bravo» ilə «Bravo Express» fərqli şəbəkə
 ola bilər.
 
+## Atribut çıxarma: qiymət ölçü kimi köçürülür (v3)
+
+Sətirdə ölçü yazılmayanda model əlindəki yeganə rəqəmi — **qiyməti** — ölçü
+sahəsinə qoyur:
+
+```
+«cay mi 1.25»                 -> ölçü 1.25 L, qiymət 1.25 ₼
+«Persil Уи toz 1.35»          -> ölçü 1.35 kg, qiymət 1.35 ₼
+```
+
+**Bu, kosmetik deyil.** `unit_price` belə sətirlərdə **tam 1.0** çıxır — «1 litri
+1 manat». Kataloqda ondan ucuz heç nə yoxdur, deməli saxta təklif «ən sərfəli»
+sıralamasının **başına** keçir.
+
+`price_reused_as_size()` (`ingestion/pipeline.py`) iki şərt yoxlayır: ölçü
+qiymətə bərabərdirmi və həmin rəqəm sətirdə **yalnız bir dəfə** yazılıbmı.
+İkinci şərt təsadüfi üst-üstə düşməni qoruyur — «Sirab su 1.5 L 1.50 ₼»
+sətrində rəqəm iki dəfədir, deməli ölçü realdır. **Məhsul atılmır, yalnız ölçü
+atılır:** qiymət realdır, onu itirmək olmaz.
+
+Ölçüldü: 74 ölçülü sətirdən 3-ü tutuldu, 62-yə toxunulmadı, `unit_price = 1.0`
+sətir sayı **3 → 0**.
+
+### Sınanan və ATILAN variant: adın sətirdə əsaslandırılması
+
+İlk fikir modelin çıxardığı adı xam sətirdə axtarmaq idi. Gözlə təsdiqlənmiş
+60 hökmlə tutuşdurmaqla ölçüldü — altı variantın hamısı pis çıxdı, ən yaxşısı
+belə **6 səhvdən 3-ünü tutub 50 doğrudan 10-nu atırdı**.
+
+Səbəb: model bəzən dünya biliyi ilə **doğru** ad verir — «Heineken 4.35»
+sətrindən «pivə». Sətirdə həmin söz yoxdur, amma ad düzdür. Ona görə yoxlama
+tətbiq edilmədi.
+
+---
+
 ## Matching (hibrid, 3 pillə)
 
 | Pillə | Xərc | Nə edir |
@@ -1144,6 +1179,8 @@ worktree-yə köçürməkdir.
 - [x] v3 — kataloq bütöv yenidən emal olundu (54 səhifə): səhv şəkil **10%**,
       doğru şəkil 50 — hər ikisi ən yaxşı göstərici
 - [x] v3 — yetim (qiymətsiz) məhsullar silindi: 234 → 188, `tools/purge_orphans.py`
+- [x] v3 — atribut çıxarma: qiymət ölçü kimi köçürülmür, saxta `unit_price = 1.0`
+      sətir sayı 3 → **0**
 - [x] v3 — `/search` səhifəsi: filtrlər ünvanda, menyu real datadan
 - [x] v3 — ana səhifə trolley strukturuna keçdi (axtarış üstdə, endirimlər siyahı)
 - [x] v3 — OBA marketi koddan, sənəddən və bazadan tamamilə silindi
@@ -1151,4 +1188,4 @@ worktree-yə köçürməkdir.
 ¹ Mənbə seçimi ölçmə tələb etdiyi üçün Həftə 2-dən sonra tamamlandı.
 ² Real droplet-də yox, lokal Docker-də sınanıb — təfərrüat `deploy/README.md`-də.
 
-**Testlər:** 385 — 383 keçir, 2 atlanır (`pytest -q`)
+**Testlər:** 394 — 392 keçir, 2 atlanır (`pytest -q`)

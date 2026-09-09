@@ -595,3 +595,94 @@ götürülür, səbət sətri və şəkil faylı da təmizlənir.
   səbəbi budur — 54 səhifənin hamısını kəsmək sınanmadı.
 - **Şübhəli 4 hökm mənimdir** (#1935, #1952, #1956, #2612): növ uyğundur,
   brend və ya ölçü yox. «Səhv» sayılsaydılar nisbət 10%-dən 17%-ə qalxardı.
+
+
+---
+
+## 2026-09-09 — Atribut çıxarma: qiymət ölçü kimi köçürülür
+
+Qalan şəkil səhvlərinin kökü «LLM sətirdən yanlış ad çıxarır» kimi
+qiymətləndirilmişdi. Diaqnostikaya başlayanda mənzərə fərqli çıxdı.
+
+### Sınadım, ölçdüm, ATDIM: adın sətirdə əsaslandırılması
+
+İlk fikrim: modelin çıxardığı ad xam sətirdə olmalıdır, olmasa sətir atılsın.
+Məntiqli səslənir — «Süfrə 230» sətrindən «duz» çıxmır, uydurmadır.
+
+**Tətbiq etməzdən əvvəl ölçdüm.** Yoxlamanı gözlə təsdiqlədiyim 60 hökmlə
+(50 doğru, 6 səhv şəkil) tutuşdurdum, altı variantda — OCR-toleranslı və
+dəqiq, kök uzunluğu 3/4/5:
+
+| variant | atılan | səhvdən tutdu | doğrudan atdı |
+|---|---|---|---|
+| dəqiq, kök 3 | 33 | 3/6 | **12/50** |
+| dəqiq, kök 4 | 39 | 3/6 | 16/50 |
+| OCR-toleranslı, kök 3 | 28 | 3/6 | **10/50** |
+| OCR-toleranslı, kök 5 | 57 | 3/6 | 17/50 |
+
+**Hər variantda pis sövdələşmə.** Səbəb: model bəzən dünya biliyi ilə DOĞRU ad
+verir — «Heineken 4.35» sətrindən «pivə», «Tuborg Gold» sətrindən «pivə».
+Sətirdə həmin söz yoxdur, amma ad düzdür. Yoxlama bunları da atırdı.
+
+**Tətbiq etmədim.** Ölçmədən tətbiq etsəydim, 50 doğru sətrin 10-nu itirib
+«düzəliş etdim» deyərdim.
+
+### Tapdığım və düzəltdiyim əsl səhv
+
+Rəqəmlər mübahisə qəbul etmir — orada yoxladım. **Ölçü qiymətə bərabər olan
+3 sətir tapıldı:**
+
+```
+«cay mi 1.25»                 -> ölçü 1.25 L, qiymət 1.25 ₼
+«Persil Уи toz 1.35»          -> ölçü 1.35 kg, qiymət 1.35 ₼
+«Bloom Ağardıcı vasitə 0.85»  -> ölçü 0.85 L, qiymət 0.85 ₼
+```
+
+Sətirdə ölçü yazılmayanda model əlindəki yeganə rəqəmi — qiyməti — ölçü
+sahəsinə qoyur.
+
+**Bu, kosmetik deyil.** `unit_price` hər üçündə **tam 1.0** çıxır, yəni «1 litri
+1 manat». Kataloqda ondan ucuz heç nə yoxdur, deməli saxta təklif «ən sərfəli»
+sıralamasının **başına** keçir — istifadəçi olmayan endirimə yönləndirilir.
+
+### Düzəliş: `price_reused_as_size()` (`ingestion/pipeline.py`)
+
+Şərt iki hissəlidir:
+1. ölçü qiymətə (və ya köhnə qiymətə) bərabərdir;
+2. həmin rəqəm sətirdə **yalnız bir dəfə** yazılıb.
+
+İkinci şərt təsadüfi üst-üstə düşməni qoruyur: «Sirab su 1.5 L 1.50 ₼»
+sətrində rəqəm iki dəfə görünür, deməli ölçü realdır. Ölçüldü: birinci şərtə
+3 sətir düşür, hər üçündə rəqəm bir dəfədir; qiymətdən fərqli **62 ölçüyə**
+toxunulmur.
+
+**Məhsul atılmır, yalnız ölçü atılır.** Qiymət realdır — sətri tamamilə atsaq,
+kataloqdakı doğru qiyməti də itirərdik.
+
+### Nəticə
+
+| | Əvvəl | Sonra |
+|---|---|---|
+| `unit_price` tam 1.0 olan sətir | 3 | **0** |
+| Şəkil | 60 | **61** |
+| Doğru | 50 (83%) | **52 (85%)** |
+| Səhv | 6 (10%) | 6 (10%) |
+
+«Ən sərfəli» sıralamasının başı indi məntiqlidir: salfet 300 ədəd (0.01/ədəd),
+rəsm albomu 24 vərəq (0.06), çay 20 ədəd (0.09).
+
+9 test yazıldı; ikisi mutasiya ilə təsdiqləndi (yoxlamanı söndürəndə 5 test,
+«bir dəfə» şərtini götürəndə 1 test düşür).
+
+### Nəyə əmin deyiləm
+
+- **Qalan 6 səhv şəkil toxunulmadı.** Onların 2-si sətirlərin hələ də
+  qarışmasındandır (#1927, #2600), 1-i qiymət toqquşmasıdır (#2614), 3-ü isə
+  modelin brenddən uydurduğu addır (#1939 Zabava→dondurma, #2381 ETTA→qaymaq,
+  #2609 Süfrə→duz). Sonuncu üçü üçün ölçdüyüm yeganə həll (əsaslandırma
+  yoxlaması) faydadan çox zərər verir.
+- **Prompt dəyişdirilmədi.** `PROMPT_VERSION` dəyişsə bütün keş etibarsız olur
+  (214 yeni LLM sorğusu), halbuki qorunma onsuz da kodda — yoxlanıla bilən
+  yerdə — qoyuldu.
+- **«1.5 L / 1.50 ₼» halı süni məlumatla sınandı**, real kataloqda belə sətir
+  yox idi.

@@ -10,6 +10,7 @@ sətirləri BİR-BİR göndəririk - qruplaşdırsaq, cavabların sırası pozul
 və qiymət səhv məhsula yapışar.
 """
 
+import re
 from dataclasses import dataclass
 
 from ai.chains import extract_attributes
@@ -43,6 +44,52 @@ class PipelineResult:
         }
 
 
+_NUMBER = re.compile(r"\d+[.,]?\d*")
+
+
+def _number_count(text: str, value: float) -> int:
+    """`value` rəqəmi sətirdə neçə dəfə yazılıb?"""
+    found = 0
+    for token in _NUMBER.findall(text or ""):
+        try:
+            if abs(float(token.replace(",", ".")) - value) < 1e-9:
+                found += 1
+        except ValueError:
+            continue
+    return found
+
+
+def price_reused_as_size(line, size_value: float | None) -> bool:
+    """
+    Model QİYMƏTİ ölçü kimi köçürübmü?
+
+    REAL SƏHVDƏN ÇIXIB. Sətirdə ölçü yazılmayanda model bəzən əlindəki
+    yeganə rəqəmi - qiyməti - ölçü sahəsinə qoyur:
+
+        «cay mi 1.25»                  -> ölçü 1.25 L, qiymət 1.25 ₼
+        «Persil Уи toz 1.35»           -> ölçü 1.35 kg, qiymət 1.35 ₼
+        «Bloom Ağardıcı vasitə 0.85»   -> ölçü 0.85 L, qiymət 0.85 ₼
+
+    Nəticə görünəndən pisdir: `unit_price` həmişə TAM 1.0 çıxır, yəni «1 litri
+    1 manat». Bu, kataloqdakı ən sərfəli təklif kimi görünür və «ən sərfəli»
+    sıralamasının BAŞINA keçir - halbuki belə məhsul yoxdur.
+
+    Şərt iki hissəlidir: rəqəm qiymətə bərabər OLMALI və sətirdə YALNIZ BİR
+    DƏFƏ yazılmalıdır. İkinci şərt təsadüfi üst-üstə düşməni qoruyur: «1.5 L
+    ... 1.50 ₼» sətrində həmin rəqəm iki dəfə görünür, deməli ölçü realdır.
+    Ölçüldü: 137-ci kataloqda birinci şərtə 3 sətir düşür, hər üçündə rəqəm
+    bir dəfədir; qiymətdən fərqli 62 ölçüyə isə toxunulmur.
+    """
+    if size_value is None:
+        return False
+    for candidate in (getattr(line, "price", None), getattr(line, "old_price", None)):
+        if candidate is None or abs(size_value - candidate) > 1e-9:
+            continue
+        if _number_count(getattr(line, "raw", ""), size_value) <= 1:
+            return True
+    return False
+
+
 def build_products(lines, attributes_list) -> tuple[list[ExtractedProduct], int]:
     """Təmiz sətir + LLM atributları -> yekun məhsul obyekti."""
     products: list[ExtractedProduct] = []
@@ -58,22 +105,27 @@ def build_products(lines, attributes_list) -> tuple[list[ExtractedProduct], int]
             skipped += 1
             continue
 
-        u_price, base = unit_price(line.price, attrs.size_value, attrs.size_unit)
+        # Qiymət ölçü kimi köçürülübsə, ölçünü ATIRIQ - məhsulu yox.
+        # Qiymət realdır, yalnız ölçü uydurmadır; sətri tamamilə atsaq,
+        # kataloqdakı doğru qiyməti də itirərdik.
+        size_value, size_unit = attrs.size_value, attrs.size_unit
+        if price_reused_as_size(line, size_value):
+            size_value, size_unit = None, None
+
+        u_price, base = unit_price(line.price, size_value, size_unit)
 
         products.append(
             ExtractedProduct(
                 name=attrs.name,
                 brand=attrs.brand,
-                size_value=attrs.size_value,
-                size_unit=attrs.size_unit,
+                size_value=size_value,
+                size_unit=size_unit,
                 category=attrs.category,
                 price=line.price,
                 old_price=line.old_price,
                 unit_price=u_price,
                 base_unit=base,
-                canonical_key=canonical_key(
-                    attrs.name, attrs.brand, attrs.size_value, attrs.size_unit
-                ),
+                canonical_key=canonical_key(attrs.name, attrs.brand, size_value, size_unit),
                 raw_line=line.raw,
             )
         )
