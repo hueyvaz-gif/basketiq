@@ -323,7 +323,65 @@ istisna ilə **düşür**. Eyni kateqoriyalı mühit boşluğu iki cür davranı
 - **Şəkil bağlantısı yoxlanmayıb, ölçülüb.** 73 şəklin hər birinə baxıb
   «bu, doğrudan həmin məhsuldur» demədim. 0.55 həddi zəif uyğunluqları atır,
   amma **yanlış-müsbət sayı bilinmir**.
+  → **Sonradan ölçüldü (2026-09-09, aşağıdakı bölmə): 73-dən 21-i səhvdir.**
 - **Şəkillər repo-ya düşmür** (`.gitignore`). Təmiz klonda bütün məhsullar
   placeholder ilə görünəcək; şəkilləri `tools/build_images.py` yenidən qurur.
 - **`/search` yalnız mövcud datada sınandı** — 194 məhsul. Səhifələmə davranışı
   (böyük nəticə dəsti) real datada yoxlanmayıb.
+
+---
+
+## 2026-09-09 — Şəkillərin yoxlanması: 73-dən 21-i səhvdir
+
+Əvvəlki bölmədə «yanlış-müsbət sayı bilinmir» yazmışdım. İndi bilinir.
+
+### Metod
+
+73 şəklin hamısına gözlə baxıldı. Yoxlama mümkündür, çünki kəsilmiş kadr
+kartın **öz yazısını** (brend + ad + qramaj) da içinə alır — bazadakı ad kadrın
+öz etiketi ilə tutuşdurulur, üçüncü mənbə lazım deyil. 12-lik vərəqlər qurulub
+hər xananın altına `#id ad [brend] ölçü` yazıldı. Təkrarlanan kadrlar ayrıca
+**SHA-256** ilə sayıldı — göz aldana bilər, hash yox.
+
+### Nəticə
+
+| | Say | Pay |
+|---|---|---|
+| Doğru | 48 | 66% |
+| **Səhv** | **21** | **29%** |
+| Şübhəli (növ uyğun, brend yox) | 4 | 5% |
+
+Tam siyahı və hər səhvin nə olduğu: `logs/image-check.md`.
+
+### Səbəb koddadır, dataya aid deyil
+
+**1. Bir kart bir neçə məhsula verilir.** `tools/build_images.py` hər məhsul
+üçün ən yaxşı kartı ayrıca seçir, amma seçilmiş kartı siyahıdan **çıxarmır**.
+Hash göstərdi: 73 fayldan yalnız **63-ü unikal**, 20 məhsul 10 kartı bölüşür.
+Uyğunlaşma bir-birə olmalı ikən bir-çoxadır.
+
+**2. Qiymət açarı ehtiyac olan anda sönür.** Şərh «QİYMƏT BİRİNCİ AÇARDIR»
+deyir, kod isə `pool = priced or cards` yazır — qiyməti uyğun kart yoxdursa
+süzgəc **tamamilə düşür** və qərarı yalnız mətn verir. «Sosis → Pringles»,
+«it yemi → plastilin» buradan gəlir.
+
+**3. `raw_line` çox vaxt bir neçə kartın mətnidir** (#1921: `Penstore Karandaş
+12 rəng Penstore Qayçı ASH Su qabi 5.79`). Həddi qaldırmaq bunu düzəltmir —
+problem hədd deyil, müqayisə olunan mətndir.
+
+### İkinci qüsur: kadr sürüşür
+
+Uyğunlaşma doğru olanda belə sol kənar kəsilir (brend yarımçıq: «omaster»,
+«ickers/Bounty», «aello», «ineken»), ən azı 6 kadrda isə (#1944, #1945, #1973,
+#1974, #1976, #1977) məhsulun fotosu kadrda demək olar yoxdur — yalnız qiymət
+qutusu var. `is_blank()` bunu tuta bilmir: mətn və qırmızı qutu dispersiyanı
+yüksək saxlayır.
+
+### Nəyə əmin deyiləm
+
+- **Şübhəli 4 hökm mənimdir.** #1935 (Korovka: brend uyğun, növ yox) və #1952
+  (qəhvə: növ uyğun, brend yox) «səhv» sayılsaydı, nisbət 29%-dən 34%-ə
+  qalxardı. Sərhəd qərarı mənimdir, ölçmə deyil.
+- **Yalnız Araz kataloqları yoxlandı** — başqa mənbədə kart quruluşu fərqli
+  olsa, nisbət də fərqli olacaq.
+- **Kod dəyişdirilmədi.** Bu, ölçmədir; düzəliş ayrı qərardır.

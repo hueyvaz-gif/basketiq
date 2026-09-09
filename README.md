@@ -711,6 +711,15 @@ kataloq səhifəsindən gəlmir, deməli kəsiləcək kadr da yoxdur.
 Şəkillər generasiya olunur, ona görə repo-ya düşmür (`.gitignore`). Təmiz
 klonda hamısı placeholder görünür; bərpa: `python tools/build_images.py`.
 
+**Yoxlanıldı və nəticə pisdir (2026-09-09):** 73 şəklin hamısına gözlə baxıldı
+(`logs/image-check.md`). **21-i (29%) səhv məhsulu göstərir** — «sosis» üçün
+Pringles, «it yemi» üçün plastilin, «paltar yuyucu vasitə» üçün Tuc krekeri.
+Səbəb hədd deyil, iki kod qüsurudur: (1) seçilmiş kart siyahıdan çıxarılmır,
+ona görə **20 məhsul 10 kartı bölüşür** (hash ilə təsdiqlənib) — hər cütdə ən
+azı biri səhvdir; (2) `pool = priced or cards` sətri qiyməti uyğun kart
+tapılmayanda qiymət açarını **tamamilə söndürür** və qərarı yalnız mətnə
+buraxır. Düzəliş hələ edilməyib.
+
 ### 6. Axtarış səhifəsi (`/search`)
 
 Şəkilli kart şəbəkəsi + üç filtr: market, kateqoriya, maksimum qiymət.
