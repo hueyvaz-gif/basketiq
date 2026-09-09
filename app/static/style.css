@@ -696,8 +696,22 @@ a.brand:hover .brand-name { color: var(--text-secondary); }
 }
 
 .pill svg { width: 13px; height: 13px; }
+/* NEYTRAL VƏ «INFO» NİŞANI KART FONUNDA GÖRÜNMÜRDÜ.
+   `.card` fonu `--bg-subtle`-dir; `.pill`-in defolt fonu və `--info-soft`
+   də elə odur - yəni nişan öz səthinə qarışıb adi mətnə çevrilirdi.
+   BRAUZERDƏ GÖRÜLDÜ: «Tezliklə», «bağlı», «pdf» və «Vahid qiyməti normadan
+   kənar» nişanları çərçivəsiz mətn kimi oxunurdu.
+
+   Həll rəngi dəyişmir - nazik sərhəd əlavə edir. Öz fonu olan nişanlar
+   (yaşıl, qırmızı, vurğu, AI) sərhədsiz qalır: onlar hər iki səthdə onsuz
+   da seçilir və sərhəd əlavə etsək, siyahı «qutular divarına» dönərdi. */
+.pill { border: 1px solid var(--hairline); }
+.pill.is-green, .pill.is-red, .pill.is-accent, .pill.is-ai, .pill.solid-green {
+  border-color: transparent;
+}
+
 .pill.is-green { background: var(--ok-soft); color: var(--ok-ink); }
-.pill.is-amber { background: var(--info-soft); color: var(--info-ink); }
+.pill.is-amber { background: var(--info-soft); color: var(--info-ink); }  /* sərhəd qalır: fon səthlə eynidir */
 .pill.is-red   { background: var(--danger-soft);   color: var(--danger-ink); }
 .pill.is-accent{ background: var(--accent-soft); color: var(--accent-ink); }
 .pill.is-ai    { background: var(--ai-soft); color: var(--ai); }
@@ -810,7 +824,20 @@ a.brand:hover .brand-name { color: var(--text-secondary); }
    qırır - kart daralır, cədvəl isə öz içində sürüşür. */
 .panel > *, .duo > *, .card { min-width: 0; }
 
-.table-scroll { overflow-x: auto; border-radius: var(--r-md); }
+/* `position: relative` DEKORATİV DEYİL - səhifənin üfüqi sürüşməsini o saxlayır.
+   BRAUZERDƏ TAPILDI (390px): səhifə 584px sağa sürüşürdü, sürüşən sahədə isə
+   HEÇ NƏ yox idi - ağ boşluq.
+
+   Səbəb: cədvəlin içindəki `.sr-only` mətnləri (başlıq izahı, «ən ucuz»
+   bildirişi) `position: absolute`-dur. Qapsayıcının mövqeyi olmayanda onların
+   qapsayan bloku səhifənin özü olur - yəni `overflow-x: auto` onları KƏSMİR
+   və 978px enli cədvəlin sağ kənarındakı gizli mətn sənədi uzadır.
+   `overflow-x: hidden` da kömək etmir (sınandı); qapsayıcını mövqeyə salmaq
+   kəsir.
+
+   Səhv yalnız cədvəl genişləndikdə görünən oldu: D17-də dörd market sütunu
+   qaldı (əvvəl iki idi) və gizli mətn ekrandan xeyli kənara düşdü. */
+.table-scroll { overflow-x: auto; border-radius: var(--r-md); position: relative; }
 
 table.lines { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
 
@@ -1206,6 +1233,12 @@ a.btn { text-decoration: none; }
 
 .row-note { color: var(--text-3); font-weight: 400; }
 
+/* Cədvəl xanasında qeyd ALT SƏTİRDƏDİR. Sətir daxilində qalsaydı, əsas
+   dəyərlə birləşib oxunmaz olurdu: «home-banner2026-09-09 — 2027-09-09»
+   (brauzerdə görüldü). Sətir siyahılarında isə qeyd inline qalmalıdır -
+   orada o, qiymətin yanındakı «əvvəl 9.50 ₼» kimi işləyir. */
+td .row-note { display: block; margin-top: 2px; }
+
 /* Təsdiqlənmiş sətir yerində qalır (siyahı sürüşməsin), amma sönükləşir. */
 .row.is-done { opacity: .55; }
 
@@ -1521,6 +1554,19 @@ code {
 
   .seg-btn { font-size: 0; gap: 0; padding: var(--s2) var(--s3); }
   .seg-btn svg { width: 18px; height: 18px; }
+
+  /* ÜST PANEL DAR EKRANDA SARINIR.
+     BRAUZERDƏ ÖLÇÜLDÜ (390px): brend + iki tab + üç dil düyməsi + profil
+     ikonu bir sətirdə 474px tuturdu, yəni səhifə 84px üfüqi sürüşürdü və
+     «RU» düyməsi ilə profil ikonu ekrandan tamamilə kənarda qalırdı.
+
+     Sarınma seçildi, kiçiltmə YOX: düymələrin hündürlüyünü aşağı salsaq,
+     44px toxunma hədəfi qaydası pozulardı (Apple HIG, `test_düymələrin_...`).
+     İkinci sətir bir neçə piksel hündürlük əlavə edir - toxunma sahəsi isə
+     olduğu kimi qalır. */
+  .topbar-inner { flex-wrap: wrap; row-gap: var(--s2); padding: var(--s2) var(--s3); }
+  .brand { flex: 1 0 auto; }
+  .segmented { order: 3; flex: 1 1 100%; justify-content: center; }
 
   .brand-name { font-size: 17px; }
   .brand-mark { width: 30px; height: 30px; }
@@ -2046,8 +2092,8 @@ code {
 }
 
 .ad-image {
-  width: 220px;
-  max-height: 96px;
+  width: 260px;
+  max-height: 110px;
   object-fit: contain;
   border-radius: var(--r-md);
   flex: none;

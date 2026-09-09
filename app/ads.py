@@ -31,7 +31,10 @@ SLOTS: dict[str, str] = {
     # Market şəbəkəsi ilə «bugünün endirimləri» arasında. Qəsdən BU yer:
     # istifadəçi marketi seçib endirimlərə keçərkən ora onsuz da baxır,
     # amma axını kəsmir - pop-up deyil, sətir arası kartdır.
-    "home-banner": "Ana səhifə — market şəbəkəsi ilə endirimlər arasında",
+    # AD QISADIR, çünki admin formasındakı seçim qutusunda görünür və uzun
+    # mətn kəsilirdi (brauzerdə: «Ana səhifə — marke…»). İzah yuxarıdakı
+    # şərhdədir - onun yeri koddur, interfeys deyil.
+    "home-banner": "Ana səhifə — banner",
 }
 
 

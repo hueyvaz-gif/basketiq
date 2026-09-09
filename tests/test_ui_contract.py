@@ -356,6 +356,28 @@ def test_hər_açılan_bölmənin_dərəcəsi_var():
     css = read_static("style.css")
     assert ".fold.is-primary" in css and ".fold.is-secondary" in css
 
+
+def test_sürüşən_cədvəl_qapsayıcısı_mövqedədir():
+    """
+    `.table-scroll` `position: relative` OLMALIDIR.
+
+    BRAUZERDƏ TAPILDI (390px genişlik): səhifə 584px üfüqi sürüşürdü və
+    sürüşən sahədə heç nə görünmürdü - ağ boşluq. Səbəb cədvəlin içindəki
+    `position: absolute` olan `.sr-only` mətnləridir: qapsayıcının mövqeyi
+    olmayanda onların qapsayan bloku səhifə özü olur, `overflow-x: auto`
+    isə onları kəsmir.
+
+    Bu test STATİKDİR, davranışı yoxlamır - amma düzəlişin SƏBƏBİNİ saxlayır.
+    `position` sətri «lazımsız» görünüb silinsə, səhv geri qayıdar və yenə
+    yalnız dar ekranda, özü də görünməyən boşluq kimi üzə çıxar.
+    """
+    css = read_static("style.css")
+    blok = re.search(r"\.table-scroll \{([^}]*)\}", css)
+    assert blok, ".table-scroll qaydası tapılmadı"
+    assert "position: relative" in blok.group(1), (
+        ".table-scroll mövqedə deyil - gizli mətn səhifəni üfüqi sürüşdürəcək"
+    )
+
 def test_dark_mode_bloku_yoxdur():
     """Layihə həmişə işıq rejimindədir - sistem ayarı UI-ı dəyişməməlidir."""
     css = re.sub(r"/\*.*?\*/", "", read_static("style.css"), flags=re.S)
