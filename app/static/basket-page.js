@@ -59,14 +59,14 @@
     //   bəzi məhsulu satmır  -> «N məhsul yoxdur», cəm göstərilmir
     //   hamısını satır       -> cəm və ən ucuzdan fərq
     if (store.available === false) {
-      return `<div class="row is-muted">
+      return `<div class="row is-dim">
           <span class="row-label">${storeAvatar(store.store, "is-sm")}${esc(store.store)}</span>
           <span class="row-value is-quiet">${esc(t("basket.noData"))}</span>
         </div>`;
     }
 
     if (!store.complete) {
-      return `<div class="row is-muted">
+      return `<div class="row is-dim">
           <span class="row-label">${storeAvatar(store.store, "is-sm")}${esc(store.store)}
             <span class="row-note">${esc(t("basket.missingN", { n: store.missing.length }))}</span>
           </span>
@@ -122,7 +122,7 @@
       .map((a) => {
         // Heç bir marketdə tapılmayan məhsul planı POZMUR: ayrıca yazılır.
         if (!a.store) {
-          return `<div class="row is-muted">
+          return `<div class="row is-dim">
               <span class="row-label">${esc(a.label)}</span>
               <span class="row-value is-quiet">${esc(t("basket.noPriceAnywhere"))}</span>
             </div>`;

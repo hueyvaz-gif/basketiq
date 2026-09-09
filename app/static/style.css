@@ -152,7 +152,6 @@
      ÖLÇÜLDÜ: ağ mətn bu fonda 5.18:1 - AA-dan keçir (#ff9500 cəmi 2.20 verirdi
      və ağ mətnlə oxunmurdu). */
   --accent-hot: #c2410c;
-  --accent-hot-soft: color-mix(in srgb, var(--accent-hot) 10%, var(--bg));
 
   /* --- HƏRƏKƏT (M2.5) ---
      Bir müddət, bir əyri: müxtəlif sürətlər interfeysi səliqəsiz göstərir.
@@ -531,8 +530,8 @@ a.brand:hover .brand-name { color: var(--text-secondary); }
 
 .stat {
   position: relative;
-  background: var(--surface);
-  border: 1px solid var(--line);
+  background: var(--surface-card);
+  border: none;
   border-radius: var(--r-card);
   padding: var(--s4);
   box-shadow: var(--shadow);
@@ -591,11 +590,13 @@ a.brand:hover .brand-name { color: var(--text-secondary); }
    ============================================================================ */
 
 .hero {
-  background: var(--surface);
-  border: 1px solid var(--line);
+  /* SƏHİFƏNİN ƏSAS CAVABIDIR - ən açıq laydadır (kart kimi). Boz qalsaydı,
+     səhifə fonu ilə eyniləşər və «cavab» öz səthini itirərdi. */
+  background: var(--surface-card);
+  border: none;
   border-radius: var(--r-card);
   padding: var(--s4);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-1);
   display: flex;
   flex-direction: column;
   gap: var(--s3);
@@ -833,7 +834,7 @@ a.brand:hover .brand-name { color: var(--text-secondary); }
   transition: width var(--ease-slow);
 }
 
-.bar-row.is-best .bar-fill { background: var(--accent); }
+.bar-row.is-best .bar-fill { background: var(--cheapest); }
 
 /* Rəqəm barın içindədir. Qalib barda ağ, digərlərində tünd - çünki onların
    dolğunluğu açıqdır və ağ mətn oxunmazdı. */
@@ -962,7 +963,7 @@ table.lines .old { color: var(--text-3); text-decoration: line-through; }
 table.lines .txt { color: var(--text); }
 table.lines td.na { color: var(--text-3); }
 
-/* ƏN UCUZ qiymət: yaşıl PILL fon.
+/* ƏN UCUZ qiymət: isti aksentli PILL (M2.3).
    Rəng TƏK siqnal deyil - pillin içində ikon və ekran oxuyucusu üçün gizli
    mətn də var, yəni rəngi ayırd edə bilməyən istifadəçi məlumatı itirmir. */
 .price-pill {
@@ -1118,7 +1119,10 @@ a.btn { text-decoration: none; }
   display: inline-grid;
   place-items: center;
   border-radius: var(--r-pill);
-  background: var(--surface-2);
+  /* DAİRƏ BOZDUR, AĞ DEYİL (design-critic tapıntısı).
+     Kart ağa keçəndən sonra ağ dairə fonda itdi: səbətdə «−», «1», «+»
+     çılpaq simvollar kimi qalmışdı - düymə olduqları görünmürdü. */
+  background: var(--bg-subtle);
   border: none;
   color: var(--text-2);
   cursor: pointer;
@@ -1360,7 +1364,10 @@ td .row-note { display: block; margin-top: 2px; }
    çəkir. AYRICA ŞƏBƏKƏ QABI YOXDUR - skelet kartları birbaşa mövcud şəbəkənin
    içinə qoyulur, əks halda şəbəkə içində şəbəkə yaranır və hamısı tək sütuna
    düşür. */
-.skeleton-card { height: 260px; margin-bottom: 0; }
+/* BRAUZERDƏ ÖLÇÜLDÜ: real kart 443px-dir. Skelet 260px olanda nəticə
+   gələndə şəbəkə uzanırdı - yəni skeletin öz məqsədi (sıçrayışın qarşısını
+   almaq) pozulurdu. */
+.skeleton-card { height: 443px; margin-bottom: 0; }
 
 /* Hərəkət istəməyən istifadəçi üçün parıltı dayanır - skeletin ÖZÜ qalır,
    çünki məlumatı forma daşıyır, hərəkət yox. */
@@ -1671,7 +1678,14 @@ code {
     transition-duration: .01ms !important;
     scroll-behavior: auto !important;
   }
-  .card-lift:hover, .stat:hover { transform: none; }
+  /* HƏR QALXAN ELEMENT burada sıfırlanır. Əvvəl yalnız ikisi yazılmışdı və
+     M2-də əlavə olunan kartlar (`.pcard`, `.store-card`) hərəkət istəməyən
+     istifadəçidə hələ də 2px sıçrayırdı; düymə də basılanda kiçilirdi. */
+  .card-lift:hover,
+  .stat:hover,
+  .pcard:hover,
+  .store-card:hover { transform: none; }
+  .btn:active:not(:disabled) { transform: none; }
 }
 
 
@@ -1835,12 +1849,14 @@ code {
   gap: 4px;
   padding: var(--s3);
   border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-1);
   border-radius: var(--r-card);
   background: var(--bg);
   color: inherit;
   text-decoration: none;
   text-align: center;
-  transition: box-shadow var(--ease), transform var(--ease);
+  /* transition ORTAQ blokdadır (M2.2) - burada təkrar yazılsaydı,
+     160 ms qaydası üstələnərdi. */
 }
 
 /* hover qaydası yuxarıda, ortaq blokdadır (M2.2) */
@@ -2038,7 +2054,7 @@ code {
 .deal-offer-price { font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* Ən ucuz sətir QALIN yazılır, yaşıl fonla vurğulanmır - brend rəngi də
-   yaşıldır, eyni qayda `.price-pill.is-best`-də izah olunub. */
+   isti aksentdədir, eyni qayda `.price-pill.is-best`-də izah olunub. */
 .deal-offer.is-best { color: var(--text); font-weight: 700; }
 
 /* Tək marketdə tapılan məhsul: boş sətir və ya «—» yox, açıq cümlə. */
@@ -2092,13 +2108,17 @@ code {
 /* Axtarış (trolley quruluşu, Apple görünüşü): tam enli pill, boz fon,
    solda ikon, ağır düymə yoxdur. Sərhəd görünməz dərəcədə nazikdir - Apple
    axtarış sahəsini FONLA ayırır, çərçivə ilə deyil. */
+/* AXTARIŞ SAHƏSİ AĞDIR VƏ ÇƏRÇİVƏSİ VAR.
+   BRAUZERDƏ GÖRÜLDÜ: səhifə fonu boza keçəndən sonra boz axtarış sahəsi
+   fonla eyniləşdi - ekranda yalnız ikon, placeholder və mavi düymə havada
+   asılı qaldı. Səhifənin YEGANƏ sualının çərçivəsi itmişdi. */
 .searchbar {
   display: flex;
   align-items: center;
   gap: var(--s2);
   padding: 5px 5px 5px var(--s3);
-  background: var(--bg-subtle);
-  border: 1px solid transparent;
+  background: var(--surface-card);
+  border: 1px solid var(--hairline);
   border-radius: var(--r-pill);
   transition: border-color var(--ease), background var(--ease);
 }
@@ -2242,8 +2262,15 @@ code {
 .plan-lines .row-value { display: inline-flex; align-items: center; gap: var(--s2); }
 
 .row.is-best .row-value { color: var(--cheapest); font-weight: 700; }
-.row.is-muted .row-label { color: var(--text-secondary); }
-.row-value.is-quiet { color: var(--text-3); font-weight: 400; }
+/* `.row.is-muted` ADI QLOBAL `.is-muted` UTİLİTİSİ İLƏ TOQQUŞURDU.
+   O utiliti `opacity: .6` verir və bütün sətrə düşürdü: səbətdəki «bu
+   marketdə qiymət yoxdur» sətirləri 2.0-2.6:1 kontrastda qalırdı - yəni
+   oxunmurdu. İndi modifikator öz adını daşıyır və şəffaflıq işlətmir. */
+.row.is-dim .row-label { color: var(--text-secondary); }
+.row.is-dim { opacity: 1; }
+/* `--text-3` (3.62:1) bu sətirdə MƏLUMAT daşıyır («qiymət yoxdur»),
+   placeholder deyil - ona görə ikinci dərəcəli mətn tonuna keçir (5.98:1). */
+.row-value.is-quiet { color: var(--text-secondary); font-weight: 400; }
 
 .plan-head {
   display: flex; align-items: baseline; justify-content: space-between;
@@ -2461,7 +2488,7 @@ code {
   border-radius: var(--r-sm);
   background: var(--bg-subtle);
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 11px;   /* kartda ÜÇ ölçü qalsın (M2.4): 11 / 14 / 19 */
   font-weight: 500;
   letter-spacing: 0;
 }
@@ -2533,7 +2560,7 @@ code {
 
 /* Ən ucuz sütun: RƏNG YOX, altdan xətt - eyni qayda `.price-pill.is-best`. */
 .pricecol.is-best .pricecol-price {
-  box-shadow: inset 0 -3px 0 var(--accent);
+  box-shadow: inset 0 -3px 0 var(--cheapest);
 }
 
 
@@ -2674,7 +2701,7 @@ code {
 
 /* «Ən ucuz» sətir: sol kənarda brend rəngli zolaq. Dolu fon işlətmirik -
    brend rəngi də yaşıldır və iki məna bir rəngə düşərdi. */
-.wtb-row.is-best { box-shadow: inset 3px 0 0 var(--accent); padding-left: var(--s3); }
+.wtb-row.is-best { box-shadow: inset 3px 0 0 var(--cheapest); padding-left: var(--s3); }
 
 .tag-best,
 .tag-value {
@@ -2782,9 +2809,13 @@ code {
 .pcard {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--line);
+  /* SƏHİFƏDƏ İKİ DƏRİNLİK DİLİ OLMAMALIDIR (design-critic): bölmə kartları
+     kölgə ilə, məhsul kartları isə 1px xətt ilə ayrılırdı. İndi hər ikisi
+     eyni dildədir - sakit kölgə, hover-də güclü kölgə. */
+  border: none;
   border-radius: var(--r-md);
-  background: var(--bg);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-1);
   color: inherit;
   text-decoration: none;
   overflow: hidden;
