@@ -27,6 +27,47 @@
   let logos = new Map();
 
   /** Marketin qiymət sütunu: loqo (və ya ad) + qiymət. */
+  /**
+   * ENDİRİMİN ETİBARI.
+   *
+   * Siyahı ilə «endirim yoxlaması» bölməsi eyni funksiyadan qidalanır
+   * (`app/analytics.verify_claim`), ona görə burada yalnız hökm göstərilir.
+   * Rəng TƏK siqnal deyil - nişanın mətni də var və `title` izahı saxlayır.
+   */
+  function trustBadge(deal) {
+    const hökm = deal.verdict;
+    if (hökm === "tesdiqlenib") {
+      return `<span class="trust is-ok" title="${esc(t("trust.verifiedHint"))}">` +
+             `${icon("check")}${t("trust.verified")}</span>`;
+    }
+    if (hökm === "subheli") {
+      return `<span class="trust is-bad" title="${esc(t("trust.suspiciousHint"))}">` +
+             `${icon("alert")}${t("trust.suspicious")}</span>`;
+    }
+    if (hökm === "tesdiqlenmeyib") {
+      return `<span class="trust is-unknown" title="${esc(t("trust.unverifiedHint"))}">` +
+             `${icon("help")}${t("trust.unverified")}</span>`;
+    }
+    return "";
+  }
+
+  /** Marketlərarası uyğunluq dəqiqdir, yoxsa təxmini? */
+  function matchBadge(deal) {
+    if (!deal.match || (deal.coverage && deal.coverage.available < 2)) return "";
+    const dəqiq = deal.match === "exact";
+    return `<span class="match-pill ${dəqiq ? "is-exact" : "is-approx"}" ` +
+           `title="${esc(t(dəqiq ? "match.exactHint" : "match.approximateHint"))}">` +
+           `${t(dəqiq ? "match.exact" : "match.approximate")}</span>`;
+  }
+
+  /** «2 / 4 marketdə» - əhatənin açıq göstəricisi. */
+  function coverage(deal) {
+    if (!deal.coverage) return "";
+    return `<span class="coverage-pill">` +
+           `${t("coverage.stores", { n: deal.coverage.available, total: deal.coverage.total })}` +
+           `</span>`;
+  }
+
   function storeColumn(offer) {
     const logo = logos.get(offer.store_slug);
     const mark = logo
@@ -67,8 +108,8 @@
       brand +
       `<span class="deal-title">${title}</span>` +
       `<span class="deal-meta">${size}` +
-      `<span class="deal-save">${money(deal.saving)} ₼ ${t("deals.saving")}</span></span>` +
-      `<span class="deal-avail">${t("deals.available")}</span>` +
+      `<span class="deal-save">${money(deal.saving)} ₼ ${t("deals.saving")}</span>` +
+      trustBadge(deal) + matchBadge(deal) + coverage(deal) + `</span>` +
       stores +
       `</span>` +
       `</a>`

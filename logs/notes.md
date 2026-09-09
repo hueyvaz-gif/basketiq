@@ -1367,3 +1367,70 @@ datadır.
 
 - **Admin panelinin bütün blokları üç dildə görülmədi** — yalnız istifadəçi
   paneli, məhsul, axtarış və market səhifələri ekranda yoxlanıldı.
+
+---
+
+## 2026-09-09 — A mərhələsi: endirim siyahısı ilə yoxlama barışdı
+
+### 1. İki bölmə bir-birini təkzib edirdi
+
+«Bugünün ən sərfəli endirimləri» −69%-lik sətri BİRİNCİ göstərirdi, «endirim
+yoxlaması» isə eyni dərinliyi şübhəli sayırdı. Səbəb: hər bölmənin öz həddi və
+öz məntiqi vardı.
+
+**Həll — bir mənbə:** yoxlama məntiqi `app/analytics.verify_claim()`
+funksiyasına çıxarıldı, hər iki bölmə onu çağırır. Şübhə həddi 70%-dən **55%**-ə
+endirildi (`SUSPICIOUS_DEPTH`); 70% isə sərt süzgəc olaraq qalır.
+
+**Sıralama artıq faizə görə deyil, HÖKMƏ görədir:** təsdiqlənmiş → yoxlanmamış
+→ şübhəli. İstifadəçiyə ən çox güvənilən təklif lazımdır, ən böyük rəqəm yox.
+Ölçüldü: siyahının başı −69% və −65%-dən −51.9%-ə keçdi.
+
+Hər kartda nişan var: «Təsdiqlənmiş endirim» / «Yoxlanılmayıb» / «Şübhəli
+endirim» — rəng + ikon + mətn, `title`-də isə səbəb.
+
+### 2. Filtr sayğacları cari nəticədən gəlir
+
+«süd» axtaranda yan panel «təmizlik və gigiyena (41)» göstərirdi. Sayğaclar
+bütün bazadan hesablanırdı. İndi axtarış sözü və market filtri tətbiq
+olunduqdan sonrakı dəstə üzrədir:
+
+| Sorğu | Əvvəl | Sonra |
+|---|---|---|
+| «süd» | təmizlik 41, digər 29, şirniyyat 27… | **süd məhsulları 5** |
+| «pivə» | eyni siyahı | **içkilər 4** |
+
+Kateqoriya filtrinin özü sayğaca təsir etmir — əks halda bir kateqoriya seçən
+kimi qalanları menyudan itər və istifadəçi geri qayıda bilməzdi.
+
+### 3. Enter
+
+Ölçdüm: Enter üç axtarış sahəsində onsuz da işləyirdi (hero, məhsul, axtarış
+səhifəsi — hamısı formadadır). İşləməyən YEGANƏ yer səbətə əlavə axtarışı idi:
+o, forma deyil. İndi Enter birinci nəticəni səbətə əlavə edir.
+
+### 4. Uyğunluq etibarı
+
+`match_confidence()`: qrupdakı bütün məhsulların `canonical_key`-i eynidirsə
+«dəqiq uyğunluq», fərqlidirsə (matcher birləşdirib) «təxmini uyğunluq».
+Nişan yalnız məhsul 2+ marketdə olanda görünür — tək marketdə müqayisə yoxdur.
+
+### 5. «Mövcuddur» etiketi silindi
+
+Market loqosu onsuz da nə demək istədiyini deyir.
+
+### D18 (yolda): əhatə göstəricisi
+
+Hər məhsulda «1 / 4 marketdə». **Cəmi REYESTRDƏN gəlir** (dörd market),
+bazadakı market sayından yox: «1/2» yazmaq əhatəni olduğundan yaxşı göstərərdi.
+
+### Yenə həmin tələ
+
+Nişanlar brauzerdə görünmürdü — server köhnə backend-i daşıyırdı. `--reload`
+sınandı, bu mühitdə etibarsız işlədi (ilk dəyişikliyi tutdu, sonrakıları yox).
+**Qayda: backend dəyişikliyindən sonra serveri əl ilə yenidən başlat.**
+
+### Yoxlandı
+
+Üç dildə: nişanlar, uyğunluq və əhatə tərcümə olunur; konsol xətası yoxdur;
+409 test keçir, ruff təmiz.

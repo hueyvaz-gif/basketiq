@@ -29,9 +29,9 @@ yerinə işlətmək istifadəçini yanıldar.
 from sqlite3 import Connection
 from statistics import median
 
-from app.analytics import IMPLAUSIBLE_DEPTH
+from app.analytics import IMPLAUSIBLE_DEPTH, SUSPICIOUS_DEPTH, verify_claim
 from app.db import get_connection
-from app.stores import Market, market_for, market_status, store_map
+from app.stores import MARKETS, Market, market_for, market_status, store_map
 from ingestion.images import image_url
 from ingestion.normalize import display_label, display_size, unit_price
 
@@ -178,6 +178,31 @@ def _offers_by_group(
     return out
 
 
+def match_confidence(conn, group_keys: list[str]) -> dict[str, str]:
+    """
+    Hər qrup üçün: marketlərarası uyğunluq DƏQİQdir, yoxsa TƏXMİNİ?
+
+    `canonical_key` addan, brenddən və ölçüdən qurulur (`ingestion/normalize`).
+    Bir qrupdakı bütün məhsulların açarı EYNİDİRSƏ, marketlər eyni SKU-nu
+    satır - müqayisə dəqiqdir. Açarlar fərqlidirsə, qrupu matcher birləşdirib
+    (LLM + oxşarlıq) - yəni «Milla süd 1 l» ilə «Süd Milla 1L» eyni sayılıb.
+    Bu, çox vaxt doğrudur, amma ZƏMANƏT DEYİL.
+
+    NİYƏ İSTİFADƏÇİYƏ DEYİLİR? Qiymət müqayisəsinin bütün mənası məhsulların
+    eyni olmasındadır. Təxmini uyğunluğu dəqiq kimi göstərmək müqayisəni
+    yalançı dəqiqliklə bəzəməkdir.
+    """
+    if not group_keys:
+        return {}
+    marks = ",".join("?" * len(group_keys))
+    rows = conn.execute(
+        f"SELECT group_key, COUNT(DISTINCT canonical_key) AS n "
+        f"FROM products WHERE group_key IN ({marks}) GROUP BY group_key",
+        tuple(group_keys),
+    ).fetchall()
+    return {r["group_key"]: ("exact" if r["n"] <= 1 else "approximate") for r in rows}
+
+
 def _compare_note(offers: list[dict]) -> dict | None:
     """
     Marketlər arası müqayisənin bir cümləlik xülasəsi.
@@ -229,6 +254,7 @@ def todays_deals(limit: int = 12) -> dict:
                    p.size_unit    AS size_unit,
                    p.category     AS category,
                    p.image_path   AS image_path,
+                   pr.id          AS price_id,
                    pr.store_id    AS store_id,
                    pr.price       AS price,
                    pr.old_price   AS old_price,
@@ -275,18 +301,62 @@ def todays_deals(limit: int = 12) -> dict:
                 "old_price": round(old, 2),
                 "discount_pct": pct,
                 "saving": round(old - price, 2),
+                # Yoxlama üçün saxlanılır, cavaba düşmür.
+                "_price_id": row["price_id"],
+                "_seen_at": row["seen_at"],
+                "_store_id": row["store_id"],
             }
 
+        # HƏR ENDİRİM YOXLANILIR - siyahı ilə «endirim yoxlaması» bölməsi
+        # eyni funksiyadan qidalanır (`app/analytics.verify_claim`).
+        for deal in best.values():
+            nəticə = verify_claim(
+                conn,
+                group_key=deal["group_key"],
+                price=deal["price"],
+                old_price=deal["old_price"],
+                seen_at=deal["_seen_at"],
+                price_id=deal["_price_id"],
+                store_id=deal["_store_id"],
+            )
+            deal["verdict"] = nəticə["verdict"]
+            deal["verdict_reasons"] = nəticə["reason_keys"]
+
+        # SIRA HÖKMƏ GÖRƏDİR, dərinliyə görə yox.
+        #
+        # Əvvəl siyahı yalnız faizə görə sıralanırdı və ən dərin - yəni ən
+        # şübhəli - endirim BİRİNCİ dayanırdı. İstifadəçiyə ən çox güvənilən
+        # təklif lazımdır, ən böyük rəqəm yox. İndi: təsdiqlənmiş → yoxlanmamış
+        # → şübhəli; hər qrupun içində isə faiz böyükdən kiçiyə.
+        RANK = {"tesdiqlenib": 0, "endirim_yoxdur": 1, "tesdiqlenmeyib": 2, "subheli": 3}
         ranked = sorted(
-            best.values(), key=lambda d: (-d["discount_pct"], d["label"])
+            best.values(),
+            key=lambda d: (RANK.get(d["verdict"], 2), -d["discount_pct"], d["label"]),
         )[:limit]
 
-        offers = _offers_by_group(conn, [d["group_key"] for d in ranked], markets)
+        açarlar = [d["group_key"] for d in ranked]
+        offers = _offers_by_group(conn, açarlar, markets)
+        confidence = match_confidence(conn, açarlar)
         for deal in ranked:
             deal["offers"] = offers.get(deal["group_key"], [])
             deal["compare"] = _compare_note(deal["offers"])
+            deal["match"] = confidence.get(deal["group_key"], "exact")
+            # ƏHATƏ: neçə marketdə qiymət var / neçə market ümumiyyətlə var.
+            # Boş market «tapılmadı» deyil, «hələ datası yoxdur» deməkdir -
+            # bu fərq UI-da açıq yazılır.
+            # «Cəmi» REYESTRDƏN gəlir (dörd market), bazadakı market sayından
+            # yox: Bazar Store və Rahat hələ boşdur, amma istifadəçiyə vəd
+            # olunan dörd marketdir. «1/2» yazmaq əhatəni olduğundan yaxşı
+            # göstərərdi.
+            deal["coverage"] = {"available": len(deal["offers"]), "total": len(MARKETS)}
+            for daxili in ("_price_id", "_seen_at", "_store_id"):
+                deal.pop(daxili, None)
 
-        return {"items": ranked, "total_found": len(best)}
+        return {
+            "items": ranked,
+            "total_found": len(best),
+            "suspicious_depth_pct": round(SUSPICIOUS_DEPTH * 100),
+        }
     finally:
         conn.close()
 
@@ -392,18 +462,40 @@ def search(
 
         # Facet-lər BÜTÜN kataloq üzrədir (cari filtrdən asılı deyil), yəni
         # istifadəçi bir filtri dəyişəndə menyu boşalmır.
-        all_marks = ",".join("?" * len(markets))
+        # ==========================================================
+        # SAYĞACLAR CARİ NƏTİCƏDƏN GƏLİR, BÜTÜN KATALOQDAN YOX.
+        #
+        # REAL SƏHVDƏN ÇIXIB: «süd» axtaranda yan paneldə «təmizlik və
+        # gigiyena (41)» görünürdü - sayğac bütün bazadan hesablanırdı. Nəticə:
+        # istifadəçi nəticəsi OLMAYAN kateqoriyanı seçib boş səhifə alırdı.
+        #
+        # Şərtlər AÇIQ şəkildə yenidən qurulur: mövcud `where`/`params`
+        # siyahılarını süzmək kövrək olardı (hansı parametr hansı şərtə aiddir?).
+        #
+        # KATEQORİYA FİLTRİ SAYĞACA TƏSİR ETMİR: əks halda bir kateqoriya
+        # seçən kimi qalan hamısı menyudan itər və istifadəçi geri qayıda
+        # bilməzdi. Qiymət filtri də daxil edilmir - slayderin sərhədləri
+        # öz seçimindən asılı olmamalıdır.
+        # ==========================================================
+        facet_where = [f"pr.store_id IN ({','.join('?' * len(store_ids))})"]
+        facet_params: list = list(store_ids)
+        if q.strip():
+            facet_where.append("(p.name LIKE ? OR COALESCE(p.brand,'') LIKE ?)")
+            facet_params += [f"%{q.strip()}%", f"%{q.strip()}%"]
+        facet_sql = " AND ".join(facet_where)
+
         cats = conn.execute(
             "SELECT p.category AS category, COUNT(DISTINCT p.group_key) AS n "
             "FROM products p JOIN prices pr ON pr.product_id = p.id "
-            f"WHERE pr.store_id IN ({all_marks}) "
+            f"WHERE {facet_sql} "
             "GROUP BY p.category ORDER BY n DESC",
-            tuple(markets),
+            tuple(facet_params),
         ).fetchall()
         bounds = conn.execute(
-            "SELECT MIN(pr.price) AS lo, MAX(pr.price) AS hi FROM prices pr "
-            f"WHERE pr.store_id IN ({all_marks})",
-            tuple(markets),
+            "SELECT MIN(pr.price) AS lo, MAX(pr.price) AS hi "
+            "FROM products p JOIN prices pr ON pr.product_id = p.id "
+            f"WHERE {facet_sql}",
+            tuple(facet_params),
         ).fetchone()
 
         return {
@@ -772,6 +864,12 @@ def product_detail(product_id: int) -> dict | None:
             "product": product,
             "offers": offers,
             "compare": _compare_note(offers),
+            # Marketlərarası uyğunluq dəqiqdir, yoxsa təxmini? (A4)
+            "match": match_confidence(conn, [product["group_key"]]).get(
+                product["group_key"], "exact"
+            ),
+            # Neçə marketdə qiymət var / dörd marketdən (D18)
+            "coverage": {"available": len(offers), "total": len(MARKETS)},
             "price_summary": price_summary(conn, product["group_key"], markets),
             "variants": _variants(conn, product, markets),
             "similar": similar,

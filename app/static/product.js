@@ -16,7 +16,7 @@
 
   // ------------------------------------------------------------ sol sütun
 
-  function renderAside(product, offers) {
+  function renderAside(product, offers, data) {
     document.title = `${product.label} — BasketIQ`;
 
     const cheapest = offers.length ? offers[0] : null;
@@ -31,6 +31,14 @@
       `<h1 class="product-name">${name}</h1>` +
       `<div class="product-pills">${size}` +
       (product.category ? `<span class="cat-pill">${esc(t("cat." + product.category, product.category))}</span>` : "") +
+      (data.match && data.coverage && data.coverage.available > 1
+        ? `<span class="match-pill ${data.match === "exact" ? "is-exact" : "is-approx"}" ` +
+          `title="${esc(t(data.match === "exact" ? "match.exactHint" : "match.approximateHint"))}">` +
+          `${t(data.match === "exact" ? "match.exact" : "match.approximate")}</span>`
+        : "") +
+      (data.coverage
+        ? `<span class="coverage-pill">${t("coverage.stores", { n: data.coverage.available, total: data.coverage.total })}</span>`
+        : "") +
       `</div>` +
       `<div class="product-photo"><img src="${esc(product.image)}" alt="${esc(product.label)}"></div>` +
       (cheapest
@@ -223,7 +231,7 @@
     logos = new Map(markets.filter((m) => m.logo).map((m) => [m.slug, m.logo]));
     StoreColors.note(markets.map((m) => m.name));
 
-    renderAside(data.product, offers);
+    renderAside(data.product, offers, data);
     renderOffers(offers, data.compare);
     renderMarketNote(markets, offers);
     renderPriceBar(data.price_summary);

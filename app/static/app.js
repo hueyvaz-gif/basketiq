@@ -432,6 +432,19 @@ $("#matchBtn").addEventListener("click", async () => {
 
 let searchTimer = null;
 
+// ENTER = BİRİNCİ NƏTİCƏNİ SƏBƏTƏ ƏLAVƏ ET.
+//
+// REAL ŞİKAYƏTDƏN ÇIXIB: bu sahə yazdıqca nəticə göstərirdi, amma Enter
+// heç nə etmirdi - istifadəçi siyahını görüb klaviaturanı buraxmalı olurdu.
+// Sahə formanın içində deyil (səhifəni yeniləmək lazım deyil), ona görə
+// «göndərmə» davranışı əl ilə yazılır.
+$("#searchInput").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  const ilk = $("#searchResults").querySelector("[data-add]");
+  if (ilk) ilk.click();
+});
+
 $("#searchInput").addEventListener("input", (e) => {
   clearTimeout(searchTimer);
   const q = e.target.value.trim();
@@ -483,6 +496,33 @@ async function runSearch(q) {
   } catch {
     $("#searchResults").innerHTML = "";
   }
+}
+
+/**
+ * Marketlərarası uyğunluq + əhatə göstəricisi (A4, D18).
+ *
+ * Qiymət müqayisəsinin bütün mənası məhsulların EYNİ olmasındadır. Matcher
+ * «Milla süd 1 l» ilə «Süd Milla 1L»-i birləşdirəndə bu, çox vaxt doğrudur,
+ * amma zəmanət deyil - istifadəçi bunu bilməlidir.
+ */
+function matchLine(item) {
+    const parts = [];
+    if (item.match && item.available_in > 1) {
+      const dəqiq = item.match === "exact";
+      parts.push(
+        `<span class="match-pill ${dəqiq ? "is-exact" : "is-approx"}" ` +
+        `title="${esc(t(dəqiq ? "match.exactHint" : "match.approximateHint"))}">` +
+        `${t(dəqiq ? "match.exact" : "match.approximate")}</span>`
+      );
+    }
+    if (item.coverage) {
+      parts.push(
+        `<span class="coverage-pill">` +
+        `${t("coverage.stores", { n: item.coverage.available, total: item.coverage.total })}` +
+        `</span>`
+      );
+    }
+    return parts.length ? `<span class="entity-badges">${parts.join("")}</span>` : "";
 }
 
 // ---------------------------------------------------------------- müqayisə
@@ -740,6 +780,7 @@ function renderCompareTable(data) {
                     <span class="entity-text">
                       <span class="entity-name">${esc(item.label)}</span>
                       <span class="entity-meta">${esc([item.size, item.category ? t("cat." + item.category, item.category) : ""].filter(Boolean).join(" · "))}</span>
+                      ${matchLine(item)}
                     </span>
                   </span>
                 </td>

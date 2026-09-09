@@ -184,6 +184,17 @@ def compare(basket_id: int = DEFAULT_BASKET_ID):
     stores = _all_stores()
     price_map = _latest_prices_by_group([i["group_key"] for i in items])
 
+    # Uyğunluq etibarı BİR sorğuda hesablanır - hər sətir üçün ayrıca sorğu
+    # N+1 vərdişini gətirərdi.
+    from app.catalog import match_confidence
+    from app.db import get_connection as _conn
+
+    _c = _conn()
+    try:
+        confidence = match_confidence(_c, [i["group_key"] for i in items])
+    finally:
+        _c.close()
+
     item_rows = []
     store_totals = {s["id"]: {"store_id": s["id"], "store": s["name"], "total": 0.0,
                               "covered": 0, "missing": [], "cheapest_count": 0}
@@ -229,6 +240,10 @@ def compare(basket_id: int = DEFAULT_BASKET_ID):
             "prices": {str(sid): value for sid, value in prices.items()},
             "cheapest_store_id": cheapest_store,
             "available_in": len(prices),
+            # A4: marketlərarası uyğunluq dəqiqdir, yoxsa təxmini?
+            "match": confidence.get(item["group_key"], "exact"),
+            # D18: neçə marketdə var / dörd marketdən
+            "coverage": {"available": len(prices), "total": len(MARKETS)},
         })
 
     results = []

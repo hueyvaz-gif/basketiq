@@ -105,6 +105,48 @@
     "deals.saving": { az: "qənaət", en: "saved", ru: "экономия" },
     "deals.onlyAt": { az: "Yalnız {store}-də tapılıb", en: "Found only at {store}", ru: "Найдено только в {store}" },
 
+    // --- endirimin etibarı (A1) ---
+    "trust.verified": { az: "Təsdiqlənmiş endirim", en: "Verified discount", ru: "Проверенная скидка" },
+    "trust.unverified": { az: "Yoxlanılmayıb", en: "Unverified", ru: "Не проверено" },
+    "trust.suspicious": { az: "Şübhəli endirim", en: "Suspicious discount", ru: "Подозрительная скидка" },
+    "trust.verifiedHint": {
+      az: "Köhnə qiymət öz müşahidələrimizlə təsdiqlənib",
+      en: "The old price is confirmed by our own observations",
+      ru: "Старая цена подтверждена нашими наблюдениями",
+    },
+    "trust.unverifiedHint": {
+      az: "Bu məhsulun keçmiş qiymətini görməmişik - iddianı yoxlaya bilmirik",
+      en: "We have not seen this product's past price — we cannot check the claim",
+      ru: "Мы не видели прошлую цену этого товара — проверить заявление нельзя",
+    },
+    "trust.suspiciousHint": {
+      az: "Endirim həddindən dərindir və ya köhnə qiymət şişirdilib",
+      en: "The discount is implausibly deep or the old price is inflated",
+      ru: "Скидка неправдоподобно глубокая или старая цена завышена",
+    },
+
+    // --- uyğunluq etibarı (A4) ---
+    "match.exact": { az: "dəqiq uyğunluq", en: "exact match", ru: "точное совпадение" },
+    "match.approximate": { az: "təxmini uyğunluq", en: "approximate match", ru: "приблизительное совпадение" },
+    "match.exactHint": {
+      az: "Marketlərdə eyni məhsul (eyni ad, brend və ölçü)",
+      en: "The same product across supermarkets (same name, brand and size)",
+      ru: "Один и тот же товар в магазинах (то же название, бренд и размер)",
+    },
+    "match.approximateHint": {
+      az: "Məhsullar oxşarlığa görə birləşdirilib - eyni olmaya bilər",
+      en: "The products were merged by similarity — they may not be identical",
+      ru: "Товары объединены по схожести — они могут отличаться",
+    },
+
+    // --- əhatə (D18) ---
+    "coverage.stores": {
+      az: "{n} / {total} marketdə",
+      en: "{n} of {total} supermarkets",
+      ru: "{n} из {total} магазинов",
+    },
+    "coverage.noData": { az: "hələ data yoxdur", en: "no data yet", ru: "данных пока нет" },
+
     // ==================================================================== SƏBƏT
     "basket.title": { az: "Səbətiniz harada ucuzdur?", en: "Where is your basket cheaper?", ru: "Где ваша корзина дешевле?" },
     "basket.empty": { az: "Səbət boşdur", en: "Your basket is empty", ru: "Корзина пуста" },

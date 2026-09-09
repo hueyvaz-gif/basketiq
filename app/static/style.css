@@ -1892,6 +1892,38 @@ code {
 
 .deal-save { font-size: 15px; font-weight: 500; color: var(--link); }
 
+/* --- Endirimin etibarı, uyğunluq və əhatə nişanları (A1, A4, D18) ---
+   Hamısı KİÇİK və NEYTRAL: kartın əsas mesajı qiymətdir, nişanlar onu
+   müşayiət edir. Rəng tək siqnal deyil - hər nişanın öz mətni var. */
+.trust,
+.match-pill,
+.coverage-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+}
+
+.trust svg { width: 13px; height: 13px; flex: none; }
+
+.trust.is-ok      { background: var(--accent-soft); color: var(--link); }
+.trust.is-unknown { background: var(--bg-subtle);   color: var(--text-secondary); }
+.trust.is-bad     { background: var(--danger-soft); color: var(--danger); }
+
+.match-pill { background: var(--bg-subtle); color: var(--text-secondary); }
+.match-pill.is-approx { font-style: italic; }
+
+.coverage-pill { background: var(--bg-subtle); color: var(--text-secondary); }
+
+/* Cədvəl sətrində nişanlar adın ALTINDA, kiçik sırada dayanır. */
+.entity-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.entity-badges .match-pill,
+.entity-badges .coverage-pill { font-size: 12px; padding: 2px 7px; }
+
 /* «MÖVCUDDUR» etiketi: Apple-da bölmə etiketi kiçik CAPS deyil, adi kiçik
    mətndir. Hərf aralığı azaldıldı, çəki 500-ə endi. */
 .deal-avail {

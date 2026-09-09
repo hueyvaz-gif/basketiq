@@ -42,8 +42,21 @@ INFLATED_RATIO = 1.25
 CONFIRM_TOLERANCE = 0.95
 
 # Ərzaqda bundan dərin endirim praktiki olaraq olmur - ya OCR səhvidir,
-# ya da köhnə qiymət uydurmadır.
+# ya da köhnə qiymət uydurmadır. Bu hədd SƏRT SÜZGƏCDİR: bundan dərin sətir
+# «bugünün endirimləri» siyahısına ümumiyyətlə buraxılmır.
 IMPLAUSIBLE_DEPTH = 0.70
+
+# ŞÜBHƏ HƏDDİ - sərt süzgəcdən aşağıdır.
+#
+# REAL ZİDDİYYƏTDƏN ÇIXIB: «bugünün ən sərfəli endirimləri» −69%-lik sətri
+# BİRİNCİ yerdə göstərirdi, «endirim yoxlaması» bölməsi isə eyni dərinliyi
+# şübhəli sayırdı. İki bölmə eyni datanı iki cür qiymətləndirirdi - istifadəçi
+# hansına inanacağını bilmirdi.
+#
+# İndi hər iki bölmə EYNİ funksiyadan (`verify_claim`) qidalanır və 55%-dən
+# dərin endirim hər yerdə şübhəli sayılır. 55-70% arası sətir siyahıda QALIR,
+# amma «yoxlanılmayıb» nişanı ilə və ƏN AŞAĞI sırada.
+SUSPICIOUS_DEPTH = 0.55
 
 VERDICTS = {
     "tesdiqlenib": "Təsdiqlənib",
@@ -218,6 +231,95 @@ def _cheaper_elsewhere(conn, group_key: str, price: float, store_id: int) -> dic
     return None
 
 
+def verify_claim(
+    conn,
+    *,
+    group_key: str,
+    price: float,
+    old_price: float | None,
+    seen_at: str,
+    price_id: int,
+    store_id: int,
+) -> dict:
+    """
+    BİR endirim iddiasını yoxlayır və hökm qaytarır.
+
+    HƏM «endirim yoxlaması» bölməsi, HƏM DƏ «bugünün endirimləri» siyahısı bu
+    funksiyanı çağırır. Əvvəl məntiq yalnız yoxlama bölməsində idi və siyahı öz
+    ayrıca həddi ilə işləyirdi - nəticədə eyni sətir bir yerdə «ən sərfəli»,
+    o biri yerdə «şübhəli» görünürdü.
+
+    Qaytarır: `verdict`, `reasons` (azərbaycanca), `reason_keys` (tərcümə üçün),
+    `observations`, `max_seen`, `discount_pct`.
+    """
+    nəticə = {
+        "verdict": "endirim_yoxdur",
+        "reasons": [],
+        "reason_keys": [],
+        "observations": 0,
+        "max_seen": None,
+        "discount_pct": None,
+    }
+    if not old_price or old_price <= price:
+        return nəticə
+
+    old = float(old_price)
+    pct = round((old - price) / old * 100, 1)
+    nəticə["discount_pct"] = pct
+
+    history = _history_before(conn, group_key, seen_at, price_id)
+    nəticə["observations"] = len(history)
+    max_seen = max(history) if history else None
+    nəticə["max_seen"] = max_seen
+
+    if pct >= SUSPICIOUS_DEPTH * 100:
+        nəticə["verdict"] = "subheli"
+        nəticə["reasons"].append(
+            f"Endirim {pct}% - ərzaqda bu dərinlikdə endirim praktiki olaraq olmur"
+        )
+        nəticə["reason_keys"].append({"key": "reason.tooDeep", "params": {"pct": pct}})
+    elif not history:
+        nəticə["verdict"] = "tesdiqlenmeyib"
+        nəticə["reasons"].append(
+            "Bu məhsulu əvvəllər görməmişik - elan olunan köhnə qiyməti "
+            "yoxlamaq üçün müqayisə nöqtəsi yoxdur"
+        )
+        nəticə["reason_keys"].append({"key": "reason.neverSeen", "params": {}})
+    elif max_seen is not None and old > max_seen * INFLATED_RATIO:
+        nəticə["verdict"] = "subheli"
+        nəticə["reasons"].append(
+            f"Elan olunan köhnə qiymət {old:.2f} AZN, amma indiyədək "
+            f"gördüyümüz ən yüksək qiymət {max_seen:.2f} AZN "
+            f"({len(history)} müşahidə)"
+        )
+        nəticə["reason_keys"].append({
+            "key": "reason.inflated",
+            "params": {"old": f"{old:.2f}", "max": f"{max_seen:.2f}", "n": len(history)},
+        })
+    elif max_seen is not None and max_seen >= old * CONFIRM_TOLERANCE:
+        nəticə["verdict"] = "tesdiqlenib"
+        nəticə["reasons"].append(
+            f"Bu məhsulu əvvəllər {max_seen:.2f} AZN-ə görmüşük - "
+            f"elan olunan köhnə qiymət ({old:.2f}) həqiqətə uyğundur"
+        )
+        nəticə["reason_keys"].append({
+            "key": "reason.confirmed",
+            "params": {"max": f"{max_seen:.2f}", "old": f"{old:.2f}"},
+        })
+    else:
+        nəticə["verdict"] = "tesdiqlenmeyib"
+        nəticə["reasons"].append(
+            f"Tarixçədə ən yüksək qiymət {max_seen:.2f} AZN, "
+            f"iddia isə {old:.2f} AZN - nə təsdiqləyə, nə təkzib edə bilirik"
+        )
+        nəticə["reason_keys"].append({
+            "key": "reason.inconclusive",
+            "params": {"max": f"{max_seen:.2f}", "old": f"{old:.2f}"},
+        })
+
+    return nəticə
+
+
 def check_discounts(limit: int = 50) -> list[DiscountCheck]:
     """Ən son qiymət sətirlərini bir-bir yoxlayır."""
     conn = get_connection()
@@ -255,68 +357,25 @@ def check_discounts(limit: int = 50) -> list[DiscountCheck]:
                 conn, row["group_key"], row["price"], row["store_id"]
             )
 
-            if not row["old_price"] or row["old_price"] <= row["price"]:
+            nəticə = verify_claim(
+                conn,
+                group_key=row["group_key"],
+                price=row["price"],
+                old_price=row["old_price"],
+                seen_at=row["seen_at"],
+                price_id=row["id"],
+                store_id=row["store_id"],
+            )
+            check.verdict = nəticə["verdict"]
+            check.discount_pct = nəticə["discount_pct"]
+            check.observations = nəticə["observations"]
+            check.max_seen = nəticə["max_seen"]
+            check.reasons = list(nəticə["reasons"])
+            check.reason_keys = list(nəticə["reason_keys"])
+
+            if check.discount_pct is None:
                 checks.append(check)
                 continue
-
-            old = row["old_price"]
-            check.discount_pct = round((old - row["price"]) / old * 100, 1)
-
-            history = _history_before(conn, row["group_key"], row["seen_at"], row["id"])
-            check.observations = len(history)
-            check.max_seen = max(history) if history else None
-
-            if check.discount_pct and check.discount_pct >= IMPLAUSIBLE_DEPTH * 100:
-                check.verdict = "subheli"
-                check.reasons.append(
-                    f"Endirim {check.discount_pct}% - ərzaqda bu dərinlikdə "
-                    f"endirim praktiki olaraq olmur"
-                )
-                check.reason_keys.append(
-                    {"key": "reason.tooDeep", "params": {"pct": check.discount_pct}}
-                )
-            elif not history:
-                check.verdict = "tesdiqlenmeyib"
-                check.reasons.append(
-                    "Bu məhsulu əvvəllər görməmişik - elan olunan köhnə qiyməti "
-                    "yoxlamaq üçün müqayisə nöqtəsi yoxdur"
-                )
-                check.reason_keys.append({"key": "reason.neverSeen", "params": {}})
-            elif check.max_seen is not None and old > check.max_seen * INFLATED_RATIO:
-                check.verdict = "subheli"
-                check.reasons.append(
-                    f"Elan olunan köhnə qiymət {old:.2f} AZN, amma indiyədək "
-                    f"gördüyümüz ən yüksək qiymət {check.max_seen:.2f} AZN "
-                    f"({check.observations} müşahidə)"
-                )
-                check.reason_keys.append({
-                    "key": "reason.inflated",
-                    "params": {
-                        "old": f"{old:.2f}",
-                        "max": f"{check.max_seen:.2f}",
-                        "n": check.observations,
-                    },
-                })
-            elif check.max_seen is not None and check.max_seen >= old * CONFIRM_TOLERANCE:
-                check.verdict = "tesdiqlenib"
-                check.reasons.append(
-                    f"Bu məhsulu əvvəllər {check.max_seen:.2f} AZN-ə görmüşük - "
-                    f"elan olunan köhnə qiymət ({old:.2f}) həqiqətə uyğundur"
-                )
-                check.reason_keys.append({
-                    "key": "reason.confirmed",
-                    "params": {"max": f"{check.max_seen:.2f}", "old": f"{old:.2f}"},
-                })
-            else:
-                check.verdict = "tesdiqlenmeyib"
-                check.reasons.append(
-                    f"Tarixçədə ən yüksək qiymət {check.max_seen:.2f} AZN, "
-                    f"iddia isə {old:.2f} AZN - nə təsdiqləyə, nə təkzib edə bilirik"
-                )
-                check.reason_keys.append({
-                    "key": "reason.inconclusive",
-                    "params": {"max": f"{check.max_seen:.2f}", "old": f"{old:.2f}"},
-                })
 
             if check.cheaper_elsewhere:
                 check.reasons.append(
