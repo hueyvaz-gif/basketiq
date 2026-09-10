@@ -137,3 +137,41 @@ alətini çağırır. Alət siyahısını əl ilə yazmaq lazım deyil — MCP o
 **Gözlənti:** `qwen3:4b` CPU-da saniyədə ~4.5 token yazır, ona görə agent cavabı
 10-30 saniyə çəkəcək. Nümayiş üçün kifayətdir, real istifadə üçün model serverdə
 işləməlidir.
+
+## Server 07:00-da işlək olmalıdır
+
+Axın `host.docker.internal:8000` ünvanına sorğu göndərir. BasketIQ serveri
+işləmirsə, zəncir ilk addımda qırılır — və Windows-da bu, xüsusilə xəbisdir:
+port 8000-i Docker-in başqa konteyneri də dinləyir, ona görə cavab
+«bağlantı yoxdur» yox, **404** olur (bax `logs/sources.md` və layihə kökündəki
+qeydlər).
+
+Ona görə server Task Scheduler ilə avtomatik qaldırılır:
+
+```powershell
+# Qeydi yaratmaq (bir dəfə)
+$root = "<layihə yolu>"
+$action = New-ScheduledTaskAction -Execute "powershell.exe" `
+  -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$root\scripts\start_server.ps1`"" `
+  -WorkingDirectory $root
+Register-ScheduledTask -TaskName "BasketIQ Server" -Action $action `
+  -Trigger (New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME), `
+           (New-ScheduledTaskTrigger -Daily -At 06:50) `
+  -Settings (New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew) `
+  -RunLevel Limited
+```
+
+**İki trigger var və hər ikisi lazımdır:** girişdə (kompüter açılanda) və
+**06:50-də** (n8n 07:00-da çağırır; server gün ərzində düşübsə, geri qalxır).
+
+`scripts/start_server.ps1` özü **idempotentdir**: `127.0.0.1:8000` artıq
+dinlənilirsə heç nə etmir. Yoxlama məhz `127.0.0.1`-ə baxır — `0.0.0.0:8000`
+Docker-indir və onun olması bizim serverin işləməsi demək deyil.
+
+Yoxlamaq / silmək:
+
+```powershell
+Get-ScheduledTaskInfo -TaskName "BasketIQ Server"     # son nəticə kodu 0 olmalıdır
+Start-ScheduledTask   -TaskName "BasketIQ Server"     # əl ilə işə salmaq
+Unregister-ScheduledTask -TaskName "BasketIQ Server" -Confirm:$false
+```
