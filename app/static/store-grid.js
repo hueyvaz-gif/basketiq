@@ -21,8 +21,19 @@
 
   function card(market) {
     const soon = market.available ? "" : " is-soon";
+    // MƏHSUL SAYI KARTDA GÖSTƏRİLMİR.
+    //
+    // Kartın işi marketi TANITMAQDIR - loqo və ad bunu edir. Say isə
+    // müqayisə üçün mənasız rəqəmdir: «13 139» ilə «379» arasındakı fərq
+    // marketin zənginliyini yox, bizim data mənbəyimizin növünü göstərir
+    // (Bravo mağaza qatından, Araz həftəlik kataloqdan gəlir). İstifadəçi
+    // bunu bilmir və rəqəmi market haqqında hökm kimi oxuyur.
+    //
+    // «TEZLİKLƏ» QALIR: o, say deyil - datası olmayan marketin vəziyyətini
+    // bildirir. Onsuz kart boş görünər və «niyə bu marketin qiyməti yoxdur?»
+    // sualı cavabsız qalardı (D15).
     const badge = market.available
-      ? `<span class="store-card-meta">${count(market.products)} ${t("stores.productCount")}</span>`
+      ? ""
       : `<span class="store-card-meta is-soon-text">${t("common.soon")}</span>`;
 
     // Loqo <img>-dir, fon şəkli deyil: `alt` mətni ekran oxuyucusuna çatır və

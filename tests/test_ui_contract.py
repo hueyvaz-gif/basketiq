@@ -1086,35 +1086,26 @@ def test_iki_şəkil_prefiksi_qarışdırılmır():
     assert not IMAGE_URL_PREFIX.startswith("/static/images/products/")
 
 
-def test_böyük_say_minlik_ayırıcı_ilə_yazılır():
+def test_market_kartında_məhsul_sayı_göstərilmir():
     """
-    Market kartında say ayırıcısız yazılırdı və «13139» bir yığın rəqəm
-    kimi görünürdü - göz onu bir baxışda oxuya bilmirdi.
+    Kartın işi marketi TANITMAQDIR - loqo və ad bunu edir.
 
-    `toLocaleString("az-AZ")` İŞLƏMİR: brauzerdə ölçüldü, Chrome həmin
-    lokal üçün VERGÜL qaytarır («13,139»). Azərbaycan yazısında vergül
-    ONLUQ ayırıcıdır, yəni nəticə «on üç tam» kimi oxuna bilərdi. Ona görə
-    format açıq yazılır - nəticə brauzerdən asılı deyil.
+    Say isə müqayisə üçün mənasız rəqəmdir: «13 139» ilə «379» arasındakı
+    fərq marketin zənginliyini yox, data mənbəyimizin növünü göstərir
+    (Bravo mağaza qatından, Araz həftəlik kataloqdan gəlir). İstifadəçi
+    bunu bilmir və rəqəmi market haqqında hökm kimi oxuyur.
     """
-    js = read_static("ui.js")
-    assert "const count =" in js, "say formatlayıcısı yoxdur"
-    assert "toLocaleString" not in js.split("const count =")[1].split(";")[0], (
-        "lokal formatlaması geri qayıdıb - Chrome az-AZ üçün vergül verir"
-    )
-
-
-def test_market_kartı_say_formatlayıcısını_işlədir():
     js = read_static("store-grid.js")
-    assert "count(market.products)" in js, "kartda xam rəqəm yazılır"
+    assert "market.products" not in js, "kartda məhsul sayı yenidən göstərilir"
+    assert "stores.productCount" not in js
 
 
-def test_say_marketin_adından_sakitdir():
+def test_tezliklə_yazısı_qalır():
     """
-    Kartın qəhrəmanı loqo və addır; say köməkçi rəqəmdir. Əvvəl ikisi demək
-    olar eyni çəkidə idi və «13 139» kimi böyük ədəd adı üstələyirdi.
+    «Tezliklə» say DEYİL - datası olmayan marketin vəziyyətini bildirir.
+    Onsuz kart boş görünər və «niyə bu marketin qiyməti yoxdur?» sualı
+    cavabsız qalardı (D15).
     """
-    css = read_static("style.css")
-    blok = css.split(".store-card-meta {")[1].split("}")[0]
-    assert "13px" in blok
-    assert "text-tertiary" in blok
-    assert "tabular-nums" in blok, "fərqli uzunluqlu rəqəmlər sütunu sürüşdürür"
+    js = read_static("store-grid.js")
+    assert 'common.soon' in js
+    assert "is-soon-text" in js

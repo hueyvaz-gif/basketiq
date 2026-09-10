@@ -2071,17 +2071,9 @@ code {
 
 .store-card-name { font-size: 17px; font-weight: 600; letter-spacing: -.01em; color: var(--text); }
 
-/* SAY MARKETİN ADINDAN SAKİTDİR.
-   Kartın qəhrəmanı loqo və addır; say köməkçi rəqəmdir. Əvvəl ikisi demək
-   olar eyni çəkidə idi (14px, ikinci dərəcəli rəng) və «13 139» kimi böyük
-   ədəd adı üstələyirdi. 13px + üçüncü dərəcəli rəng iyerarxiyanı bərpa
-   edir; `tabular-nums` isə fərqli uzunluqlu rəqəmləri eyni enli sütunda
-   saxlayır ki, dörd kart yan-yana duranda sətirlər sürüşməsin. */
-.store-card-meta {
-  font-size: 13px;
-  color: var(--text-tertiary);
-  font-variant-numeric: tabular-nums;
-}
+/* Kartın alt sətri. Məhsul sayı BURADAN GÖTÜRÜLDÜ (bax `store-grid.js`) -
+   indi yalnız datası olmayan marketin «Tezliklə» yazısı qalır. */
+.store-card-meta { font-size: 13px; color: var(--text-tertiary); }
 
 /* Hazır olmayan market: fərqli, amma OXUNAQLI.
    `opacity` işlətmirik - o, mətnin kontrastını WCAG həddindən aşağı salır.
