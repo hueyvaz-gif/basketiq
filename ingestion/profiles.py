@@ -45,6 +45,13 @@ class StoreProfile:
     note: str
     page_url: str | None = None   # avtomatik çəkiliş üçün kataloq səhifəsi
 
+    # MAĞAZA (SAYT) QATI — kataloqdan AYRI mənbə (`ingestion/shop.py`).
+    # `page_url` həftəlik endirim jurnalını, `shop_url` isə onlayn mağazanın
+    # gündəlik rəf qiymətini verir. Bir market yalnız birinə sahib ola bilər:
+    # Arazda kataloq var, mağaza yoxdur (robots `/api/`-ni bağlayır);
+    # Bravoda əksinə.
+    shop_url: str | None = None
+
     # --- OCR / parse profili ---
     # `None` = `.env`-dəki ümumi defolt işlədilir. Marketə xas dəyər YALNIZ
     # ölçüldükdə yazılır; uydurma rəqəm defoltdan pisdir, çünki niyəsi olmur.
@@ -55,8 +62,19 @@ class StoreProfile:
 
     @property
     def scrapeable(self) -> bool:
-        """Avtomatik çəkiliş cəhdi mənalıdırmı?"""
+        """Avtomatik KATALOQ çəkilişi cəhdi mənalıdırmı?"""
         return self.status == ACTIVE and bool(self.page_url)
+
+    @property
+    def shoppable(self) -> bool:
+        """
+        MAĞAZA çəkilişi mümkündürmü?
+
+        `status`-dan ASILI DEYİL: `status` kataloq mənbəyini təsvir edir.
+        Bravonun kataloq mənbəyi yoxdur (`BLOCKED`), mağaza mənbəyi isə var -
+        ikisini eyni bayrağa bağlasaydıq, işləyən mənbə bağlı görünərdi.
+        """
+        return bool(self.shop_url)
 
 
 PROFILES: dict[str, StoreProfile] = {
@@ -74,14 +92,19 @@ PROFILES: dict[str, StoreProfile] = {
     "bravo": StoreProfile(
         slug="bravo",
         fmt="html",
+        # KATALOQ mənbəyi hələ də yoxdur: bravosupermarket.az marketinq
+        # saytıdır, `special-offers` səhifəsi Selenium ilə render edildikdə
+        # də bir dənə məhsul/qiymət vermir (2026-09-10 ölçüldü).
         status=BLOCKED,
         page_url="https://umico.az/categories/4497-dukan",
-        # ÖLÇÜLDÜ (logs/sources.md): bravosupermarket.az onlayn mağaza deyil,
-        # satış Umico üzərindən gedir. Umico Nuxt ilə render olunur - qiymət
-        # ilk HTML-də yoxdur, kateqoriya isə «0 məhsul» qaytarır.
         use_selenium=True,
-        note="Umico kateqoriyası JS ilə çəkilir və ölçüldükdə «0 məhsul» "
-             "qaytardı. Mövcud 8 məhsul kataloq şəklindən əl ilə gəlib.",
+        # MAĞAZA mənbəyi TAPILDI. Umico kateqoriyası Selenium ilə də «0 məhsul»
+        # qaytardı (render problemi deyil - kateqoriya boşdur), Umico axtarışı
+        # isə robots ilə qadağandır. Bravonun öz saytındakı «Onlayn market»
+        # linki Wolt-a gedir və orada tam kataloq var. Ətraflı: `shop.py`.
+        shop_url="https://wolt.com/az/aze/baku/venue/bravo-hypermarket-20-yanvar",
+        note="Kataloq mənbəyi yoxdur (sayt marketinqdir). Qiymətlər onlayn "
+             "mağazadan gəlir: Wolt məkanı, `source='site'` snapshot kimi.",
     ),
     "bazar-store": StoreProfile(
         slug="bazar-store",

@@ -26,6 +26,7 @@ from app.api import (
     profile,
     review,
     scrape,
+    shop,
     voice,
 )
 from mcp_server.server import http_app as mcp_http_app
@@ -119,6 +120,7 @@ app.include_router(products.router)
 app.include_router(match.router)
 app.include_router(basket.router)
 app.include_router(scrape.router)
+app.include_router(shop.router)
 app.include_router(analytics.router)
 app.include_router(admin.router)
 app.include_router(images.router)

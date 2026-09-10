@@ -32,7 +32,7 @@ sətir markete aid sayılır.
 from dataclasses import dataclass
 from sqlite3 import Connection
 
-from app.db import get_connection
+from app.db import PRICE_ROWS_CTE, get_connection
 
 
 @dataclass(frozen=True)
@@ -170,9 +170,14 @@ def market_status(conn: Connection | None = None) -> list[dict]:
     conn = conn or get_connection()
     try:
         counts: dict[str, int] = {}
+        # HƏR İKİ QAT SAYILIR (`PRICE_ROWS_CTE`): kataloq iddiası + rəf
+        # qiyməti. Yalnız `prices` sayılsaydı, kataloqu olmayan market
+        # (Bravo - kataloq mənbəyi yoxdur, mağaza mənbəyi var) UI-da
+        # «Tezliklə» kimi qalardı, halbuki minlərlə qiyməti var.
         rows = conn.execute(
+            f"{PRICE_ROWS_CTE} "
             "SELECT s.slug AS slug, COUNT(DISTINCT pr.product_id) AS products "
-            "FROM stores s LEFT JOIN prices pr ON pr.store_id = s.id "
+            "FROM stores s LEFT JOIN price_rows pr ON pr.store_id = s.id "
             "GROUP BY s.id"
         ).fetchall()
         for row in rows:

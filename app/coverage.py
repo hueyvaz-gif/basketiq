@@ -22,7 +22,7 @@ istifadəçiyə boş cədvəl kimi görünərdi.
 
 from __future__ import annotations
 
-from app.db import get_connection
+from app.db import PRICE_ROWS_CTE, get_connection
 from app.stores import MARKETS, market_for
 from ingestion.profiles import profile_for
 
@@ -37,22 +37,26 @@ def store_coverage() -> dict:
     conn = get_connection()
     try:
         rows = conn.execute(
-            """
+            f"""
+            {PRICE_ROWS_CTE}
             SELECT s.slug              AS slug,
                    COUNT(DISTINCT pr.product_id) AS products,
-                   COUNT(pr.id)        AS prices,
-                   MAX(pr.seen_at)     AS last_seen,
-                   COUNT(DISTINCT pr.catalog_id) AS catalogs
+                   COUNT(pr.product_id)          AS prices,
+                   MAX(pr.at)                    AS last_seen,
+                   COUNT(DISTINCT pr.catalog_id) AS catalogs,
+                   COUNT(DISTINCT CASE WHEN pr.layer = 'site'
+                                       THEN pr.product_id END) AS site_products
             FROM stores s
-            LEFT JOIN prices pr ON pr.store_id = s.id
+            LEFT JOIN price_rows pr ON pr.store_id = s.id
             GROUP BY s.id
             """
         ).fetchall()
 
         # Məxrəc: bütün marketlərdə tanınan fərqli məhsul (qrup) sayı.
         universe = conn.execute(
+            f"{PRICE_ROWS_CTE} "
             "SELECT COUNT(DISTINCT p.group_key) FROM products p "
-            "JOIN prices pr ON pr.product_id = p.id"
+            "JOIN price_rows pr ON pr.product_id = p.id"
         ).fetchone()[0] or 0
 
         # Marketin ÖZ qrup sayı: `products` sayı deyil. Fərq realdır - eyni
@@ -60,8 +64,9 @@ def store_coverage() -> dict:
         # sətridir, amma əhatə baxımından bir məhsuldur.
         qruplar = {}
         for row in conn.execute(
+            f"{PRICE_ROWS_CTE} "
             "SELECT s.slug AS slug, COUNT(DISTINCT p.group_key) AS groups "
-            "FROM stores s JOIN prices pr ON pr.store_id = s.id "
+            "FROM stores s JOIN price_rows pr ON pr.store_id = s.id "
             "JOIN products p ON p.id = pr.product_id GROUP BY s.id"
         ):
             market = market_for(row["slug"])
@@ -78,11 +83,12 @@ def store_coverage() -> dict:
             continue
         cari = toplu.setdefault(
             market.slug,
-            {"products": 0, "prices": 0, "catalogs": 0, "last_seen": None},
+            {"products": 0, "prices": 0, "catalogs": 0, "site_products": 0, "last_seen": None},
         )
         cari["products"] += row["products"] or 0
         cari["prices"] += row["prices"] or 0
         cari["catalogs"] += row["catalogs"] or 0
+        cari["site_products"] += row["site_products"] or 0
         # Ən son müşahidə: mətn kimi müqayisə olunur, çünki format
         # `YYYY-MM-DD HH:MM:SS`-dir və leksik sıra zaman sırası ilə üst-üstə düşür.
         if row["last_seen"] and (not cari["last_seen"] or row["last_seen"] > cari["last_seen"]):
@@ -90,7 +96,10 @@ def store_coverage() -> dict:
 
     items = []
     for market in MARKETS:
-        data = toplu.get(market.slug, {"products": 0, "prices": 0, "catalogs": 0, "last_seen": None})
+        data = toplu.get(
+            market.slug,
+            {"products": 0, "prices": 0, "catalogs": 0, "site_products": 0, "last_seen": None},
+        )
         profile = profile_for(market.slug)
         grup = qruplar.get(market.slug, 0)
         items.append(
@@ -100,6 +109,11 @@ def store_coverage() -> dict:
                 "products": data["products"],
                 "prices": data["prices"],
                 "catalogs": data["catalogs"],
+                # ŞƏFFAFLIQ: neçəsi mağazadan (rəf qiyməti), neçəsi kataloqdan
+                # (endirim iddiası) gəlir. İki qat eyni sayğacda toplanır,
+                # amma mənşəyi görünməz qalmamalıdır.
+                "site_products": data["site_products"],
+                "catalog_products": max(data["products"] - data["site_products"], 0),
                 "last_seen": data["last_seen"],
                 "coverage_pct": round(grup / universe * 100) if universe else 0,
                 "available": data["products"] > 0,
@@ -108,6 +122,7 @@ def store_coverage() -> dict:
                 "source_status": profile.status if profile else None,
                 "source_format": profile.fmt if profile else None,
                 "source_url": profile.page_url if profile else None,
+                "shop_url": profile.shop_url if profile else None,
                 "source_note": profile.note if profile else "",
             }
         )

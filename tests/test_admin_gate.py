@@ -128,8 +128,13 @@ def test_hər_admin_router_i_qapının_arxasındadır():
     # göndərir və əl ilə şəkil təyin etməyə imkan verir - hər ikisi əməliyyat
     # səlahiyyətidir, istifadəçi funksiyası deyil. Oxu tərəfi (kartdakı şəkil)
     # bu router-dən keçmir: o, kataloq cavabının içindədir.
+    # `/api/shop` MAĞAZA çəkilişini işə salır (`ingestion/shop.py`) - yəni
+    # `/api/scrape` ilə eyni səthdir: brauzer qaldırır, xarici sayta sorğu
+    # göndərir, bazaya yazır. Açıq qalsa, kənar adam onu təkrar-təkrar
+    # çağırıb həm bizi, həm Wolt-u yükləyə bilərdi.
     ADMİN_PREFİKSLƏRİ = (
-        "/api/catalogs", "/api/scrape", "/api/review", "/api/admin/ads", "/api/images",
+        "/api/catalogs", "/api/scrape", "/api/shop", "/api/review",
+        "/api/admin/ads", "/api/images",
     )
 
     yoxlanan = 0
@@ -154,7 +159,8 @@ def test_istifadəçi_routerləri_qapının_arxasında_deyil():
 
     for prefiks, router in _routerlər():
         if prefiks.startswith(
-            ("/api/catalogs", "/api/scrape", "/api/review", "/api/admin/ads", "/api/images")
+            ("/api/catalogs", "/api/scrape", "/api/shop", "/api/review",
+             "/api/admin/ads", "/api/images")
         ):
             continue
         asılılıqlar = [d.dependency for d in getattr(router, "dependencies", [])]

@@ -30,7 +30,7 @@ from sqlite3 import Connection
 from statistics import median
 
 from app.analytics import IMPLAUSIBLE_DEPTH, SUSPICIOUS_DEPTH, verify_claim
-from app.db import get_connection
+from app.db import PRICE_ROWS_CTE, get_connection
 from app.search_norm import match_score, tokens as norm_tokens
 from app.similar import pick_similar
 from app.stores import MARKETS, Market, market_for, market_status, store_map
@@ -657,8 +657,12 @@ def store_page(slug: str, limit: int = 40) -> dict | None:
             }
 
         own_marks = ",".join("?" * len(own_ids))
+        # HƏR İKİ QAT: kataloq iddiası + mağaza rəf qiyməti. Yalnız `prices`
+        # oxunsaydı, Bravonun səhifəsi boş qalardı - onun kataloq mənbəyi
+        # yoxdur, bütün qiymətləri mağaza qatındandır.
         rows = conn.execute(
             f"""
+            {PRICE_ROWS_CTE}
             SELECT p.id          AS product_id,
                    p.group_key   AS group_key,
                    p.name        AS name,
@@ -669,11 +673,11 @@ def store_page(slug: str, limit: int = 40) -> dict | None:
                    p.image_path  AS image_path,
                    pr.price      AS price,
                    pr.old_price  AS old_price,
-                   pr.seen_at    AS seen_at
-            FROM prices pr
+                   pr.at         AS seen_at
+            FROM price_rows pr
             JOIN products p ON p.id = pr.product_id
             WHERE pr.store_id IN ({own_marks})
-            ORDER BY pr.seen_at, pr.id
+            ORDER BY pr.at
             """,
             tuple(own_ids),
         ).fetchall()

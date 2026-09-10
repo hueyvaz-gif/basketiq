@@ -274,3 +274,57 @@ Bu, kodun çatışmazlığı deyil — ölçülmüş vəziyyətdir. `price_snaps
 - **5** (bloklamalı matching) — miqyas problemi minlərlə məhsul üçün idi;
   540 məhsulda bloklamanın ölçüləcək faydası yoxdur.
 - **8** (interfeys) və **9** (README) — mənbədən ASILI DEYİL, indi edilə bilər.
+
+---
+
+# Bravo mağaza qatı — TƏKRAR YOXLAMA (2026-09-10)
+
+Tarix: 2026-09-10 · Alət: Selenium (headless Chrome), `ingestion/shop.py`
+User-Agent: `BasketIQ-Student-Project/1.0 (educational)` · robots hər ünvanda yoxlanıldı
+
+Yuxarıdakı yekun Bravo üçün «mağaza qatı yox» deyirdi. **Bu qərarın bir
+səbəbi ölçmə ilə təkzib olundu.** Aşağıdakılar yenidən ölçüldü:
+
+| Ünvan | robots | Nəticə |
+|---|---|---|
+| `bravosupermarket.az/special-offers/` | icazə ✓ | Selenium ilə render: **məhsul 0, qiymət 0**. 12 şəkil — hamısı loqo/ikon. PDF linki 0. Marketinq saytıdır. |
+| `bravosupermarket.az/special-offers/endirim-firtinasi-hiper-18/` | icazə ✓ | eyni: kampaniya mətni var, məhsul siyahısı **yoxdur** |
+| `umico.az/categories/4497-dukan` | icazə ✓ | Selenium ilə render: səhifə açılır və **«0 məhsul · Seçilmiş parametrlərə uyğun məhsul yoxdur»** yazır. **Render problemi DEYİL — kateqoriya boşdur.** |
+| `umico.az/search?q=bravo` | **QADAĞAN ✗** | `Disallow: /*?*` (yalnız `?page=` açıqdır) — açılmadı |
+| `wolt.com/az/aze/baku/grocery` | icazə ✓ | **38 Bravo məkanı** tapıldı |
+| `wolt.com/.../venue/bravo-hypermarket-20-yanvar` | icazə ✓ | **İŞLƏYİR** — tam kateqoriya ağacı, ad + qiymət + köhnə qiymət + ölçü + vahid qiymət + şəkil |
+
+## Əvvəlki «Wolt yaramır» qərarı nə üçün dəyişdi
+
+Köhnə yekun iki səbəb göstərmişdi:
+
+1. **«ünvan arxasındadır»** — **ÖLÇÜLDÜ, DOĞRU DEYİL.** Məkan səhifəsi
+   çatdırılma ünvanı tələb etmədən açılır və məhsulları göstərir. Yoxlama
+   `ingestion/shop.py` ilə təkrarlana bilər.
+2. **«qiymət semantikası yanlış»** — **QALIR, amma həll olundu.** Wolt
+   çatdırılma platformasıdır, qiyməti rəf qiymətindən fərqlənə bilər. Ona
+   görə data `prices`-ə (kataloq iddiası) YAZILMIR — yeri
+   `price_snapshots(source='site')`-dir. İki qat `app/db.py`-dakı
+   `PRICE_ROWS_CTE` ilə birləşdirilir, amma mənşəyi `layer` sütununda
+   saxlanılır və UI `site_products` / `catalog_products` kimi ayrı göstərir.
+
+## Ölçülmüş texniki tələ: VİRTUALLAŞDIRMA
+
+Wolt siyahısı virtualdır — kart ekrandan çıxanda `innerText`-i BOŞALIR.
+Səhifəni sona sürüşdürüb sonra oxusan, `[data-test-id="ItemCard"]` 36 element
+tapır və **hamısı boş olur**. Səhv səssizdir: xəta yoxdur, sadəcə sıfır
+məhsul. Həll — kiçik addımlarla sürüşdürüb hər addımda görünəni yığmaq.
+
+Ölçmə: bir kateqoriya = **93 məhsul / 26 saniyə**; iki kateqoriya = 130 məhsul
+/ 62 saniyə, atılan 3, xəta 0.
+
+## Yekun cədvəlinə düzəliş
+
+| Market | Baza qiymət (mağaza) qatı | Səbəb |
+|---|---|---|
+| Araz | **yox** | robots `/api/` və `/_next/` qadağan edir — dəyişmədi |
+| Bravo | **VAR** | Wolt məkanı, `source='site'` snapshot |
+| Bazarstore | **yox** | sayt baxımdadır — dəyişmədi |
+
+Yəni **addım 6 (endirim yoxlaması) və 7 (qat ayrımı) artıq Bravo üçün
+mümkündür** — `price_snapshots` nəhayət dolur.

@@ -206,6 +206,42 @@ CREATE INDEX IF NOT EXISTS idx_ads_slot ON ads(slot, active);
 """
 
 
+# İKİ QİYMƏT QATININ ORTAQ GÖRÜNÜŞÜ
+# =================================
+# Layihədə qiymət İKİ cədvəldədir və bu, qəsdəndir:
+#
+#   `prices`          kataloq İDDİASI  - «9.99 → 5.99», `catalog_id` NOT NULL
+#   `price_snapshots` rəf QİYMƏTİ      - onlayn mağazadan, `source='site'`
+#
+# Amma «bu marketdə neçə məhsul var?» sualı üçün fərq YOXDUR: hər ikisi
+# həmin marketdə tapılmış məhsuldur. Sayğac yalnız `prices`-i oxusaydı,
+# kataloqu olmayan market (Bravo) həmişə «0 məhsul» görünərdi - halbuki
+# minlərlə rəf qiyməti var.
+#
+# NİYƏ SABİT, NİYƏ VIEW DEYİL? `CREATE VIEW` sxem miqrasiyası tələb edir və
+# köhnə bazalarda `init_db()`-dən əvvəl işləyən sorğu onu tapmazdı. Sabit
+# CTE hər sorğuya öz daxilində qoşulur - miqrasiya lazım deyil.
+#
+# `layer` sütunu mənşəyi saxlayır: UI «neçəsi rəfdən, neçəsi kataloqdan»
+# sualına cavab verə bilsin.
+# `old_price` YALNIZ KATALOQDA VAR. `price_snapshots` köhnə qiyməti saxlamır
+# (yalnız `is_promo` nişanını) - ona görə sayt sətrində NULL qalır və endirim
+# faizi hesablanmır. Uydurma köhnə qiymət yazmaqdansa, faizi ümumiyyətlə
+# göstərməmək düzgündür.
+PRICE_ROWS_CTE = """
+WITH price_rows AS (
+    SELECT product_id, store_id, catalog_id, price, old_price, unit_price,
+           seen_at AS at, 'catalog' AS layer
+      FROM prices
+    UNION ALL
+    SELECT product_id, store_id, NULL AS catalog_id, price, NULL AS old_price, unit_price,
+           observed_at AS at, 'site' AS layer
+      FROM price_snapshots
+     WHERE source = 'site'
+)
+"""
+
+
 def get_connection() -> sqlite3.Connection:
     """Yeni bağlantı qaytarır. Sətirlər dict kimi oxunur (row['name'])."""
     settings.ensure_dirs()
@@ -244,6 +280,11 @@ def db_cursor():
 # təhlükəlidir: "Bravo" ilə "Bravo Express" fərqli şəbəkə ola bilər.
 STORE_MERGES: tuple[tuple[str, str, str], ...] = (
     ("araz-market", "araz", "Araz"),
+    # Eyni tələ ikinci dəfə: mağaza qatı «Bravo Market» adı ilə çağırdı və
+    # `bravo-market` slug-u yarandı, halbuki mövcud sətir `bravo`-dur.
+    # Kök səbəb `app/api/shop.py:resolve_store_id()`-də bağlandı; bu sətir
+    # artıq yaranmış datanı birləşdirir.
+    ("bravo-market", "bravo", "Bravo"),
 )
 
 

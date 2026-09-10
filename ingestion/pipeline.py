@@ -207,6 +207,84 @@ def save_products(products: list[ExtractedProduct], store_id: int, catalog_id: i
     return len(products)
 
 
+def save_snapshots(
+    products: list[ExtractedProduct],
+    store_id: int,
+    source: str = "site",
+    observed_at: str | None = None,
+) -> int:
+    """
+    Mağaza qiymətlərini `price_snapshots`-a yazır (BasketIQ v2, addım 4).
+
+    NİYƏ `save_products` İŞLƏMİR? O, `prices`-ə yazır və `prices.catalog_id`
+    NOT NULL-dur - yəni yalnız həftəlik jurnaldan gələn qiyməti saxlaya bilir.
+    Onlayn mağazadan çəkilən qiymətin kataloqu yoxdur (`app/db.py` şərhi).
+
+    `products` cədvəlinə YAZILIR (upsert), çünki snapshot bir məhsula
+    bağlanmalıdır - məhsul yoxdursa, snapshot da mənasızdır. Upsert
+    `save_products`-dakı ilə eynidir: `group_key`-ə TOXUNULMUR, əks halda
+    matching nəticəsi silinərdi.
+
+    GÜNDƏ BİR SƏTİR: `ux_snapshot_daily` indeksi eyni gün ikinci yazını
+    rədd edir. `ON CONFLICT ... DO UPDATE` sayəsində gün ərzində təkrar
+    çəkiliş XƏTA VERMİR, sadəcə həmin günün sətrini yeniləyir - yəni
+    funksiya idempotentdir.
+    """
+    if source not in ("site", "catalog"):
+        raise ValueError(f"source yalnız 'site' və ya 'catalog' ola bilər: {source!r}")
+
+    yazılan = 0
+    with db_cursor() as cur:
+        for product in products:
+            cur.execute(
+                "INSERT INTO products (canonical_key, name, brand, size_value, size_unit, "
+                "                      category, group_key, name_norm) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
+                "ON CONFLICT(canonical_key) DO UPDATE SET "
+                "  name = excluded.name, brand = excluded.brand, category = excluded.category, "
+                "  name_norm = excluded.name_norm",
+                (
+                    product.canonical_key,
+                    product.name,
+                    product.brand,
+                    product.size_value,
+                    product.size_unit,
+                    product.category,
+                    product.canonical_key,
+                    fold(f"{product.brand or ''} {product.name or ''}".strip()),
+                ),
+            )
+            cur.execute(
+                "SELECT id FROM products WHERE canonical_key = ?", (product.canonical_key,)
+            )
+            product_id = cur.fetchone()[0]
+
+            # `is_promo`: köhnə qiymət varsa, məhsul endirimdədir. Bu, sayt
+            # qiymətinin ÖZ nişanıdır - kataloq iddiasından asılı deyil.
+            is_promo = 1 if product.old_price else 0
+
+            cur.execute(
+                "INSERT INTO price_snapshots (product_id, store_id, price, unit_price, "
+                "                             is_promo, source, observed_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now'))) "
+                "ON CONFLICT(product_id, store_id, source, date(observed_at)) DO UPDATE SET "
+                "  price = excluded.price, unit_price = excluded.unit_price, "
+                "  is_promo = excluded.is_promo",
+                (
+                    product_id,
+                    store_id,
+                    product.price,
+                    product.unit_price,
+                    is_promo,
+                    source,
+                    observed_at,
+                ),
+            )
+            yazılan += 1
+
+    return yazılan
+
+
 def extract_catalog(
     catalog_id: int,
     text: str,
