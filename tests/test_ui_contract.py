@@ -1084,3 +1084,37 @@ def test_iki_şəkil_prefiksi_qarışdırılmır():
     # Süzgəc real fotonu ATMAMALIDIR: prefikslərdən biri digərinin əvvəli
     # olsaydı, `startsWith` real fotonu da kəsik sayardı.
     assert not IMAGE_URL_PREFIX.startswith("/static/images/products/")
+
+
+def test_böyük_say_minlik_ayırıcı_ilə_yazılır():
+    """
+    Market kartında say ayırıcısız yazılırdı və «13139» bir yığın rəqəm
+    kimi görünürdü - göz onu bir baxışda oxuya bilmirdi.
+
+    `toLocaleString("az-AZ")` İŞLƏMİR: brauzerdə ölçüldü, Chrome həmin
+    lokal üçün VERGÜL qaytarır («13,139»). Azərbaycan yazısında vergül
+    ONLUQ ayırıcıdır, yəni nəticə «on üç tam» kimi oxuna bilərdi. Ona görə
+    format açıq yazılır - nəticə brauzerdən asılı deyil.
+    """
+    js = read_static("ui.js")
+    assert "const count =" in js, "say formatlayıcısı yoxdur"
+    assert "toLocaleString" not in js.split("const count =")[1].split(";")[0], (
+        "lokal formatlaması geri qayıdıb - Chrome az-AZ üçün vergül verir"
+    )
+
+
+def test_market_kartı_say_formatlayıcısını_işlədir():
+    js = read_static("store-grid.js")
+    assert "count(market.products)" in js, "kartda xam rəqəm yazılır"
+
+
+def test_say_marketin_adından_sakitdir():
+    """
+    Kartın qəhrəmanı loqo və addır; say köməkçi rəqəmdir. Əvvəl ikisi demək
+    olar eyni çəkidə idi və «13 139» kimi böyük ədəd adı üstələyirdi.
+    """
+    css = read_static("style.css")
+    blok = css.split(".store-card-meta {")[1].split("}")[0]
+    assert "13px" in blok
+    assert "text-tertiary" in blok
+    assert "tabular-nums" in blok, "fərqli uzunluqlu rəqəmlər sütunu sürüşdürür"

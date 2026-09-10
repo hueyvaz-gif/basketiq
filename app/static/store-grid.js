@@ -22,7 +22,7 @@
   function card(market) {
     const soon = market.available ? "" : " is-soon";
     const badge = market.available
-      ? `<span class="store-card-meta">${market.products} ${t("stores.productCount")}</span>`
+      ? `<span class="store-card-meta">${count(market.products)} ${t("stores.productCount")}</span>`
       : `<span class="store-card-meta is-soon-text">${t("common.soon")}</span>`;
 
     // Loqo <img>-dir, fon şəkli deyil: `alt` mətni ekran oxuyucusuna çatır və

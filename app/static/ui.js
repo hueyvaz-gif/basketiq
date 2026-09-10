@@ -24,6 +24,28 @@ const esc = (s) =>
 
 const money = (v) => (v == null ? "—" : Number(v).toFixed(2));
 
+/**
+ * Böyük tam ədədi minlik ayırıcı ilə yazır: 13139 -> «13 139».
+ *
+ * NİYƏ LAZIM OLDU: market kartında say ayırıcısız yazılırdı və «13139»
+ * bir yığın rəqəm kimi görünürdü - göz onu bir baxışda oxuya bilmirdi,
+ * yanındakı «379» ilə müqayisəsi isə çətinləşirdi.
+ *
+ * AYIRICI BOŞLUQDUR, vergül yox: Azərbaycan yazısında minlik ayırıcı
+ * boşluqdur, vergül isə ONLUQ ayırıcıdır - «13,139» burada «on üç tam»
+ * kimi oxuna bilərdi. ` ` qırılmayan boşluqdur ki, rəqəm sətir
+ * sonunda ikiyə bölünməsin.
+ *
+ * `toLocaleString("az-AZ")` İŞLƏDİLMİR - brauzerdə ölçüldü: Chrome həmin
+ * lokal üçün məhz VERGÜL qaytarır («13,139»). Yəni lokal adı düzgün olsa
+ * da, nəticə yanlışdır. Format burada açıq yazılır: nəticə brauzerdən
+ * asılı deyil.
+ */
+const count = (v) =>
+  v == null
+    ? "—"
+    : String(Math.round(Number(v))).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+
 // İkonlar HTML-in başındakı <symbol> kitabxanasından gəlir.
 // Rəng SVG-də deyil, CSS-də təyin olunur (`currentColor`).
 const icon = (name) =>
