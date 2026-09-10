@@ -137,6 +137,23 @@ class LayoutStyle:
     # bilməkdən yaxşıdır».
     read_secondary: bool = True
 
+    # ENDİRİM FAİZİ NİŞANINDAN KÖHNƏ QİYMƏT (Rahat üçün).
+    #
+    # NİYƏ LAZIM OLDU (ölçüldü 2026-09-10): Rahat kataloqunda köhnə qiymət
+    # boz qutuda AĞ rəqəmlərlə yazılır, ÜSTÜNDƏN ÇƏPƏKİ XƏTT keçir və ₼
+    # işarəsi rəqəmlərin ÜZƏRİNƏ MİNİR. Üç maneə birdən - OCR heç vaxt
+    # oxumur. Ölçüldü: 5 kartın 5-də də boz qutu səhv verdi (2.56, 2.63,
+    # 13.33 - həqiqi dəyərlər 2.30, 2.89, 3.50).
+    #
+    # YANINDAKI QIRMIZI NİŞAN isə təmizdir: solid fon, iri ağ rəqəmlər, nə
+    # xətt, nə örtük. «15%» oxunur və köhnə qiymət hesablanır:
+    #     köhnə = yeni / (1 - faiz/100)
+    # Ölçüldü (5 kart): faiz 5/5 DÜZGÜN, hesablanan köhnə qiymət 2-si dəqiq,
+    # 3-ü 1-2 qəpik fərqlə (marketin öz yuvarlaqlaşdırması).
+    badge: tuple | None = None          # faiz nişanının rəngi
+    badge_vote_min: int = 2             # ən azı neçə psm razı olmalıdır
+    badge_upscale: int = 4
+
     # --- Qiymət oxuma (yalnız `price_vote_min > 0` olanda işə düşür) ---
     #
     # ARAZ ÜÇÜN SÖNÜLÜDÜR və qəsdən belədir: onun 379 məhsulu mövcud yolla
@@ -171,6 +188,7 @@ RAHAT_STYLE = LayoutStyle(
     secondary_overlap_of_smaller=True,
     secondary_dark_text=False,
     read_secondary=False,
+    badge=RED_RANGE,
     price_upscale=3,
     # (manat_kəsiyi, qəpik_kəsiyi) - hər biri (x0, y0, x1, y1) nisbətidir.
     price_split_geoms=(
@@ -500,6 +518,60 @@ def _read_price_voted(crop: Image.Image, style: LayoutStyle) -> float | None:
     return value
 
 
+def read_badge_percent(page: Image.Image, box: tuple, style: LayoutStyle) -> int | None:
+    """
+    Endirim faizi nişanından faizi oxuyur («15%»).
+
+    NİŞAN QUTUSU TƏMİZDİR: solid fon, iri ağ rəqəmlər - köhnə qiymət
+    qutusundan fərqli olaraq nə çəpəki xətt var, nə də ₼ örtüyü. Ona görə
+    burada mürəkkəb kəsik həndəsəsi lazım deyil.
+
+    SƏSVERMƏ (ən azı `badge_vote_min` psm razı olmalıdır) ölçmə nəticəsidir:
+    tək psm ilə 5 nişandan biri «17%» əvəzinə «7%» oxunurdu - yəni endirim
+    yarıdan çox kiçilirdi. İki səslə 5/5 düzgün oxundu.
+    """
+    crop = page.crop(box).convert("L").point(lambda v: 0 if v > 150 else 255, mode="L")
+    if style.badge_upscale > 1:
+        crop = crop.resize(
+            (crop.width * style.badge_upscale, crop.height * style.badge_upscale),
+            Image.LANCZOS,
+        )
+
+    candidates: list[int] = []
+    for psm in (7, 8, 13):
+        try:
+            text = pytesseract.image_to_string(
+                crop, config=f"--psm {psm} -c tessedit_char_whitelist=0123456789%"
+            ).strip()
+        except Exception:  # noqa: BLE001 - OCR xətası nişanı yoxa çıxarır, çökmür
+            continue
+        match = re.search(r"(\d{1,2})\s*%", text) or re.search(r"^(\d{1,2})$", text)
+        if match and 1 <= int(match.group(1)) <= 95:
+            candidates.append(int(match.group(1)))
+
+    if not candidates:
+        return None
+    value, votes = Counter(candidates).most_common(1)[0]
+    return value if votes >= style.badge_vote_min else None
+
+
+def old_price_from_percent(price: float, percent: int) -> float | None:
+    """
+    Faizdən köhnə qiyməti hesablayır: köhnə = yeni / (1 - faiz/100).
+
+    NƏTİCƏ TƏQRİBİDİR və bu, ölçülüb: market öz qiymətini yuvarlaqlaşdırır,
+    ona görə hesablanan dəyər çap olunandan 1-2 qəpik fərqlənə bilər
+    (ölçüldü: 2.29 vs 2.30, 2.90 vs 2.89, 3.52 vs 3.50; ikisi dəqiq oldu).
+
+    FAİZ İSƏ DƏQİQDİR - o, birbaşa nişandan oxunur. İstifadəçiyə göstərilən
+    əsas rəqəm elə faizdir; köhnə qiymət onun yanındakı kontekstdir.
+    """
+    if percent <= 0 or percent >= 100 or price <= 0:
+        return None
+    old = price / (1 - percent / 100)
+    return round(old, 2) if MIN_PRICE <= old <= MAX_PRICE else None
+
+
 def read_old_price(
     page: Image.Image,
     box: tuple,
@@ -812,6 +884,10 @@ def parse_page(page: Image.Image, style: LayoutStyle | None = None) -> LayoutRes
         int(min_w * style.secondary_min_scale),
         int(min_h // 2 * style.secondary_min_scale),
     )
+    # Faiz nişanları (Rahat: lövbərin altındakı qırmızı «15%» qutusu).
+    badge_boxes = (
+        find_boxes(color_mask(page, style.badge), 40, 20) if style.badge else []
+    )
 
     # Qiyməti oxunmayan qutu qiymət qutusu deyil (loqo, banner) - atılır
     anchors = []
@@ -899,7 +975,21 @@ def parse_page(page: Image.Image, style: LayoutStyle | None = None) -> LayoutRes
         # Sarı qutu olmayan kataloqda (Araz) köhnə qiymət kart mətnindədir və
         # cleaner onu özü tutur - ona görə burada None qalması problem deyil.
         old_price = None
-        for yb in yellow_boxes if style.read_secondary else ():
+
+        # NİŞAN YOLU: köhnə qiymət qutusu oxunmayan dizaynlarda (Rahat)
+        # faiz nişanından hesablanır. Ətraflı: `read_badge_percent()`.
+        if style.badge:
+            for bb in badge_boxes:
+                overlap = min(box[2], bb[2]) - max(box[0], bb[0])
+                gap = bb[1] - box[3]
+                if overlap <= 0 or not (-height * 0.2 <= gap <= height * 0.6):
+                    continue
+                percent = read_badge_percent(page, bb, style)
+                if percent is not None:
+                    old_price = old_price_from_percent(price, percent)
+                break
+
+        for yb in yellow_boxes if (style.read_secondary and old_price is None) else ():
             overlap = min(box[2], yb[2]) - max(box[0], yb[0])
             # Araz-da köhnə qiymət lövbərin ÜSTÜNDƏ, Rahat-da ALTINDADIR.
             # İstiqaməti səhv seçsək, qutu heç vaxt tapılmaz və köhnə qiymət

@@ -133,3 +133,65 @@ def test_her_profilin_dizayn_adi_taninir(slug):
 def test_rahat_oz_dizaynini_islenir():
     assert PROFILES["rahat"].layout == "rahat"
     assert PROFILES["araz"].layout == "araz"
+
+
+# ---------------------------------------------------------------- faiz nişanı
+
+
+def test_arazda_nisan_yolu_sonuludur():
+    """
+    Arazın köhnə qiyməti BİRBAŞA oxunur (sarı qutu, qara rəqəm) - nişan
+    yoluna ehtiyacı yoxdur. Açılsaydı, işləyən oxunuşu dəyişmə riski
+    qazancsız olardı.
+    """
+    assert ARAZ_STYLE.badge is None
+    assert ARAZ_STYLE.read_secondary is True
+
+
+def test_rahatda_nisan_yolu_aciqdir():
+    """
+    Rahat-da köhnə qiymət qutusu OXUNMUR: ağ rəqəmlərin üstündən çəpəki
+    xətt keçir və ₼ işarəsi onların üzərinə minir. Ölçüldü: 5 kartın 5-də
+    də səhv (2.56, 2.63, 13.33 - həqiqi 2.30, 2.89, 3.50).
+    Faiz nişanı isə təmizdir və 5/5 düzgün oxunur.
+    """
+    assert RAHAT_STYLE.badge is not None
+    assert RAHAT_STYLE.read_secondary is False
+    assert RAHAT_STYLE.badge_vote_min >= 2
+
+
+def test_faizden_kohne_qiymet_hesablanir():
+    from ingestion.layout import old_price_from_percent
+
+    # Ölçülmüş nümunələr (kataloq şəklindən əl ilə oxundu):
+    #   1.95 @ 15% -> çapda 2.30, hesablanan 2.29
+    #   2.29 @ 15% -> çapda 2.69, hesablanan 2.69 (dəqiq)
+    #   2.99 @ 17% -> çapda 3.60, hesablanan 3.60 (dəqiq)
+    assert old_price_from_percent(2.29, 15) == 2.69
+    assert old_price_from_percent(2.99, 17) == 3.60
+    assert abs(old_price_from_percent(1.95, 15) - 2.30) <= 0.02
+
+
+def test_menasiz_faiz_qebul_olunmur():
+    """0% endirim deyil, 100% isə pulsuz məhsul deməkdir - ikisi də zibildir."""
+    from ingestion.layout import old_price_from_percent
+
+    assert old_price_from_percent(2.0, 0) is None
+    assert old_price_from_percent(2.0, 100) is None
+    assert old_price_from_percent(0.0, 15) is None
+
+
+def test_hesablanan_faiz_nisandan_uzaqlasmir():
+    """
+    Köhnə qiymət yuvarlaqlaşdırılır, ona görə geri hesablanan faiz nişandakı
+    rəqəmdən bir az fərqlənir. Fərq 0.5 bənddən çox olmamalıdır - əks halda
+    istifadəçi «15%» nişanı ilə «13%» yazısını yan-yana görərdi.
+    """
+    from ingestion.layout import old_price_from_percent
+
+    for price in (1.95, 2.29, 2.99, 7.49, 12.99):
+        for percent in (7, 15, 17, 21, 35, 50):
+            old = old_price_from_percent(price, percent)
+            assert old is not None
+            geri = (old - price) / old * 100
+            assert abs(geri - percent) <= 0.5, f"{price} @ {percent}% -> {geri}"
