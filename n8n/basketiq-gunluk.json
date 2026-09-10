@@ -53,13 +53,13 @@
             {
               "id": "pg",
               "name": "sehife",
-              "value": "2",
+              "value": "0",
               "type": "string"
             },
             {
               "id": "lim",
               "name": "setir_limiti",
-              "value": "10",
+              "value": "0",
               "type": "string"
             },
             {
@@ -80,7 +80,7 @@
         -400,
         0
       ],
-      "notes": "Butun ayarlar BIR yerde. URL-i deyismek ucun yalniz bu node-a toxunursan - $env-den asili deyilik, cunki n8n konteynerinde environment girisi bloklana biler."
+      "notes": "Butun ayarlar BIR yerde. URL-i deyismek ucun yalniz bu node-a toxunursan - $env-den asili deyilik, cunki n8n konteynerinde environment girisi bloklana biler.\n\nSIFIR = LIMITSIZ (sinaq deyerlerinden real deyerlere kecid):\n  sehife=0      -> /api/scrape max_pages=None gonderir, `profiles.py` Araz ucun 54 sehifeni ozu verir. Sabit 54 yazmiriq: kataloq boyuse profil yenilenir, bu node yox.\n  setir_limiti=0 -> /api/catalogs/{id}/extract butun setirleri emal edir (olculdu: 470 xam -> 220 temiz setir). Kes var, tekrar emal pulsuzdur.\n  fayl_sayi=1   -> Araz hefte ucun TEK jurnal derc edir.\n  sekil_limiti=40 -> gunde 40 mehsul, ~2 san/mehsul.\n\nOCR 54 sehife ucun GPU-suz masinda ~15 deqiqedir - node timeout-lari (900000 ms) mehz buna gore qoyulub."
     },
     {
       "parameters": {

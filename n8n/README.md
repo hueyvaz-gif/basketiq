@@ -42,13 +42,24 @@ docker cp n8n/basketiq-gunluk.json <konteyner>:/tmp/wf.json
 docker exec <konteyner> n8n import:workflow --input=/tmp/wf.json
 ```
 
-İki tələ:
+Üç tələ:
 
 1. **`id` sahəsi məcburidir.** Faylda `"id": "basketiqGunluk01"` var; olmasa CLI
    `SQLITE_CONSTRAINT: NOT NULL constraint failed: workflow_entity.id` verir.
    (İnterfeysdən idxal edəndə bu tələb yoxdur.)
 2. **Git Bash yolu çevirir.** `/tmp/wf.json` avtomatik Windows yoluna çevrilir və
    fayl tapılmır. Qarşısını almaq üçün: `export MSYS_NO_PATHCONV=1`.
+3. **İdxal workflow-u HƏMİŞƏ deaktiv edir** — konsolda
+   `Deactivating workflow "..."` yazır. Fayla `"active": true` əlavə etmək
+   KÖMƏK ETMİR (sınandı). `n8n update:workflow --active=true` isə yalnız
+   bazadakı bayrağı dəyişir və işləyən proses onu görmür — n8n özü belə
+   deyir: *«Changes will not take effect if n8n is running»*. Bu, ən pis
+   vəziyyəti yaradır: interfeysdə açar YANIQ görünür, amma cədvəl işə
+   düşmür.
+
+   **Yeganə etibarlı yol:** idxaldan sonra interfeysdən (<http://localhost:5678>)
+   workflow-u açıb sağ yuxarıdakı **Active** açarını əl ilə çevirmək — trigger
+   məhz onda canlı qeydiyyata düşür. Bu, hər idxaldan sonra təkrarlanmalıdır.
 
 ### Konsoldan işə salmaq
 
