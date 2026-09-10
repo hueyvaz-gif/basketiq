@@ -253,20 +253,27 @@ CREATE INDEX IF NOT EXISTS idx_ads_slot ON ads(slot, active);
 #
 # `layer` sütunu mənşəyi saxlayır: UI «neçəsi rəfdən, neçəsi kataloqdan»
 # sualına cavab verə bilsin.
+#
+# `row_id` SIRALAMA ÜÇÜNDÜR və vacibdir. Eyni kataloqdan gələn sətirlərin
+# `seen_at`-i EYNİDİR (hamısı bir emalda yazılır), ona görə «sonuncu sətir»
+# qaydası yalnız `at`-a görə sıralananda QEYRİ-MÜƏYYƏN olur - SQLite hər
+# dəfə fərqli sətir qaytara bilər. Ölçüldü: bir məhsulun kartında qiymət
+# 2.35 ilə 2.99 arasında dəyişirdi. Sıralama HƏMİŞƏ `at, layer, row_id`
+# olmalıdır (`layer` iki cədvəlin id-ləri üst-üstə düşdüyü üçün lazımdır).
 # `old_price` HƏR İKİ QATDA VAR (2026-09-10-dan). Əvvəl `price_snapshots`
 # yalnız `is_promo` bayrağını saxlayırdı və sayt sətrində köhnə qiymət NULL
 # qalırdı - nəticədə mağaza qatının endirimləri faizi hesablana bilmirdi və
 # «bugünün endirimləri» siyahısı yalnız kataloq qatından ibarət görünürdü.
 PRICE_ROWS_CTE = """
 WITH price_rows AS (
-    SELECT product_id, store_id, catalog_id, price, old_price, unit_price,
+    SELECT id AS row_id, product_id, store_id, catalog_id, price, old_price, unit_price,
            flags, seen_at AS at, 'catalog' AS layer
       FROM prices
     UNION ALL
     -- `flags` YALNIZ KATALOQ QATINDADIR: sağlamlıq yoxlaması OCR sətrinə
     -- baxır, mağaza qatında isə OCR yoxdur (data strukturludur). Sayt
     -- sətrində NULL qalır - yəni karantin şərti onu atmır.
-    SELECT product_id, store_id, NULL AS catalog_id, price, old_price, unit_price,
+    SELECT id AS row_id, product_id, store_id, NULL AS catalog_id, price, old_price, unit_price,
            NULL AS flags, observed_at AS at, 'site' AS layer
       FROM price_snapshots
      WHERE source = 'site'

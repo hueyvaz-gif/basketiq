@@ -146,8 +146,16 @@ def _offers_by_group(
     key_marks = ",".join("?" * len(group_keys))
     store_marks = ",".join("?" * len(store_ids))
 
+    # HƏR İKİ QİYMƏT QATI (`PRICE_ROWS_CTE`).
+    #
+    # BRAUZERDƏ GÖRÜLDÜ: Bravonun endirim kartı «0 / 4 marketdə» yazırdı və
+    # loqosuz gəlirdi, halbuki kart elə Bravonundur. Səbəb: bu sorğu yalnız
+    # `prices` oxuyurdu, Bravonun məhsulları isə `price_snapshots`-dadır -
+    # yəni öz təklifi belə tapılmırdı. Nəticədə müqayisə cədvəli və əhatə
+    # sayğacı yanlış olurdu.
     rows = conn.execute(
         f"""
+        {PRICE_ROWS_CTE}
         SELECT p.group_key   AS group_key,
                p.id          AS product_id,
                p.size_value  AS size_value,
@@ -156,12 +164,12 @@ def _offers_by_group(
                pr.price      AS price,
                pr.old_price  AS old_price,
                pr.unit_price AS unit_price,
-               pr.seen_at    AS seen_at
-        FROM prices pr
+               pr.at         AS seen_at
+        FROM price_rows pr
         JOIN products p ON p.id = pr.product_id
         WHERE p.group_key IN ({key_marks})
           AND pr.store_id IN ({store_marks})
-        ORDER BY pr.seen_at, pr.id
+        ORDER BY pr.at, pr.layer, pr.row_id
         """,
         (*group_keys, *store_ids),
     ).fetchall()
@@ -363,7 +371,7 @@ def todays_deals(limit: int = 12) -> dict:
               -- «bugünün endirimləri» siyahısına BURAXILMIR. Sətir bazada
               -- qalır və admin panelində görünür - orada insan qərar verir.
               AND (pr.flags IS NULL OR pr.flags = '')
-            ORDER BY pr.at
+            ORDER BY pr.at, pr.layer, pr.row_id
             """,
             tuple(markets),
         ).fetchall()
@@ -770,7 +778,7 @@ def store_page(slug: str, limit: int = 40) -> dict | None:
             FROM price_rows pr
             JOIN products p ON p.id = pr.product_id
             WHERE pr.store_id IN ({own_marks})
-            ORDER BY pr.at
+            ORDER BY pr.at, pr.layer, pr.row_id
             """,
             tuple(own_ids),
         ).fetchall()

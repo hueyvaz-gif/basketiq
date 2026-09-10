@@ -343,3 +343,65 @@ def test_novbelesme_setir_itirmir():
         {"store_slug": "a", "discount_pct": 40.0, "verdict": "az_musahide"},
     ]
     assert len(_market_novbelesmesi(sıralı, RANK)) == len(sıralı)
+
+
+# ---------------------------------------------------------------- sabit sıra
+
+
+def test_eyni_vaxtli_setirlerde_sira_sabitdir():
+    """
+    REQRESİYA (2026-09-10, brauzerdə görüldü). `PRICE_ROWS_CTE`-yə keçəndə
+    sorğudan `pr.id` bərabərlik pozucusu düşdü.
+
+    Eyni kataloqdan gələn sətirlərin `seen_at`-i EYNİDİR (hamısı bir emalda
+    yazılır), ona görə «sonuncu sətir» qaydası yalnız `at`-a görə
+    sıralananda QEYRİ-MÜƏYYƏN olur. Praktikada məhsul kartında qiymət
+    2.35 ilə 2.99 arasında dəyişirdi - səhv SƏSSİZ idi, çünki hər iki rəqəm
+    real qiymətdir, sadəcə başqa sətirdəndir.
+    """
+    from app.db import get_connection
+
+    with db_cursor() as cur:
+        pid, store_id = _mehsul_yarat(cur, "Sabit Sira Testi", "araz", 5.0, 10.0, "catalog")
+        cur.execute("SELECT catalog_id FROM prices WHERE product_id = ?", (pid,))
+        cat_id = cur.fetchone()[0]
+        # EYNİ `seen_at` ilə iki əlavə sətir - real kataloq emalındakı kimi.
+        for qiymet in (7.0, 9.0):
+            cur.execute(
+                "INSERT INTO prices (product_id, store_id, catalog_id, price, seen_at) "
+                "VALUES (?, ?, ?, ?, '2026-01-01 00:00:00')",
+                (pid, store_id, cat_id, qiymet),
+            )
+        cur.execute(
+            "UPDATE prices SET seen_at = '2026-01-01 00:00:00' WHERE product_id = ?", (pid,)
+        )
+
+    conn = get_connection()
+    try:
+        from app.db import PRICE_ROWS_CTE
+
+        nəticələr = set()
+        for _ in range(5):
+            row = conn.execute(
+                f"{PRICE_ROWS_CTE} "
+                "SELECT pr.price FROM price_rows pr WHERE pr.product_id = ? "
+                "ORDER BY pr.at, pr.layer, pr.row_id",
+                (pid,),
+            ).fetchall()
+            nəticələr.add(tuple(r["price"] for r in row))
+        assert len(nəticələr) == 1, f"sıra qaçışdan qaçışa dəyişdi: {nəticələr}"
+    finally:
+        conn.close()
+
+
+def test_cte_row_id_qaytarir():
+    """`row_id` olmasa sabit sıralama mümkün deyil."""
+    from app.db import PRICE_ROWS_CTE, get_connection
+
+    conn = get_connection()
+    try:
+        cur = conn.execute(f"{PRICE_ROWS_CTE} SELECT * FROM price_rows LIMIT 1")
+        sütunlar = {d[0] for d in cur.description}
+        assert {"row_id", "layer", "at", "old_price", "flags"} <= sütunlar
+    finally:
+        conn.close()
