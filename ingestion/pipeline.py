@@ -187,6 +187,9 @@ def save_products(products: list[ExtractedProduct], store_id: int, catalog_id: i
                 price=product.price,
                 old_price=product.old_price,
                 unit_price=product.unit_price,
+                # Xam sətir də verilir: çoxvariantlı kartı yalnız orada
+                # görmək olur (`quality.MULTI_VARIANT_RE`).
+                raw_line=product.raw_line,
             )
             cur.execute(
                 "INSERT INTO prices (product_id, store_id, catalog_id, price, old_price, "

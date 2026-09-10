@@ -24,6 +24,7 @@ HƏDLƏR ÖLÇÜLÜB, UYDURULMAYIB - hər birinin izahı öz sabitindədir.
 
 from __future__ import annotations
 
+import re
 from statistics import median
 
 # Endirim bu dərinlikdən keçirsə, sətir KARANTİNƏ düşür.
@@ -61,6 +62,29 @@ MIN_HISTORY = 3
 UNIT_OUTLIER_RATIO = 12.0
 
 # Bayraq açarları: UI-da tərcümə olunur (`app/static/i18n.js`, `flag.*`).
+# ÇOXVARİANTLI KART: bir kartda bir neçə paket ölçüsü sadalanır və hansı
+# qiymətin hansına aid olduğu BƏLLİ DEYİL.
+#
+# REAL SƏHVDƏN ÇIXIB (Rahat, 2026-09-10). Kataloq kartı belədir:
+#     «Huggies Ultra Comfort N3 x 78  N4 x 66  N5 x 56»
+# OCR sonuncu rəqəmi qiymət kimi götürdü: 126.53 ₼. Ekranda inandırıcı
+# görünürdü - uşaq bezi bahalı ola bilər - amma yalan idi.
+#
+# NİYƏ MƏHZ BU NÜMUNƏ? Üç namizəd ölçüldü:
+#     xam sətirdəki rəqəm sayı >= 3  -> Rahat 7/56, Araz 92/394  (23% - yararsız)
+#     «N<rəqəm> x <say>» 2+ dəfə     -> Rahat 3/56, Araz 0/394
+#     «<söz> x <say>» 2+ dəfə        -> Rahat 3/56, Araz 0/394
+# Sonuncu seçildi: eyni dəqiqlik, amma «N» hərfini sabit yazmır. Söz həddi
+# 6 hərfdir - 4 ilə ölçüldükdə eyni sətirləri tuturdu, amma «Paket x 12
+# Qutu x 24» kimi yazılışı buraxırdı; 6 hərflə real nəticə dəyişmir
+# (Rahat 3/56, Araz 0/394), əhatə isə genişlənir.
+#
+# Araz-da SIFIR yalançı müsbət verməsi vacibdir: bayraq nadir olmalıdır,
+# əks halda karantin növbəsi dolur və insan ona baxmağı dayandırır.
+MULTI_VARIANT_RE = re.compile(r"\b\w{1,6}\s*[xX×]\s*\d{2,}")
+MIN_VARIANT_MATCHES = 2
+
+FLAG_MULTI_VARIANT = "multiVariant"
 FLAG_DEEP_DISCOUNT = "deepDiscount"
 FLAG_PRICE_OUTLIER = "priceOutlier"
 FLAG_UNIT_OUTLIER = "unitOutlier"
@@ -80,6 +104,7 @@ def check_price(
     history: list[float] | None = None,
     unit_price: float | None = None,
     category_median_unit: float | None = None,
+    raw_line: str | None = None,
 ) -> list[str]:
     """
     Bir qiymət sətrini yoxlayır və BAYRAQ SİYAHISI qaytarır.
@@ -88,6 +113,10 @@ def check_price(
     yalnız qiymətləndirir; qərarı çağıran tərəf verir.
     """
     flags: list[str] = []
+
+    # Çoxvariantlı kart: qiymət hansı ölçüyə aiddir - bilinmir.
+    if raw_line and len(MULTI_VARIANT_RE.findall(raw_line)) >= MIN_VARIANT_MATCHES:
+        flags.append(FLAG_MULTI_VARIANT)
 
     depth = discount_depth(price, old_price)
     if depth is not None and depth > DEEP_DISCOUNT:

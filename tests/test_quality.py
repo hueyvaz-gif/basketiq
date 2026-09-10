@@ -29,6 +29,7 @@ from ingestion.pipeline import save_products
 from ingestion.quality import (
     DEEP_DISCOUNT,
     FLAG_DEEP_DISCOUNT,
+    FLAG_MULTI_VARIANT,
     FLAG_PRICE_OUTLIER,
     FLAG_UNIT_OUTLIER,
     MIN_HISTORY,
@@ -294,3 +295,58 @@ def test_nişanlı_sətir_bugünün_endirimlərinə_düşmür():
     # Eyni faiz (60%), eyni market, eyni kataloq — YEGANƏ fərq bayraqdır.
     assert _qrup(təmiz) in açarlar, "təmiz sətir siyahıdan düşdü — süzgəc çox geniş"
     assert _qrup(nişanlı) not in açarlar, "nişanlı sətir siyahıya çıxdı — karantin işləmir"
+
+
+# ---------------------------------------------------------------- çoxvariantlı kart
+
+
+def test_çoxvariantlı_kart_nişanlanır():
+    """
+    REAL SƏHVDƏN ÇIXIB (Rahat, 2026-09-10). Kataloq kartında üç paket ölçüsü
+    sadalanır və OCR sonuncu rəqəmi qiymət kimi götürdü:
+
+        «Huggies Ultra Comfort N3 x 78 N4 x 66 N5 x 56» -> 126.53 ₼
+
+    Ekranda İNANDIRICI görünürdü (uşaq bezi bahalı ola bilər), amma yalan
+    idi. Mövcud yoxlamalar tutmurdu: onlar endirim dərinliyinə baxır, qiymətin
+    hansı ölçüyə aid olduğuna yox.
+    """
+    flags = check_price(
+        price=126.53,
+        raw_line="Huggies Ultra Comfort N3 x 78 N4 x 66 N5 x 56 126.53",
+    )
+    assert FLAG_MULTI_VARIANT in flags
+
+
+def test_adi_sətir_nişanlanmır():
+    """
+    Bayraq NADİR olmalıdır. Ölçüldü: bu nümunə Arazın 394 sətrindən
+    SIFIRINI bayraqlayır - əks halda karantin növbəsi dolar və insan ona
+    baxmağı dayandırardı.
+    """
+    assert check_price(price=2.29, raw_line="Azərsüd Süd 3.2% 1L 2.29") == []
+    assert check_price(price=2.69, raw_line="Milla Xama 20% 300 qr 2.69") == []
+
+
+def test_tək_variant_kifayət_deyil():
+    """«Paket x 12» tək başına normal qablaşdırma yazısıdır - qiymət aydındır."""
+    assert check_price(price=5.0, raw_line="Paket x 12 5.00") == []
+
+
+def test_hərfi_sabit_yazmırıq():
+    """
+    «N3 x 78» əvəzinə ümumi nümunə işlədilir: başqa kataloqda eyni fikir
+    «Paket x 12 / Qutu x 24» kimi yazıla bilər.
+    """
+    flags = check_price(price=5.0, raw_line="Paket x 12 Qutu x 24 5.00")
+    assert FLAG_MULTI_VARIANT in flags
+
+
+def test_xam_sətir_verilməsə_yoxlama_atlanır():
+    """Xam sətri olmayan çağırış (məsələn mağaza qatı) sınmamalıdır."""
+    assert check_price(price=2.29) == []
+
+
+def test_nişanlı_sətir_baxış_tələb_edir():
+    flags = check_price(price=126.53, raw_line="A N3 x 78 N4 x 66 126.53")
+    assert needs_review(flags) is True
