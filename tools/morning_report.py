@@ -25,7 +25,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.db import get_connection  # noqa: E402
+from app.db import PRICE_ROWS_CTE, get_connection  # noqa: E402
 from app.stores import MARKETS, market_for  # noqa: E402
 from ingestion.profiles import profile_for  # noqa: E402
 
@@ -137,19 +137,46 @@ def _sətirlər(conn, bugün: str, dünən: str) -> list[str]:
     ]
 
     # --- 4. Market vəziyyəti -------------------------------------------------
-    out += ["## Marketlər", "", "| Market | Məhsul | Nişanlı sətir |", "|---|---|---|"]
+    #
+    # HƏR İKİ QAT SAYILIR (`PRICE_ROWS_CTE`). İlk versiya yalnız `prices`
+    # oxuyurdu və hesabat «Bravo Market — 8 məhsul» yazırdı, halbuki saytda
+    # 13 097-dir: Bravonun məhsullarının hamısı mağaza qatındandır
+    # (`price_snapshots`). Hesabat saytdan FƏRQLİ rəqəm göstərsə, səhər ona
+    # baxan adam hansına inanacağını bilməz.
+    #
+    # `flags` yalnız `prices`-dədir - `price_snapshots`-da belə sütun yoxdur,
+    # ona görə nişanlı sətir sayğacı kataloq qatına aiddir.
+    out += [
+        "## Marketlər",
+        "",
+        "| Market | Məhsul | kataloq | mağaza | Nişanlı |",
+        "|---|---|---|---|---|",
+    ]
     for row in conn.execute(
-        """
+        f"""
+        {PRICE_ROWS_CTE}
         SELECT s.slug AS slug,
                COUNT(DISTINCT pr.product_id) AS products,
-               SUM(CASE WHEN pr.flags IS NOT NULL THEN 1 ELSE 0 END) AS flagged
-        FROM stores s LEFT JOIN prices pr ON pr.store_id = s.id GROUP BY s.id
+               COUNT(DISTINCT CASE WHEN pr.layer = 'catalog'
+                                   THEN pr.product_id END) AS catalog_products,
+               COUNT(DISTINCT CASE WHEN pr.layer = 'site'
+                                   THEN pr.product_id END) AS site_products
+        FROM stores s LEFT JOIN price_rows pr ON pr.store_id = s.id
+        GROUP BY s.id
         """
     ):
         market = market_for(row["slug"])
         if market is None or not row["products"]:
             continue
-        out.append(f"| {market.name} | {row['products']} | {row['flagged'] or 0} |")
+        flagged = conn.execute(
+            "SELECT COUNT(*) FROM prices pr JOIN stores s ON s.id = pr.store_id "
+            "WHERE s.slug = ? AND pr.flags IS NOT NULL",
+            (row["slug"],),
+        ).fetchone()[0]
+        out.append(
+            f"| {market.name} | **{row['products']}** | {row['catalog_products']} "
+            f"| {row['site_products']} | {flagged} |"
+        )
     out.append("")
 
     out += ["---", "", "Ətraflı: <http://localhost:5678> (n8n icra tarixçəsi) · "
