@@ -144,14 +144,15 @@
       </div>
     </section>
 
-    <!-- --- REKLAM SLOTU (E19) ---
-         Market şəbəkəsi ilə endirimlər ARASINDA. Yer qəsdən buradadır:
-         istifadəçi marketi seçib endirimlərə keçərkən ora onsuz da baxır,
-         amma axını kəsmir - pop-up deyil, sətir arası kartdır.
+    <!-- SƏTİR ARASI REKLAM BURADAN GÖTÜRÜLDÜ (2026-09-10).
+         Əvvəl market şəbəkəsi ilə endirimlər ARASINDA banner vardı. Reklam
+         indi səhifənin KƏNARLARINDADIR (`.ad-rail`, `<main>`-dən əvvəl) -
+         yəni məzmun axını heç bir yerdə kəsilmir.
 
-         Boş qalanda gizlənmir: «Sizin reklamınız burada ola bilər» yazılır
-         (E20). Məzmunu `ads.js` doldurur. -->
-    <div id="adSlot" data-slot="home-banner" class="ad-slot"></div>
+         `home-banner` slotu `app/ads.py:SLOTS`-da QALIR: admin panelində
+         mövcud sifarişlər görünməlidir və slot gələcəkdə başqa səhifədə
+         işlədilə bilər. Slotu reyestrdən silsək, ona bağlı sətirlər
+         «naməlum slot» olardı. -->
 
     <!-- --- BUGÜNÜN ƏN SƏRFƏLİ ENDİRİMLƏRİ ---
 
