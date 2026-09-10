@@ -36,7 +36,7 @@ _TMP_DIR = Path(tempfile.mkdtemp(prefix="basketiq-test-"))
 os.environ["DATABASE_PATH"] = str(_TMP_DIR / "test.db")
 os.environ.setdefault("DATA_DIR", str(_TMP_DIR))
 
-from app.db import init_db  # noqa: E402  (yuxarıdakı env-dən sonra olmalıdır)
+from app.db import db_cursor, init_db  # noqa: E402  (yuxarıdakı env-dən sonra olmalıdır)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -84,3 +84,102 @@ def make_store(slug: str, name: str) -> int:
         )
         cur.execute("SELECT id FROM stores WHERE slug = ?", (slug,))
         return cur.fetchone()["id"]
+
+
+# ============================================================================
+# PAYLAŞILAN SƏBƏT FIXTURE-LƏRİ
+# ============================================================================
+# `test_basket.py`-dan bura KÖÇÜRÜLDÜ: `test_basket_hero.py` da onları
+# işlədir. Modullar arasında fixture idxal etmək pytest-də işləyir, amma
+# ruff onu F811 kimi tutur (parametr adı idxal olunmuş adı örtür) - və
+# haqlıdır: idxal edilən fixture həqiqətən qeyri-adi konstruksiyadır.
+# `conftest.py` pytest-in bunun üçün nəzərdə tutduğu yerdir.
+
+@pytest.fixture
+def empty_basket():
+    """Hər test öz səbəti ilə işləsin - ümumi səbətin vəziyyətindən asılı olmasın."""
+    with db_cursor() as cur:
+        cur.execute("INSERT INTO baskets (name) VALUES ('test')")
+        basket_id = cur.lastrowid
+    yield basket_id
+    with db_cursor() as cur:
+        cur.execute("DELETE FROM basket_items WHERE basket_id = ?", (basket_id,))
+        cur.execute("DELETE FROM baskets WHERE id = ?", (basket_id,))
+
+
+@pytest.fixture
+def sample_data():
+    """
+    İki market, üç məhsul:
+      - süd    : hər iki marketdə (Bravo ucuz)
+      - düyü   : hər iki marketdə (Araz ucuz)
+      - çay    : yalnız Araz-da
+    Süd iki ayrı product sətridir, amma eyni group_key altındadır -
+    yəni matching işləmiş kimi.
+    """
+    created = {"stores": [], "products": [], "catalogs": []}
+
+    # REAL market slug-ları işlədilir. Müqayisə yalnız `app/stores.py`
+    # reyestrindəki dörd marketi götürdüyü üçün uydurma slug ilə yaradılmış
+    # market cavaba ÜMUMİYYƏTLƏ düşmür - test isə səbəbi görünməyən şəkildə
+    # sınardı. Təfərrüat: `conftest.make_store`.
+    for slug, name in [("bravo", "Bravo"), ("araz", "Araz")]:
+        created["stores"].append(make_store(slug, name))
+
+    with db_cursor() as cur:
+        for i, store_id in enumerate(created["stores"]):
+            cur.execute(
+                "INSERT INTO catalogs (store_id, file_hash, file_path, source_type) "
+                "VALUES (?, ?, ?, 'image')",
+                (store_id, f"testhash{i}", f"data/raw/test{i}.png"),
+            )
+            created["catalogs"].append(cur.lastrowid)
+
+        # (canonical_key, group_key, ad)
+        rows = [
+            ("t|sud|bravo|1l", "t|sud|1l", "süd"),      # eyni qrup
+            ("t|sud|araz|1l", "t|sud|1l", "süd"),       # eyni qrup
+            ("t|duyu|1kg", "t|duyu|1kg", "düyü"),
+            ("t|cay|250g", "t|cay|250g", "çay"),
+        ]
+        for key, group, name in rows:
+            cur.execute(
+                "INSERT INTO products (canonical_key, name, brand, size_value, size_unit, "
+                "                      category, group_key) VALUES (?, ?, NULL, 1, 'l', 'digər', ?)",
+                (key, name, group),
+            )
+            created["products"].append(cur.lastrowid)
+
+    sud_bravo, sud_araz, duyu, cay = created["products"]
+    bravo, araz = created["stores"]
+    cat_bravo, cat_araz = created["catalogs"]
+
+    with db_cursor() as cur:
+        prices = [
+            (sud_bravo, bravo, cat_bravo, 1.89),
+            (sud_araz, araz, cat_araz, 2.05),
+            (duyu, bravo, cat_bravo, 3.40),
+            (duyu, araz, cat_araz, 3.15),
+            (cay, araz, cat_araz, 3.80),
+        ]
+        for product_id, store_id, catalog_id, price in prices:
+            cur.execute(
+                "INSERT INTO prices (product_id, store_id, catalog_id, price, unit_price) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (product_id, store_id, catalog_id, price, price),
+            )
+
+    yield {"stores": created["stores"], "sud": sud_bravo, "duyu": duyu, "cay": cay}
+
+    # Təmizlik: test datası real DB-də qalmasın
+    with db_cursor() as cur:
+        cur.execute("DELETE FROM basket_items WHERE product_id IN "
+                    "(SELECT id FROM products WHERE canonical_key LIKE 't|%')")
+        cur.execute("DELETE FROM prices WHERE catalog_id IN "
+                    f"({','.join('?' * len(created['catalogs']))})", created["catalogs"])
+        cur.execute("DELETE FROM catalogs WHERE id IN "
+                    f"({','.join('?' * len(created['catalogs']))})", created["catalogs"])
+        cur.execute("DELETE FROM products WHERE canonical_key LIKE 't|%'")
+        # MARKET SƏTRİ SİLİNMİR: `araz`/`bravo` reyestr marketləridir və digər
+        # test modulları da onları işlədir. Silsək, testlərin SIRASI nəticəyə
+        # təsir edərdi. Baza onsuz da müvəqqətidir (bax `conftest.py`).

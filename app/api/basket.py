@@ -334,6 +334,13 @@ def compare(basket_id: int = DEFAULT_BASKET_ID):
     cheapest_total = 0.0
     cheapest_stores: set[int] = set()
     unavailable = 0
+    # HANSI MƏHSUL HARADAN? Planın CƏMİ tək başına yoxlanıla bilmir:
+    # «2 marketi gəzsəniz 0.16 ₼ qənaət» cümləsi rəqəmin haradan gəldiyini
+    # demirdi və istifadəçi ona inanmaq üçün heç bir əsas tapmırdı.
+    # İndi hər məhsul üçün seçilmiş market və qiymət də qaytarılır.
+    assignments: list[dict] = []
+    ad_by_id = {s["id"]: s["name"] for s in stores}
+    slug_by_id = {s["id"]: s["slug"] for s in stores}
 
     for row in item_rows:
         prices = row["prices"]
@@ -341,8 +348,16 @@ def compare(basket_id: int = DEFAULT_BASKET_ID):
             unavailable += 1
             continue
         store_id = row["cheapest_store_id"]
-        cheapest_total += prices[str(store_id)]["price"] * row["qty"]
+        unit = prices[str(store_id)]["price"]
+        cheapest_total += unit * row["qty"]
         cheapest_stores.add(store_id)
+        assignments.append({
+            "label": row["label"],
+            "qty": row["qty"],
+            "store": ad_by_id.get(store_id, ""),
+            "store_slug": slug_by_id.get(store_id, ""),
+            "price": round(unit, 2),
+        })
 
     cheapest = {
         "total": round(cheapest_total, 2),
@@ -350,6 +365,7 @@ def compare(basket_id: int = DEFAULT_BASKET_ID):
         # Səbətdə heç bir marketdə tapılmayan məhsul varsa, cəm NATAMAMDIR -
         # istifadəçi bunu bilməlidir, yoxsa rəqəmə tam etibar edər.
         "unavailable": unavailable,
+        "assignments": assignments,
     } if item_rows else None
 
     return {

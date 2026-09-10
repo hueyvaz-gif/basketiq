@@ -627,6 +627,64 @@
       ru: "Обойдите {n} магазина — сэкономите ещё {amount}",
     },
     "answer.fullBasket": { az: "ən ucuz tam səbət", en: "cheapest complete basket", ru: "самая дешёвая полная корзина" },
+
+    // Böyük rəqəmin NƏ OLDUĞU. Əvvəl yalnız «6.14 ₼» yazılırdı və rəqəmin
+    // bütün məhsulların cəmi olduğu heç yerdə deyilmirdi.
+    "answer.allItems": {
+      az: "Hər {n} məhsul bir yerdə",
+      en: "All {n} products together",
+      ru: "Все {n} товара вместе",
+    },
+    "answer.cheapestFull": {
+      az: "Ən ucuz tam səbət — {store}",
+      en: "Cheapest complete basket — {store}",
+      ru: "Самая дешёвая полная корзина — {store}",
+    },
+    "answer.onlyOneComplete": {
+      az: "Tam səbəti yalnız 1 market satır",
+      en: "Only 1 supermarket sells the complete basket",
+      ru: "Полную корзину продаёт только 1 магазин",
+    },
+
+    // Bölünmüş alışın HESABI. «0.16 ₼ qənaət» rəqəminin haradan gəldiyi
+    // izah olunmurdu - istifadəçinin ona inanmaq üçün əsası yox idi.
+    "answer.splitHead": {
+      az: "{n} marketə getsəniz {amount} qənaət",
+      en: "Visit {n} supermarkets and save {amount}",
+      ru: "Обойдите {n} магазина — сэкономите {amount}",
+    },
+    "answer.splitItem": {
+      az: "{label} — {store} ({price})",
+      en: "{label} — {store} ({price})",
+      ru: "{label} — {store} ({price})",
+    },
+    "answer.splitSum": {
+      az: "Cəmi {sum} — {store} marketindən hər şeyi almaqdan {amount} ucuz",
+      en: "Total {sum} — {amount} cheaper than buying everything at {store}",
+      ru: "Итого {sum} — на {amount} дешевле, чем всё в {store}",
+    },
+
+    // Natamam səbətlər müqayisə oxundan KƏNARDIR.
+    "bars.completeHead": {
+      az: "Tam səbət — müqayisə",
+      en: "Complete basket — comparison",
+      ru: "Полная корзина — сравнение",
+    },
+    "bars.partialHead": {
+      az: "Natamam səbət — müqayisəyə girmir",
+      en: "Incomplete basket — not compared",
+      ru: "Неполная корзина — не сравнивается",
+    },
+    "bars.partialWhy": {
+      az: "Yalnız {covered}/{total} məhsul var — cəmi qalanları saymır",
+      en: "Only {covered}/{total} products — the total excludes the rest",
+      ru: "Только {covered}/{total} товаров — сумма не включает остальные",
+    },
+    "bars.noComplete": {
+      az: "Heç bir market səbətin hamısını satmır — müqayisə oxu qurulmur.",
+      en: "No supermarket sells the whole basket — no comparison axis.",
+      ru: "Ни один магазин не продаёт всю корзину — шкала не строится.",
+    },
     "answer.partial": {
       az: "{covered}/{total} məhsul — natamam",
       en: "{covered}/{total} products — incomplete",

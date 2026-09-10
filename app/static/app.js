@@ -207,13 +207,38 @@ function renderHero(data) {
   const c = data.cheapest;
 
   // --- Bölünmüş alış TƏKLİFİ: yalnız real qənaət varsa göstərilir ----------
+  //
+  // HESAB AÇIQ GÖSTƏRİLİR. Əvvəl yalnız «2 marketi gəzsəniz daha 0.16 ₼
+  // qənaət» yazılırdı - rəqəmin haradan gəldiyi heç yerdə deyilmirdi və
+  // istifadəçinin ona inanmaq üçün əsası yox idi. İndi hər məhsulun hansı
+  // marketdən götürüldüyü və yekun cəm sətir-sətir yazılır.
   const splitSaving = best && c ? best.total - c.total : 0;
-  const splitLine =
-    best && c && splitSaving > 0.005
-      ? `<p class="answer-alt">
-           ${t("answer.split", { n: c.store_count, amount: `<strong>${price(splitSaving)}</strong>` })}
-         </p>`
-      : "";
+  const showSplit = best && c && splitSaving > 0.005 && (c.assignments || []).length;
+
+  const splitLine = showSplit
+    ? `<details class="answer-alt" open>
+         <summary>${t("answer.splitHead", {
+           n: c.store_count,
+           amount: `<strong>${price(splitSaving)}</strong>`,
+         })}</summary>
+         <ul class="split-list">
+           ${c.assignments
+             .map(
+               (a) => `<li>${t("answer.splitItem", {
+                 label: esc(a.label),
+                 store: `<strong>${esc(a.store)}</strong>`,
+                 price: price(a.price * (a.qty || 1)),
+               })}</li>`
+             )
+             .join("")}
+         </ul>
+         <p class="split-sum">${t("answer.splitSum", {
+           sum: `<strong>${price(c.total)}</strong>`,
+           store: esc(best.store),
+           amount: price(splitSaving),
+         })}</p>
+       </details>`
+    : "";
 
   // --- HAL 1: səbətin hamısını satan market var -> ŞƏRTSİZ CAVAB -----------
   if (best) {
@@ -228,14 +253,24 @@ function renderHero(data) {
       ? `${t("answer.cheaperThan", { store: esc(second.store), amount: price(second.total - best.total) })}`
       : `${t("answer.cheapestCount", { n: best.cheapest_count, total: data.items.length })}`;
 
+    // TAM SƏBƏTİ SATAN MARKET SAYI açıq yazılır: «6.14 ₼» rəqəminin
+    // müqayisəyə girən neçə marketdən seçildiyi görünməlidir. Tək market
+    // varsa, «ən ucuz» sözü müqayisə iddiası kimi oxunmamalıdır.
+    const tekNamized = complete.length === 1
+      ? `<p class="answer-note">${t("answer.onlyOneComplete")}</p>`
+      : "";
+
     box.innerHTML = `
       <div class="answer">
         <div class="answer-store">
           ${storeAvatar(best.store, "is-lg")}
           <span class="hero-store">${esc(best.store)}</span>
         </div>
+        <span class="eyebrow">${t("answer.allItems", { n: data.items.length })}</span>
         <div class="hero-price">${price(best.total)}</div>
+        <p class="answer-sub">${t("answer.cheapestFull", { store: esc(best.store) })}</p>
         <p class="answer-line">${line}</p>
+        ${tekNamized}
       </div>
       ${splitLine}`;
     return;
@@ -286,10 +321,29 @@ function renderBars(data) {
   // Niyə? Onun cəmi 0.00-dır, yəni bar çəksək ən qısa - deməli "ən ucuz" -
   // görünərdi. Bu, yalan olardı: market ucuz deyil, sadəcə bu məhsulları
   // satmır. Ona görə bar əvəzinə açıq mətn yazılır.
-  const selling = data.stores.filter((s) => s.covered > 0);
+  // ÜÇ QRUP, ÜÇ FƏRQLİ GÖRÜNÜŞ.
+  //
+  // TƏLƏ (brauzerdə görüldü): əvvəl tam və natamam səbətlər EYNİ OXDA idi.
+  // Natamam səbətin cəmi kiçikdir, çünki çatışmayan məhsul sayılmır - yəni
+  // onun zolağı QISA, deməli gözlə «daha ucuz» görünürdü. Nümunə:
+  //     Araz  6.14 ₼  (süd + düyü)      -> uzun zolaq
+  //     Bravo 1.89 ₼  (yalnız süd)      -> qısa zolaq = «ən ucuz»?
+  // Ştrixli fon «natamam» demək istəyirdi, amma rəqəmin özü yalan danışırdı.
+  //
+  // İNDİ: yalnız TAM səbətlər eyni oxdadır və miqyas ən ucuz tam səbətə
+  // görə qurulur. Natamam səbətlər ayrıca, zolaqsız siyahıdadır - müqayisə
+  // oxundan tamamilə kənarda.
+  const complete = data.stores
+    .filter((s) => s.complete && s.covered > 0)
+    .sort((a, b) => a.total - b.total);
+  const partial = data.stores
+    .filter((s) => !s.complete && s.covered > 0)
+    .sort((a, b) => b.covered - a.covered);
   const notSelling = data.stores.filter((s) => s.covered === 0);
 
-  const max = Math.max(...selling.map((s) => s.total), 0.01);
+  // Miqyas YALNIZ tam səbətlərə görə: natamam cəm oxa girsəydi, o, miqyası
+  // aşağı çəkib bütün zolaqları uzadardı.
+  const max = Math.max(...complete.map((s) => s.total), 0.01);
 
   const emptyRows = notSelling
     .map((s) => {
@@ -307,13 +361,15 @@ function renderBars(data) {
     })
     .join("");
 
-  box.innerHTML = `<div class="bars">${selling
+  const completeRows = complete
     .map((s) => {
       const isBest = data.best && s.store_id === data.best.store_id;
-      const cls = `bar-row${isBest ? " is-best" : ""}${s.complete ? "" : " is-partial"}`;
-      const sub = s.complete
-        ? (isBest ? t("answer.fullBasket") : (s.diff != null ? `+${money(s.diff)} ₼` : ""))
-        : `${t("answer.partial", { covered: s.covered, total: data.items.length })}`;
+      const cls = `bar-row${isBest ? " is-best" : ""}`;
+      const sub = isBest
+        ? t("answer.fullBasket")
+        : s.diff != null
+          ? `+${money(s.diff)} ₼`
+          : "";
       // Bar ən azı 22% enində olur ki, içindəki rəqəm həmişə oxunsun
       const width = Math.max(22, (s.total / max) * 100);
       return `<div class="${cls}">
@@ -327,7 +383,51 @@ function renderBars(data) {
         </div>
       </div>`;
     })
-    .join("")}${emptyRows}</div>
+    .join("");
+
+  // NATAMAM SƏBƏTLƏR: zolaq YOXDUR.
+  //
+  // Zolaq uzunluğu müqayisə deməkdir; bu marketlər müqayisəyə girmir, ona
+  // görə zolaq çəkmək özü yalan siqnaldır. Cəm göstərilir (məlumat üçün),
+  // amma yanında NƏYİN cəmi olduğu və nəyin çatışmadığı açıq yazılır.
+  const partialRows = partial
+    .map((s) => {
+      const çatışmayan = (s.missing || []).length
+        ? `<small class="bar-missing">${esc(s.missing.join(", "))}</small>`
+        : "";
+      return `<div class="bar-row is-partial">
+        <div class="bar-name">
+          ${storeAvatar(s.store, "is-sm")}
+          <span>${esc(s.store)}
+            <small>${esc(t("bars.partialWhy", {
+              covered: s.covered, total: data.items.length,
+            }))}</small>${çatışmayan}</span>
+        </div>
+        <div class="bar-partial-value">
+          ${price(s.total)}
+          <span class="bar-flag">${esc(t("answer.partial", {
+            covered: s.covered, total: data.items.length,
+          }))}</span>
+        </div>
+      </div>`;
+    })
+    .join("");
+
+  const completeBlock = completeRows
+    ? `<div class="bars-group">
+         <div class="bars-head">${t("bars.completeHead")}</div>
+         <div class="bars">${completeRows}</div>
+       </div>`
+    : `<div class="notice warn">${t("bars.noComplete")}</div>`;
+
+  const partialBlock = (partialRows || emptyRows)
+    ? `<div class="bars-group is-muted">
+         <div class="bars-head">${t("bars.partialHead")}</div>
+         <div class="bars">${partialRows}${emptyRows}</div>
+       </div>`
+    : "";
+
+  box.innerHTML = `${completeBlock}${partialBlock}
     ${data.note ? `<div class="notice warn">${esc(data.note)}</div>` : ""}`;
 }
 

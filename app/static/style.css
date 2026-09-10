@@ -873,7 +873,18 @@ a.brand:hover .brand-name { color: var(--text-secondary); }
    yazısı bu tələni gözlə görünən edir: rənglə deyil, HƏM naxış, HƏM mətnlə. */
 /* Səbətdən heç nə satmayan market: bar YOXDUR.
    Bar çəksək cəmi 0.00 olduğu üçün ən qısa - deməli "ən ucuz" - görünərdi. */
-.bar-row.is-empty { opacity: .65; }
+/* Datası olmayan market: burada da zolaq yoxdur, ona görə ad sütununun
+   dar həddi yalnız izahı kəsirdi («kataloq hələ gəlməy…»). */
+.bar-row.is-empty {
+  opacity: .65;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.bar-row.is-empty .bar-name > span {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
 .bar-empty {
   font-size: 13px;
   color: var(--text-3);
@@ -882,12 +893,102 @@ a.brand:hover .brand-name { color: var(--text-secondary); }
   background: var(--surface-2);
 }
 
-.bar-row.is-partial .bar-fill {
-  background: repeating-linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--info) 34%, var(--surface-2)) 0 8px,
-    var(--surface-2) 8px 16px
-  );
+/* NATAMAM SƏBƏTLƏRDƏ ZOLAQ YOXDUR.
+   ================================
+   Əvvəl natamam səbət ştrixli zolaqla çəkilirdi. Ştrix «bu natamamdır»
+   demək istəyirdi, amma ZOLAĞIN UZUNLUĞU ayrı bir şey deyirdi: cəm kiçik
+   olduğu üçün zolaq qısa, qısa zolaq isə «ucuz» oxunur.
+
+   Nümunə (brauzerdə görüldü): Araz 6.14 ₼ (süd + düyü) uzun zolaq, Bravo
+   1.89 ₼ (yalnız süd) qısa zolaq. Göz Bravonu ucuz sanır, halbuki o,
+   səbətin yarısını satmır.
+
+   İndi belə market müqayisə oxundan TAMAMİLƏ kənardadır: zolaq yoxdur,
+   yalnız rəqəm və «natamam» nişanı var. */
+.bars-group + .bars-group { margin-top: var(--s4); }
+
+.bars-head {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--s2);
+}
+
+.bars-group.is-muted .bars-head { color: var(--text-tertiary); font-weight: 500; }
+
+/* NATAMAM SƏTİRDƏ AD SÜTUNU GENİŞDİR.
+   Tam səbətdə ad sütunu dar olmalıdır ki, zolağa yer qalsın (150px hədd).
+   Natamam sətirdə isə ZOLAQ YOXDUR - həmin hədd yalnız mətni kəsirdi.
+   BRAUZERDƏ GÖRÜLDÜ: «Yalnız 1/2 məhsul v…» və «Mastero basmati dü…» -
+   yəni izah sətri məhz izah edən yerdə qırılırdı.
+
+   `white-space: normal` da lazımdır: ad sütununun defoltu tək sətirdir
+   (`nowrap`), uzun izah isə iki sətrə sığmalıdır. */
+.bar-row.is-partial {
+  opacity: .75;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.bar-row.is-partial .bar-name > span {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.bar-partial-value {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s2);
+  font-size: 15px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* «natamam» nişanı: rəng TƏK siqnal deyil - yanında söz də var. */
+.bar-flag {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  background: var(--bg-subtle);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+/* Çatışmayan məhsulların adı: «niyə natamam?» sualı sətirdə cavablanır. */
+.bar-missing {
+  display: block;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+/* Bölünmüş alışın hesabı: sətir-sətir «hansı məhsul haradan». */
+.split-list {
+  margin: var(--s2) 0 0;
+  padding-left: var(--s4);
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.split-list li { margin: 2px 0; }
+
+.split-sum {
+  margin: var(--s2) 0 0;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.answer-sub {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.answer-note {
+  margin: var(--s2) 0 0;
+  font-size: 13px;
+  color: var(--text-tertiary);
 }
 
 
