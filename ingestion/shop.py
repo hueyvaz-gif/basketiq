@@ -50,6 +50,7 @@ from __future__ import annotations
 
 import re
 import time
+from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 
@@ -127,7 +128,15 @@ class ShopReport:
     store: str
     shop_url: str
     categories: list[str] = field(default_factory=list)
+    # KATEQORİYA-KATEQORİYA hesabat: hansı bölmədən neçə məhsul gəldi və
+    # neçəsi yazıldı. Uzun çəkilişdə tək «cəmi 13086» rəqəmi problemi
+    # gizlədirdi - bir kateqoriya boş qayıtsa, fərqi görmək mümkün deyildi.
+    category_stats: list[dict] = field(default_factory=list)
+    # `products` YALNIZ `keep_products=True` olanda dolur (dry-run). Adi
+    # çəkilişdə 13 min obyekt yaddaşda saxlanılmır - onlar onsuz da hər
+    # kateqoriyadan sonra bazaya yazılır.
     products: list[ExtractedProduct] = field(default_factory=list)
+    found: int = 0
     skipped: list[dict] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     saved: int = 0
@@ -140,7 +149,8 @@ class ShopReport:
             "shop_url": self.shop_url,
             "categories": self.categories,
             "category_count": len(self.categories),
-            "found_count": len(self.products),
+            "category_stats": self.category_stats,
+            "found_count": self.found,
             "saved": self.saved,
             "skipped": self.skipped,
             "skipped_count": len(self.skipped),
@@ -365,12 +375,34 @@ def scrape_shop(
     slug: str,
     max_categories: int | None = None,
     max_products: int | None = None,
+    on_category: Callable[[str, list[ExtractedProduct]], int] | None = None,
+    keep_products: bool = False,
 ) -> ShopReport:
     """
     Marketin onlayn mağazasından bütün məhsulları çəkir.
 
     MARKET ADI PARAMETRDİR: funksiya Bravoya aid deyil. Yeni market üçün
     `profiles.py`-də `shop_url` yazmaq kifayətdir — bu funksiya dəyişmir.
+
+    KATEQORİYA-KATEQORİYA YAZILIR (`on_category`)
+    =============================================
+    Əvvəl bütün məhsullar yaddaşda toplanır və YALNIZ SONDA yazılırdı. Bravo
+    çəkilişi 40 dəqiqə çəkir — yəni 40 dəqiqə ərzində bazada heç nə görünmür
+    və proses kəsilsə HAMISI itir. Bu, real olaraq az qala baş verdi: çəkilişi
+    gözləyən `curl` yaddaşa görə öldürüldü.
+
+    İndi hər kateqoriya bitən kimi `on_category(ad, məhsullar)` çağırılır və
+    həmin bölmə dərhal yazılır. İki faydası var:
+      - proses kəsilsə, o ana qədərki kateqoriyalar BAZADA QALIR;
+      - çəkiliş gedərkən `/api/shop/{slug}/stats` rəqəmin artdığını göstərir,
+        yəni gedişat görünür.
+
+    NİYƏ CALLBACK, NİYƏ BU MODUL ÖZÜ YAZMIR? Qat ayrımı: `shop.py` çəkir,
+    `pipeline.py` yazır. Modul DB-ni birbaşa çağırsaydı, testdə şəbəkəsiz
+    parse yoxlaması üçün də baza lazım gələrdi.
+
+    keep_products=True -> məhsullar hesabatda da qaytarılır (dry-run üçün).
+    Adi çəkilişdə 13 min obyekt yaddaşda saxlanmır.
     """
     profile = profile_for(slug)
     if profile is None:
@@ -406,14 +438,18 @@ def scrape_shop(
         görülən: set[str] = set()
         for name, url in cats:
             report.categories.append(name)
+            başlanğıc = time.monotonic()
             try:
                 rows = harvest_category(driver, url)
             except Exception as e:  # noqa: BLE001
                 # BİR KATEQORİYA DÜŞSƏ, QALANI DAVAM EDİR: 40 kateqoriyanın
                 # birində şəbəkə qırılması bütün çəkilişi ləğv etməməlidir.
                 report.errors.append(f"{name}: {type(e).__name__}: {e}")
+                report.category_stats.append({"category": name, "found": 0, "saved": 0,
+                                              "error": f"{type(e).__name__}"})
                 continue
 
+            bölmə: list[ExtractedProduct] = []
             for row in rows:
                 item_id = ITEM_ID_RE.search(row.get("href") or "")
                 key = item_id.group(1) if item_id else row.get("href")
@@ -425,9 +461,31 @@ def scrape_shop(
                 if product is None:
                     report.skipped.append({"category": name, "lines": row.get("lines")})
                     continue
-                report.products.append(product)
+                bölmə.append(product)
 
-            if max_products and len(report.products) >= max_products:
+            report.found += len(bölmə)
+            if keep_products:
+                report.products.extend(bölmə)
+
+            yazılan = 0
+            if bölmə and on_category is not None:
+                try:
+                    yazılan = on_category(name, bölmə)
+                    report.saved += yazılan
+                except Exception as e:  # noqa: BLE001
+                    # YAZMA XƏTASI ÇƏKİLİŞİ DAYANDIRMIR: qalan kateqoriyalar
+                    # yenə yazıla bilər. Səbəb hesabata düşür ki, səssiz
+                    # itki olmasın.
+                    report.errors.append(f"{name} (yazma): {type(e).__name__}: {e}")
+
+            report.category_stats.append({
+                "category": name,
+                "found": len(bölmə),
+                "saved": yazılan,
+                "seconds": round(time.monotonic() - başlanğıc, 1),
+            })
+
+            if max_products and report.found >= max_products:
                 break
 
     report.elapsed_seconds = time.monotonic() - started

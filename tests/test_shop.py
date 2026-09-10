@@ -298,3 +298,110 @@ def test_reyestrdə_olmayan_slug_üçün_də_işləyir():
     from app.api.shop import resolve_store_id
 
     assert isinstance(resolve_store_id("yeni-market-testi"), int)
+
+
+# ---------------------------------------------------------------- addım-addım yazılış
+
+
+def _fake_report(stats=None, saved=0, found=0):
+    from ingestion.shop import ShopReport
+
+    r = ShopReport(slug="bravo", store="Bravo Market", shop_url="https://wolt.com/x")
+    r.category_stats = stats or []
+    r.saved, r.found = saved, found
+    return r
+
+
+def test_hər_kateqoriya_ayrıca_yazılır(monkeypatch):
+    """
+    ADDIM-ADDIM YAZILIŞ. Əvvəl bütün məhsullar yaddaşda toplanıb yalnız SONDA
+    yazılırdı - 40 dəqiqəlik çəkiliş yarıda kəsiləndə hamısı itirdi.
+    İndi hər kateqoriya bitən kimi bazaya düşür.
+    """
+    import app.api.shop as shop_api
+
+    çağırışlar = []
+
+    def saxta_scrape(slug, max_categories=None, max_products=None,
+                     on_category=None, keep_products=False):
+        # İki kateqoriya - hər biri ayrıca yazılmalıdır.
+        for ad, məhsul_adı in (("Meyvə", "Addım Test Alma 1kq"),
+                               ("Süd", "Addım Test Süd 1L")):
+            p = parse_card(_lines(f"AZN{NB}1.11", məhsul_adı, "1kg"), ad)
+            çağırışlar.append((ad, on_category(ad, [p])))
+        return _fake_report(saved=sum(n for _, n in çağırışlar), found=2)
+
+    monkeypatch.setattr(shop_api, "scrape_shop", saxta_scrape)
+    payload = shop_api.run_shop_scrape("bravo", x_api_key=None)
+
+    assert len(çağırışlar) == 2, "callback hər kateqoriya üçün çağırılmadı"
+    assert all(n == 1 for _, n in çağırışlar), "hər çağırışda bir məhsul yazılmalıdır"
+    assert payload["saved"] == 2
+
+    conn = get_connection()
+    try:
+        for ad in ("Addım Test Alma 1kq", "Addım Test Süd 1L"):
+            row = conn.execute(
+                "SELECT COUNT(*) AS n FROM price_snapshots ps "
+                "JOIN products p ON p.id = ps.product_id WHERE p.name = ?",
+                (ad,),
+            ).fetchone()
+            assert row["n"] == 1, f"«{ad}» yazılmadı"
+    finally:
+        conn.close()
+
+
+def test_dry_run_heç_nə_yazmır(monkeypatch):
+    """`dry_run` callback VERMİR - yəni yazma yolu ümumiyyətlə açılmır."""
+    import app.api.shop as shop_api
+
+    görülən = {}
+
+    def saxta_scrape(slug, max_categories=None, max_products=None,
+                     on_category=None, keep_products=False):
+        görülən["on_category"] = on_category
+        görülən["keep_products"] = keep_products
+        return _fake_report(found=0)
+
+    monkeypatch.setattr(shop_api, "scrape_shop", saxta_scrape)
+    payload = shop_api.run_shop_scrape("bravo", dry_run=True, x_api_key=None)
+
+    assert görülən["on_category"] is None
+    assert görülən["keep_products"] is True
+    assert payload["dry_run"] is True
+    assert payload["saved"] == 0
+
+
+def test_bir_kateqoriyanın_yazma_xətası_çəkilişi_dayandırmır():
+    """
+    Yazma xətası HESABATA düşür, amma qalan kateqoriyalar yenə yazılır -
+    əks halda bir səhv 40 dəqiqəlik işi ləğv edərdi.
+    """
+    from ingestion.shop import ShopReport
+
+    report = ShopReport(slug="bravo", store="Bravo", shop_url="https://wolt.com/x")
+    # `scrape_shop`-un daxili məntiqini birbaşa təqlid edirik: xəta tutulur,
+    # hesabata yazılır, dövr davam edir.
+    for ad, partla in (("Meyvə", True), ("Süd", False)):
+        try:
+            if partla:
+                raise RuntimeError("baza kilidli")
+            report.saved += 1
+        except Exception as e:  # noqa: BLE001
+            report.errors.append(f"{ad} (yazma): {type(e).__name__}: {e}")
+
+    assert report.saved == 1
+    assert len(report.errors) == 1
+    assert "Meyvə" in report.errors[0]
+
+
+def test_kateqoriya_statistikası_hesabatda_görünür():
+    """Uzun çəkilişdə tək «cəmi» rəqəmi boş qayıdan bölməni gizlədirdi."""
+    r = _fake_report(
+        stats=[{"category": "Meyvə", "found": 93, "saved": 93, "seconds": 26.3},
+               {"category": "Süd", "found": 0, "saved": 0, "seconds": 4.1}],
+        saved=93, found=93,
+    )
+    d = r.as_dict()
+    assert d["category_stats"][1]["found"] == 0
+    assert d["found_count"] == 93

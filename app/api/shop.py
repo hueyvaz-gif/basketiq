@@ -105,24 +105,44 @@ def run_shop_scrape(
 
     dry_run=True -> çəkilir, amma YAZILMIR. Səhifə strukturu dəyişəndə
     əvvəlcə nəyin çıxdığını görmək üçün.
+
+    YAZILIŞ KATEQORİYA-KATEQORİYADIR: hər bölmə bitən kimi bazaya düşür.
+    Çəkiliş 40 dəqiqə çəkir və yarıda kəsilə bilir (yaddaş, şəbəkə, bağlantı
+    qırılması) - sonda birdəfəyə yazsaydıq, hamısı itərdi. Gedişatı görmək
+    üçün çəkiliş gedərkən `/api/shop/{slug}/stats` çağırıla bilər.
     """
     check_api_key(x_api_key)
+
+    # `dry_run`-da callback verilmir -> heç nə yazılmır, məhsullar isə
+    # hesabatda qaytarılır ki, nəyin çıxdığı görünsün.
+    on_category = None
+    if not dry_run:
+        store_id = resolve_store_id(slug)
+
+        def on_category(_ad: str, məhsullar) -> int:  # noqa: F811
+            return save_snapshots(məhsullar, store_id, source="site")
 
     try:
         report = scrape_shop(
             slug,
             max_categories=max_categories or None,
             max_products=max_products or None,
+            on_category=on_category,
+            keep_products=dry_run,
         )
     except ShopError as e:
         raise HTTPException(400, str(e))
 
-    if report.products and not dry_run:
-        store_id = resolve_store_id(slug)
-        report.saved = save_snapshots(report.products, store_id, source="site")
-
     payload = report.as_dict()
     payload["dry_run"] = dry_run
+    if dry_run:
+        # Nümunə kifayətdir: 13 min məhsulu JSON kimi qaytarmaq cavabı
+        # onlarla meqabayta çıxarardı.
+        payload["sample"] = [
+            {"name": p.name, "price": p.price, "old_price": p.old_price,
+             "category": p.category}
+            for p in report.products[:20]
+        ]
     return payload
 
 
