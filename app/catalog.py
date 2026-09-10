@@ -268,6 +268,48 @@ def discount_pct(
     return pct if pct >= MIN_DISCOUNT_PCT else None
 
 
+def _market_novbelesmesi(sıralı: list[dict], rank: dict[str, int]) -> list[dict]:
+    """
+    Siyahını marketlər arasında NÖVBƏLƏŞDİRİR: bir market siyahını udmasın.
+
+    NİYƏ LAZIM OLDU (ölçüldü 2026-09-10): mağaza qatı qoşulandan sonra
+    bölgü 100% Arazdan 96% Bravoya çevrildi - yəni eyni problem tərsinə
+    döndü. Səbəb sadədir: Bravonun 3 372 endirimi var, Arazın 93. Xalis
+    faiz sıralaması ilə dərin endirimləri olan market siyahını doldurur.
+
+    HÖKM SIRASI POZULMUR. Növbələşmə HƏR HÖKM QRUPUNUN İÇİNDƏ aparılır:
+    əvvəlcə bütün təsdiqlənmiş endirimlər (marketlər arasında növbə ilə),
+    sonra yoxlanmamışlar və s. Əks halda şübhəli bir endirim təsdiqlənmişin
+    qabağına keçərdi - istifadəçiyə isə ən çox güvənilən təklif lazımdır,
+    ən böyük rəqəm yox (`todays_deals`-dakı izaha bax).
+
+    Qrupun içində market sırası ƏN YAXŞI TƏKLİFƏ görədir: birinci növbəni
+    həmin qrupda ən dərin endirimi olan market alır. Beləliklə növbələşmə
+    «ən sərfəli» vədini pozmur, sadəcə eyni marketin ardıcıl 50 sətrini
+    dağıdır.
+    """
+    çıxış: list[dict] = []
+    # Hökm qrupları sıra ilə emal olunur - `sıralı` onsuz da bu sıradadır.
+    for hökm_rank in sorted({rank.get(d["verdict"], 3) for d in sıralı}):
+        qrup = [d for d in sıralı if rank.get(d["verdict"], 3) == hökm_rank]
+
+        # Market -> həmin marketin növbəsi (sıra qorunur: dərindən dayaza).
+        növbələr: dict[str, list[dict]] = {}
+        for deal in qrup:
+            növbələr.setdefault(deal["store_slug"], []).append(deal)
+
+        # Market sırası: ən yaxşı təklifi olan market birinci.
+        market_sırası = sorted(
+            növbələr, key=lambda slug: -növbələr[slug][0]["discount_pct"]
+        )
+
+        while any(növbələr[slug] for slug in market_sırası):
+            for slug in market_sırası:
+                if növbələr[slug]:
+                    çıxış.append(növbələr[slug].pop(0))
+    return çıxış
+
+
 def todays_deals(limit: int = 12) -> dict:
     """
     «Bugünün ən sərfəli endirimləri» — hər məhsul üçün ƏN BÖYÜK faiz endirim.
@@ -414,10 +456,11 @@ def todays_deals(limit: int = 12) -> dict:
             "tesdiqlenmeyib": 3,
             "subheli": 4,
         }
-        ranked = sorted(
+        sıralı = sorted(
             best.values(),
             key=lambda d: (RANK.get(d["verdict"], 3), -d["discount_pct"], d["label"]),
-        )[:limit]
+        )
+        ranked = _market_novbelesmesi(sıralı, RANK)[:limit]
 
         açarlar = [d["group_key"] for d in ranked]
         offers = _offers_by_group(conn, açarlar, markets)

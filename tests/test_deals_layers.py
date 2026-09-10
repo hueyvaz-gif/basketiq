@@ -94,10 +94,16 @@ def _mehsul_yarat(cur, ad: str, slug: str, price: float, old: float, layer: str)
             (pid, store_id, cat_id, price, old),
         )
     else:
+        # `ON CONFLICT` istehsaldakı `save_snapshots()` ilə eynidir: gündə
+        # bir sətir qaydası testdə də tətbiq olunur. Onsuz `canonical_key`
+        # rəqəmləri normallaşdırdığı üçün «Novbe Bravo 0» və «Novbe Bravo 1»
+        # eyni məhsula düşür və test IntegrityError ilə qırılır.
         cur.execute(
             "INSERT INTO price_snapshots (product_id, store_id, price, old_price, "
             "                             is_promo, source, observed_at) "
-            "VALUES (?, ?, ?, ?, 1, 'site', datetime('now'))",
+            "VALUES (?, ?, ?, ?, 1, 'site', datetime('now')) "
+            "ON CONFLICT(product_id, store_id, source, date(observed_at)) DO UPDATE SET "
+            "  price = excluded.price, old_price = excluded.old_price",
             (pid, store_id, price, old),
         )
     return pid, store_id
@@ -134,12 +140,23 @@ def test_iki_qat_eyni_siyahida_gorunur():
     assert len(marketlər) >= 2, f"yalnız bir market çıxdı: {marketlər}"
 
 
-def test_faize_gore_siralanir():
-    """Eyni hökm qrupunun içində dərin endirim öndə olmalıdır."""
+def test_her_marketin_oz_icinde_faize_gore_siralanir():
+    """
+    Növbələşmə ÜMUMİ sıranı qəsdən pozur (bir market siyahını udmasın), amma
+    HƏR MARKETİN ÖZ növbəsi faizə görə sıralı qalmalıdır - yəni marketin ən
+    yaxşı təklifi onun ikinci təklifindən əvvəl gəlir.
+    """
     items = todays_deals(limit=500)["items"]
     for verdict in {d["verdict"] for d in items}:
-        qrup = [d["discount_pct"] for d in items if d["verdict"] == verdict]
-        assert qrup == sorted(qrup, reverse=True), f"«{verdict}» qrupu sıralı deyil"
+        for slug in {d["store_slug"] for d in items}:
+            qrup = [
+                d["discount_pct"]
+                for d in items
+                if d["verdict"] == verdict and d["store_slug"] == slug
+            ]
+            assert qrup == sorted(qrup, reverse=True), (
+                f"«{verdict}» / «{slug}» sıralı deyil: {qrup[:6]}"
+            )
 
 
 # ---------------------------------------------------------------- uyğunluq
@@ -239,3 +256,90 @@ def test_kataloq_silinmesi_magaza_mehsulunu_silmir():
         assert qaldi == 1, "mağaza qatının məhsulu kataloq silinəndə yox oldu"
     finally:
         conn.close()
+
+
+# ---------------------------------------------------------------- növbələşmə
+
+
+def _novbelesme_datasi():
+    """Bir marketə 6, digərinə 1 endirim - növbələşmə olmasa biri udardı."""
+    with db_cursor() as cur:
+        adlar = ["Konfet", "Sabun", "Yağ", "Çay", "Duz", "Şəkər"]
+        for ad, pct in zip(adlar, [60, 55, 50, 45, 40, 35]):
+            _mehsul_yarat(cur, f"Novbe Bravo {ad}", "bravo", 100 - pct, 100.0, "site")
+        _mehsul_yarat(cur, "Novbe Araz 0", "araz", 80.0, 100.0, "catalog")
+
+
+def test_bir_market_siyahini_udmur():
+    """
+    ÖLÇÜLDÜ: mağaza qatı qoşulandan sonra bölgü 100% Arazdan 96% Bravoya
+    çevrildi - eyni problem tərsinə döndü. Növbələşmə bunu qarşılayır.
+    """
+    _novbelesme_datasi()
+    items = todays_deals(limit=6)["items"]
+    marketlər = {d["store_slug"] for d in items}
+    assert len(marketlər) >= 2, f"siyahı bir markete sıxıldı: {marketlər}"
+
+
+def test_novbelesme_hokm_sirasini_pozmur():
+    """
+    Təsdiqlənmiş endirim həmişə yoxlanmamışdan ÖNDƏ olmalıdır. Növbələşmə
+    yalnız HƏR HÖKM QRUPUNUN İÇİNDƏ aparılır - əks halda şübhəli bir
+    endirim təsdiqlənmişin qabağına keçərdi.
+    """
+    RANK = {
+        "tesdiqlenib": 0,
+        "endirim_yoxdur": 1,
+        "az_musahide": 2,
+        "tesdiqlenmeyib": 3,
+        "subheli": 4,
+    }
+    items = todays_deals(limit=500)["items"]
+    rütbələr = [RANK.get(d["verdict"], 3) for d in items]
+    assert rütbələr == sorted(rütbələr), "hökm sırası pozuldu"
+
+
+def test_qrupun_icinde_en_yaxsi_teklifi_olan_market_birincidir():
+    """
+    Növbələşmə «ən sərfəli» vədini pozmamalıdır: hər hökm qrupunda birinci
+    növbəni ən dərin endirimi olan market alır.
+    """
+    from app.catalog import _market_novbelesmesi
+
+    RANK = {"az_musahide": 2}
+    sıralı = [
+        {"store_slug": "b", "discount_pct": 60.0, "verdict": "az_musahide"},
+        {"store_slug": "b", "discount_pct": 50.0, "verdict": "az_musahide"},
+        {"store_slug": "a", "discount_pct": 40.0, "verdict": "az_musahide"},
+    ]
+    nəticə = _market_novbelesmesi(sıralı, RANK)
+    assert nəticə[0]["store_slug"] == "b", "ən dərin endirimi olan market birinci deyil"
+    assert nəticə[1]["store_slug"] == "a", "növbələşmə işləmir"
+    assert nəticə[2]["store_slug"] == "b"
+
+
+def test_bir_market_bitende_qalan_davam_edir():
+    """Kiçik növbə tükənəndə böyük market qalan yerləri doldurur."""
+    from app.catalog import _market_novbelesmesi
+
+    RANK = {"az_musahide": 2}
+    sıralı = [
+        {"store_slug": "b", "discount_pct": p, "verdict": "az_musahide"}
+        for p in (60.0, 55.0, 50.0)
+    ] + [{"store_slug": "a", "discount_pct": 45.0, "verdict": "az_musahide"}]
+    nəticə = _market_novbelesmesi(sıralı, RANK)
+    assert len(nəticə) == 4, "sətir itdi"
+    assert [d["store_slug"] for d in nəticə] == ["b", "a", "b", "b"]
+
+
+def test_novbelesme_setir_itirmir():
+    """Növbələşmə yalnız SIRANI dəyişir - heç bir endirim yox olmamalıdır."""
+    from app.catalog import _market_novbelesmesi
+
+    RANK = {"tesdiqlenib": 0, "az_musahide": 2}
+    sıralı = [
+        {"store_slug": "a", "discount_pct": 30.0, "verdict": "tesdiqlenib"},
+        {"store_slug": "b", "discount_pct": 60.0, "verdict": "az_musahide"},
+        {"store_slug": "a", "discount_pct": 40.0, "verdict": "az_musahide"},
+    ]
+    assert len(_market_novbelesmesi(sıralı, RANK)) == len(sıralı)
