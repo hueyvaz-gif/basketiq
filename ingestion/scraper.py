@@ -399,6 +399,12 @@ def scrape_source(
     max_pages, psm, force_ocr, use_selenium = apply_profile(
         key, max_pages, psm, force_ocr, use_selenium
     )
+    # Dizayn adı `apply_profile`-ın qaytardığı dördlüyə ƏLAVƏ EDİLMİR:
+    # o funksiyanın imzası testlərlə bağlıdır və dəyişsə, «çağıranın açıq
+    # dəyəri üstündür» qaydasının testi də dəyişməli olardı. Ad birbaşa
+    # profildən oxunur.
+    _profile = profile_for(key)
+    layout_name = _profile.layout if _profile else None
 
     report = ScrapeReport(source=source.key, store=source.store, page_url=source.page_url)
 
@@ -444,6 +450,7 @@ def scrape_source(
                 force_ocr=force_ocr,
                 psm=psm,
                 max_pages=max_pages,
+                layout_style=layout_name,
             )
         except IngestError as e:
             report.errors.append(f"{url} -> {e.message}")

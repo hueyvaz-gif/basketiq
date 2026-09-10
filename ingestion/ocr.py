@@ -19,7 +19,7 @@ import pytesseract
 from PIL import Image, ImageOps
 
 from app.config import settings
-from ingestion.layout import parse_page
+from ingestion.layout import parse_page, style_for
 from ingestion.tess import configure_tesseract as _configure_tesseract
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}
@@ -111,7 +111,31 @@ def preprocess(img: Image.Image) -> Image.Image:
     return gray.point(lambda p: 255 if p > threshold else 0, mode="1")
 
 
-def page_text(img: Image.Image, psm: int | None = None, use_layout: bool = True) -> tuple[str, int]:
+def _spread_halves(img: Image.Image):
+    """
+    İki jurnal səhifəsi bir PDF səhifəsindədirsə, onu ikiyə bölür.
+
+    ÖLÇÜLDÜ (Rahat, 2026-09-10): PDF səhifəsi 3572x2526 - yəni yan-yana iki
+    A4. Bölünməsə şəbəkə addımı (`_grid_step`) iki səhifə üçün birdəfəyə
+    hesablanır və sözlər qonşu kartlara axır. Bölündükdən sonra məhsul
+    adları düzgün oxundu.
+
+    Şərt ENƏ görədir: eni hündürlüyündən böyük səhifə yayımdır.
+    """
+    if img.width <= img.height:
+        yield img
+        return
+    orta = img.width // 2
+    yield img.crop((0, 0, orta, img.height))
+    yield img.crop((orta, 0, img.width, img.height))
+
+
+def page_text(
+    img: Image.Image,
+    psm: int | None = None,
+    use_layout: bool = True,
+    style=None,
+) -> tuple[str, int]:
     """
     Bir səhifədən mətn: ƏVVƏLCƏ kart analizi, alınmasa adi OCR.
 
@@ -126,12 +150,19 @@ def page_text(img: Image.Image, psm: int | None = None, use_layout: bool = True)
     _configure_tesseract()
 
     if use_layout:
-        try:
-            result = parse_page(img)
-        except Exception:
-            result = None
-        if result is not None and len(result.cards) >= settings.layout_min_cards:
-            return result.text, len(result.cards)
+        # Yayım səhifəsi ikiyə bölünür (yalnız dizayn bunu tələb edəndə).
+        parcalar = list(_spread_halves(img)) if (style and style.split_spreads) else [img]
+        metnler, kartlar = [], 0
+        for parca in parcalar:
+            try:
+                result = parse_page(parca, style)
+            except Exception:
+                result = None
+            if result is not None and result.cards:
+                metnler.append(result.text)
+                kartlar += len(result.cards)
+        if kartlar >= settings.layout_min_cards:
+            return "\n".join(metnler), kartlar
 
     return ocr_image(img, psm=psm), 0
 
@@ -183,6 +214,7 @@ def extract_text(
     psm: int | None = None,
     max_pages: int | None = None,
     use_layout: bool | None = None,
+    layout_style: str | None = None,
 ) -> ExtractionResult:
     """
     Fayl -> mətn. Hansı yolun seçildiyini source_type ilə qaytarır ki,
@@ -200,11 +232,12 @@ def extract_text(
     notes: list[str] = []
 
     use_layout = settings.layout_enabled if use_layout is None else use_layout
+    style = style_for(layout_style)
 
     # --- Şəkil ---
     if suffix in IMAGE_SUFFIXES:
         with Image.open(path) as img:
-            text, cards = page_text(img, psm=psm, use_layout=use_layout)
+            text, cards = page_text(img, psm=psm, use_layout=use_layout, style=style)
         if cards:
             notes.append(f"Layout analizi: {cards} kart tapıldı")
         return ExtractionResult(
@@ -237,7 +270,7 @@ def extract_text(
     page_count = 0
     total_cards = 0
     for img in pdf_pages_to_images(path, max_pages, scale):
-        text, cards = page_text(img, psm=psm, use_layout=use_layout)
+        text, cards = page_text(img, psm=psm, use_layout=use_layout, style=style)
         pages_text.append(text)
         total_cards += cards
         page_count += 1

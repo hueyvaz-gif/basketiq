@@ -190,6 +190,7 @@ def ingest_bytes(
     psm: int | None = None,
     max_pages: int | None = None,
     preview_lines: int = 15,
+    layout_style: str | None = None,
 ) -> IngestResult:
     """
     Kataloq faylının baytlarını qəbul edir və emal zəncirini sona qədər aparır.
@@ -241,7 +242,13 @@ def ingest_bytes(
 
     try:
         result = extract_text(
-            final_path, force_ocr=force_ocr, psm=psm, max_pages=max_pages
+            final_path,
+            force_ocr=force_ocr,
+            psm=psm,
+            max_pages=max_pages,
+            # Kataloq dizaynı marketə xasdır (rənglər, qiymət tipoqrafiyası).
+            # Profil onu ad kimi saxlayır - bax `ingestion/layout.py:STYLES`.
+            layout_style=layout_style,
         )
     except Exception as e:
         final_path.unlink(missing_ok=True)

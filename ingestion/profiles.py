@@ -57,6 +57,11 @@ class StoreProfile:
     # ölçüldükdə yazılır; uydurma rəqəm defoltdan pisdir, çünki niyəsi olmur.
     psm: int | None = None
     max_pages: int | None = None
+
+    # KATALOQ DİZAYNI (`ingestion/layout.py:STYLES`). Rənglər və kəsik
+    # həndəsəsi orada, ölçmənin aparıldığı yerdə saxlanılır - burada yalnız
+    # ADI yazılır ki, iki fayl bir-birindən asılı olmasın.
+    layout: str = "araz"
     force_ocr: bool = False
     use_selenium: bool = False
 
@@ -138,6 +143,7 @@ PROFILES: dict[str, StoreProfile] = {
         # Limit qoymuruq - Arazdakı 54 səhifə ilə müqayisədə kiçikdir.
         max_pages=12,
         psm=6,          # vahid blok - kataloq kartları belə oxunur
+        layout="rahat",
         note="Aksiyalar səhifəsində PDF kataloq: 1 səhifəlik afişa (3 MB) və "
              "11 səhifəlik jurnal (8 MB). İkisi də skan - OCR lazımdır.",
     ),

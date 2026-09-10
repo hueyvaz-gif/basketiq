@@ -67,8 +67,139 @@ from ingestion.tess import configure_tesseract
 DOWNSCALE = 8
 
 # Rəng aralıqları (r_min, r_max, g_min, g_max, b_min, b_max)
-RED_RANGE = (150, 255, 0, 90, 0, 90)        # yeni qiymət qutusu
-YELLOW_RANGE = (200, 255, 190, 255, 0, 120)  # köhnə qiymət qutusu
+RED_RANGE = (150, 255, 0, 90, 0, 90)        # Araz: yeni qiymət qutusu
+YELLOW_RANGE = (200, 255, 190, 255, 0, 120)  # Araz: köhnə qiymət qutusu
+GRAY_RANGE = (100, 150, 100, 150, 100, 150)  # Rahat: köhnə qiymət qutusu
+
+
+@dataclass(frozen=True)
+class LayoutStyle:
+    """
+    BİR KATALOQ DİZAYNININ TƏSVİRİ.
+
+    NİYƏ LAZIM OLDU (ölçüldü 2026-09-10, Rahat Market): analizator lövbər
+    kimi QIRMIZI qutu axtarırdı - bu, Arazın dizaynıdır. Rahat kataloqunda
+    isə yeni qiymət SARI etiketdədir, qırmızı olan endirim FAİZİdir. Nəticə:
+    `parse_page` 0 lövbər tapır, adi OCR-a düşür və 486 sətirdən 6-sı qalır.
+
+    Dizayn fərqləri kodda deyil, BURADA yazılır - yeni market əlavə etmək
+    bir preset deməkdir, `parse_page`-i dəyişmək yox.
+    """
+
+    anchor: tuple            # yeni qiymət qutusunun rəngi (lövbər)
+    secondary: tuple         # köhnə qiymət qutusunun rəngi
+
+    # Lövbərdə rəqəmlər QARADIRmı (açıq fon), yoxsa AĞ (tünd fon)?
+    # Araz: qırmızı qutu + ağ rəqəm. Rahat: sarı qutu + qara rəqəm.
+    # Səhv seçim qiyməti oxunmaz edir - eşik tərsinə işləyir.
+    anchor_dark_text: bool = False
+
+    # Köhnə qiymət lövbərin ÜSTÜNDƏ (Araz) yoxsa ALTINDA (Rahat)?
+    # Rahat-da ölçüldü: lövbərin altında qırmızı faiz nişanı və boz köhnə
+    # qiymət qutusu yan-yana durur.
+    secondary_above: bool = True
+
+    # PDF səhifəsi İKİ jurnal səhifəsini birlikdə saxlayırmı?
+    # Rahat-da ölçüldü: 3572x2526 - yəni yan-yana iki A4. Bölünməsə şəbəkə
+    # addımı iki dəfə səhv hesablanır və sözlər qonşu kartlara axır.
+    split_spreads: bool = False
+
+    # Köhnə qiymət qutusunun minimum ölçü əmsalı. Rahat-da boz qutu Arazın
+    # sarı qutusundan xeyli kiçikdir: standart hədlə 14 qutudan 4-ü tapılır,
+    # 0.35 əmsalı ilə 24-ü. Araz üçün 1.0 - davranış dəyişmir.
+    secondary_min_scale: float = 1.0
+
+    # Örtüşmə hansı qutunun eninə görə ölçülsün?
+    # Araz: köhnə qiymət qutusu lövbərlə eyni enlidədir -> lövbərə görə.
+    # Rahat: boz qutu lövbərdən DAR və sağa sürüşüb; ölçüldü ki, örtüşmə
+    # lövbər eninin 0.33-0.39-udur (hədd 0.4) - yəni qutu tapılır, amma
+    # süzgəcdən keçmir və köhnə qiymət səssizcə None qalır. Halbuki boz
+    # qutunun ÖZ eninin 100%-i lövbərin altındadır.
+    secondary_overlap_of_smaller: bool = False
+
+    # Köhnə qiymət qutusunda rəqəmlər QARADIRmı?
+    # Araz: sarı qutu + qara rəqəm -> True.
+    # Rahat: BOZ qutu + AĞ rəqəm -> False. Səhv seçim qutunu tam qaraldır
+    # və OCR uydurma rəqəm qaytarır (ölçüldü: 3.60 əvəzinə 5.23).
+    secondary_dark_text: bool = True
+
+    # Köhnə qiymət ÜMUMİYYƏTLƏ oxunsunmu?
+    #
+    # Rahat üçün SÖNÜLÜDÜR və bu, ölçmə nəticəsidir. Boz qutu kiçikdir
+    # (64x40 piksel), rəqəmlər ağdır və üstündən xətt keçir. Hər iki eşik
+    # istiqaməti sınandı: gözlənilən 3.60 əvəzinə 5.23 və 5.83 alındı.
+    # Süzgəc də tutmur, çünki səhv dəyər «yeni qiymətdən böyük, 4 dəfədən
+    # kiçik» şərtinə uyğun gəlir.
+    #
+    # Səhv köhnə qiymət UYDURMA ENDİRİM FAİZİ yaradır - istifadəçiyə «bu
+    # məhsul 49% ucuzlaşıb» deyilir, halbuki belə deyil. `None` isə sadəcə
+    # faizin göstərilməməsi deməkdir. Layihənin qaydası: «bilməmək, səhv
+    # bilməkdən yaxşıdır».
+    read_secondary: bool = True
+
+    # --- Qiymət oxuma (yalnız `price_vote_min > 0` olanda işə düşür) ---
+    #
+    # ARAZ ÜÇÜN SÖNÜLÜDÜR və qəsdən belədir: onun 379 məhsulu mövcud yolla
+    # oxunur, səsvermə orada heç nə qazandırmır, amma nəticəni dəyişmə riski
+    # var. Yeni məntiq YALNIZ ona ehtiyacı olan dizayna qoşulur.
+    #
+    # Rahat-ın etiketində ₼ işarəsi sağ YUXARIDADIR, qəpiklər isə sağ
+    # AŞAĞIDA. Arazın həndəsəsi (sağ yuxarı) məhz ₼-ı rəqəm kimi oxumağa
+    # çalışırdı - ölçüldü: 0/14. Aşağıdakı üç həndəsə + üç psm birlikdə
+    # namizəd toplayır, sonra səsverməyə gedir.
+    price_upscale: int = 1
+    price_split_geoms: tuple = ()
+    price_vote_min: int = 0        # 0 -> səsvermə yoxdur (köhnə davranış)
+    price_vote_share: float = 0.0
+
+
+ARAZ_STYLE = LayoutStyle(
+    anchor=RED_RANGE,
+    secondary=YELLOW_RANGE,
+    anchor_dark_text=False,
+    secondary_above=True,
+    split_spreads=False,
+)
+
+RAHAT_STYLE = LayoutStyle(
+    anchor=YELLOW_RANGE,
+    secondary=GRAY_RANGE,
+    anchor_dark_text=True,
+    secondary_above=False,
+    split_spreads=True,
+    secondary_min_scale=0.35,
+    secondary_overlap_of_smaller=True,
+    secondary_dark_text=False,
+    read_secondary=False,
+    price_upscale=3,
+    # (manat_kəsiyi, qəpik_kəsiyi) - hər biri (x0, y0, x1, y1) nisbətidir.
+    price_split_geoms=(
+        ((0.00, 0.00, 0.55, 1.00), (0.50, 0.35, 1.00, 1.00)),
+        ((0.00, 0.15, 0.52, 1.00), (0.52, 0.40, 1.00, 1.00)),
+        ((0.00, 0.00, 0.60, 1.00), (0.55, 0.30, 1.00, 1.00)),
+    ),
+    # SƏRT HƏDD QƏSDƏNDİR. Ölçüldü (bir yarım-səhifə, 14 etiket):
+    #     hədd yoxdur   -> 9 düz, 2 SƏHV, 3 boş
+    #     3 səs / 0.75  -> 5 düz, 0 səhv, 9 boş
+    # Səhv qiymət müqayisə saytında ən pis nəticədir: istifadəçini yanlış
+    # markete göndərir və heç bir yerdə xəbərdarlıq görünmür. Layihənin öz
+    # qaydası (`read_old_price`): «bilməmək, səhv bilməkdən yaxşıdır».
+    price_vote_min=3,
+    price_vote_share=0.75,
+)
+
+# Profil adı -> dizayn. `profiles.py` yalnız adı saxlayır; rəng dəyərləri
+# burada, ölçmənin aparıldığı yerdə qalır.
+STYLES: dict[str, LayoutStyle] = {
+    "araz": ARAZ_STYLE,
+    "rahat": RAHAT_STYLE,
+}
+DEFAULT_STYLE = ARAZ_STYLE
+
+
+def style_for(name: str | None) -> LayoutStyle:
+    """Tanınmayan ad defolta düşür - kataloq emalı ad səhvinə görə dayanmır."""
+    return STYLES.get((name or "").strip().lower(), DEFAULT_STYLE)
 
 # Qiymət qutusunun forması: eni hündürlüyündən 1.2-4 dəfə böyükdür.
 # Bu şərt loqoları (kvadrata yaxın) və alt bannerləri (çox uzun) kənarlaşdırır.
@@ -280,22 +411,101 @@ def _read_price_split(crop: Image.Image) -> float | None:
     return value if MIN_PRICE <= value <= MAX_PRICE else None
 
 
-def read_new_price(page: Image.Image, box: tuple) -> float | None:
+def read_new_price(
+    page: Image.Image,
+    box: tuple,
+    dark_text: bool = False,
+    style: LayoutStyle | None = None,
+) -> float | None:
     """
-    Qırmızı qutu: ağ rəqəmlər -> ağ fonda qara rəqəmlər.
+    Lövbər qutusundan yeni qiymət.
 
-    Burada qutuya kənar ƏLAVƏ EDİLMİR (sarı qutudan fərqli olaraq). Səbəb:
-    bu çevirmədə "parlaq piksel = mətn" sayılır, kənardakı ağ səhifə fonu da
-    rəqəmə çevrilər. Ölçülüb: kənarsız 10/10, 10% kənarla 4/10.
+    EŞİK İSTİQAMƏTİ DİZAYNDAN ASILIDIR (ölçüldü 2026-09-10):
+
+        Araz  - QIRMIZI qutu, AĞ rəqəm  -> parlaq piksel = mətn
+        Rahat - SARI qutu,    QARA rəqəm -> tünd piksel  = mətn
+
+    Səhv istiqamət qiyməti oxunmaz edir: sarı fon tamamilə qaralır, qara
+    rəqəmlər ağarır və Tesseract boş və ya zibil qaytarır. Rahat kataloqunda
+    məhz bu baş verirdi.
+
+    Qutuya kənar ƏLAVƏ EDİLMİR (`read_old_price`-dan fərqli olaraq): bu
+    çevirmədə kənardakı səhifə fonu da rəqəmə çevrilərdi.
+    Ölçülüb (Araz): kənarsız 10/10, 10% kənarla 4/10.
     """
-    crop = page.crop(box).convert("L").point(lambda v: 0 if v > 150 else 255, mode="L")
+    gray = page.crop(box).convert("L")
+    if dark_text:
+        crop = gray.point(lambda v: 0 if v < 128 else 255, mode="L")
+    else:
+        crop = gray.point(lambda v: 0 if v > 150 else 255, mode="L")
+
+    if style is not None and style.price_vote_min > 0:
+        return _read_price_voted(crop, style)
+
     value = parse_price(_ocr_digits(crop, psm=8))
     if value is None:
         value = _read_price_split(crop)
     return value
 
 
-def read_old_price(page: Image.Image, box: tuple, new_price: float | None) -> float | None:
+def _read_price_voted(crop: Image.Image, style: LayoutStyle) -> float | None:
+    """
+    Bir neçə üsulla oxuyub SƏSVERMƏ ilə qərar verir.
+
+    `read_old_price` eyni fikri artıq işlədir (üç psm + süzgəc). Burada
+    əlavə olaraq bir neçə KƏSİK HƏNDƏSƏSİ də sınanır, çünki qiymətin
+    hissələrə bölünməsi dizayndan dizayna dəyişir.
+
+    QƏBUL HƏDDİ SƏRTDİR (`price_vote_min`, `price_vote_share`): qalib
+    variant həm kifayət qədər səs toplamalı, həm də açıq üstünlüyə malik
+    olmalıdır. Ölçüldü ki, hədd olmadan səhv qiymət keçir - müqayisə
+    saytında bu, istifadəçini yanlış markete göndərir.
+    """
+    if style.price_upscale > 1:
+        crop = crop.resize(
+            (crop.width * style.price_upscale, crop.height * style.price_upscale),
+            Image.LANCZOS,
+        ).point(lambda v: 0 if v < 128 else 255, mode="L")
+
+    candidates: list[float] = []
+    for psm in (7, 8, 13):
+        value = parse_price(_ocr_digits(crop, psm=psm))
+        if value is not None and MIN_PRICE <= value <= MAX_PRICE:
+            candidates.append(value)
+
+    width, height = crop.size
+    for manat_box, qepik_box in style.price_split_geoms:
+        manat = _ocr_digits_free(crop.crop((
+            int(width * manat_box[0]), int(height * manat_box[1]),
+            int(width * manat_box[2]), int(height * manat_box[3]),
+        )))
+        qepik = _ocr_digits_free(crop.crop((
+            int(width * qepik_box[0]), int(height * qepik_box[1]),
+            int(width * qepik_box[2]), int(height * qepik_box[3]),
+        )))
+        if not manat or len(qepik) != 2:
+            continue
+        try:
+            value = float(f"{int(manat)}.{qepik}")
+        except ValueError:
+            continue
+        if MIN_PRICE <= value <= MAX_PRICE:
+            candidates.append(value)
+
+    if not candidates:
+        return None
+    value, votes = Counter(candidates).most_common(1)[0]
+    if votes < style.price_vote_min or votes / len(candidates) < style.price_vote_share:
+        return None
+    return value
+
+
+def read_old_price(
+    page: Image.Image,
+    box: tuple,
+    new_price: float | None,
+    dark_text: bool = True,
+) -> float | None:
     """
     Sarı qutu: qara rəqəmlər, amma üstündən qırmızı xətt keçir.
 
@@ -307,8 +517,12 @@ def read_old_price(page: Image.Image, box: tuple, new_price: float | None) -> fl
     Niyə belə ehtiyatlı? Səhv köhnə qiymət "saxta endirim" bayrağını yalandan
     qaldırar. Bilməmək, səhv bilməkdən yaxşıdır - şübhəlisini None qaytarırıq.
     """
-    crop = page.crop(pad_box(page, box))
-    crop = crop.convert("L").point(lambda v: 0 if v < 128 else 255, mode="L")
+    crop = page.crop(pad_box(page, box)).convert("L")
+    if dark_text:
+        crop = crop.point(lambda v: 0 if v < 128 else 255, mode="L")
+    else:
+        # Boz qutuda rəqəmlər ağdır - parlaq piksel mətndir.
+        crop = crop.point(lambda v: 0 if v > 150 else 255, mode="L")
 
     candidates = []
     for psm in (7, 8, 13):
@@ -567,19 +781,24 @@ def _grid_step(centers: list[int], fallback: int) -> int:
     return sorted(gaps)[len(gaps) // 2]
 
 
-def parse_page(page: Image.Image) -> LayoutResult:
+def parse_page(page: Image.Image, style: LayoutStyle | None = None) -> LayoutResult:
     """
     Bir səhifədən məhsul kartlarını çıxarır.
+
+    `style` kataloqun dizaynını təsvir edir (rənglər, mətn tonu, köhnə
+    qiymətin yeri). Verilməsə Araz dizaynı işlədilir - köhnə davranış
+    olduğu kimi qalır.
 
     Kart tapılmasa boş nəticə qaytarır - çağıran tərəf adi OCR-a qayıdır.
     """
     configure_tesseract()
+    style = style or DEFAULT_STYLE
 
     page = page.convert("RGB")
     min_w = max(30, page.width // 20)   # qiymət qutusu səhifə eninin ~10%-idir
     min_h = max(20, page.height // 40)
 
-    red_boxes = find_boxes(color_mask(page, RED_RANGE), min_w, min_h)
+    red_boxes = find_boxes(color_mask(page, style.anchor), min_w, min_h)
     red_boxes = [
         b for b in red_boxes
         if MIN_ASPECT <= (b[2] - b[0]) / max(1, b[3] - b[1]) <= MAX_ASPECT
@@ -588,12 +807,16 @@ def parse_page(page: Image.Image) -> LayoutResult:
     if not red_boxes:
         return result
 
-    yellow_boxes = find_boxes(color_mask(page, YELLOW_RANGE), min_w, min_h // 2)
+    yellow_boxes = find_boxes(
+        color_mask(page, style.secondary),
+        int(min_w * style.secondary_min_scale),
+        int(min_h // 2 * style.secondary_min_scale),
+    )
 
     # Qiyməti oxunmayan qutu qiymət qutusu deyil (loqo, banner) - atılır
     anchors = []
     for box in red_boxes:
-        price = read_new_price(page, box)
+        price = read_new_price(page, box, dark_text=style.anchor_dark_text, style=style)
         if price is not None:
             anchors.append((box, price))
     if not anchors:
@@ -676,11 +899,21 @@ def parse_page(page: Image.Image) -> LayoutResult:
         # Sarı qutu olmayan kataloqda (Araz) köhnə qiymət kart mətnindədir və
         # cleaner onu özü tutur - ona görə burada None qalması problem deyil.
         old_price = None
-        for yb in yellow_boxes:
+        for yb in yellow_boxes if style.read_secondary else ():
             overlap = min(box[2], yb[2]) - max(box[0], yb[0])
-            gap = box[1] - yb[3]
-            if overlap > 0.4 * (box[2] - box[0]) and -height * 0.2 <= gap <= height * 0.5:
-                old_price = read_old_price(page, yb, price)
+            # Araz-da köhnə qiymət lövbərin ÜSTÜNDƏ, Rahat-da ALTINDADIR.
+            # İstiqaməti səhv seçsək, qutu heç vaxt tapılmaz və köhnə qiymət
+            # səssizcə None qalar - endirim faizi göstərilməzdi.
+            gap = box[1] - yb[3] if style.secondary_above else yb[1] - box[3]
+            en = (
+                min(box[2] - box[0], yb[2] - yb[0])
+                if style.secondary_overlap_of_smaller
+                else box[2] - box[0]
+            )
+            if overlap > 0.4 * en and -height * 0.2 <= gap <= height * 0.5:
+                old_price = read_old_price(
+                    page, yb, price, dark_text=style.secondary_dark_text
+                )
                 break
 
         result.cards.append(
