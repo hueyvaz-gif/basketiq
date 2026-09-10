@@ -16,10 +16,12 @@
 //    ayarından asılı olardı.
 
 (() => {
-  const box = document.getElementById("adSlot");
-  if (!box) return;
-
-  const SLOT = box.dataset.slot || "home-banner";
+  // BİR SLOT DEYİL, HAMISI. Əvvəl yalnız `#adSlot` doldurulurdu; yan
+  // lövhələr əlavə olunanda ikinci nüsxə yazmaq lazım gələrdi və biri
+  // dəyişəndə digəri köhnə qalardı. İndi `data-slot` daşıyan hər element
+  // eyni məntiqlə doldurulur - yeni yer əlavə etmək = HTML-də bir sətir.
+  const boxes = [...document.querySelectorAll("[data-slot]")];
+  if (!boxes.length) return;
 
   function dolu(ad) {
     const şəkil = ad.image
@@ -60,17 +62,30 @@
       </div>`;
   }
 
-  async function load() {
+  async function loadOne(box) {
+    const slot = box.dataset.slot || "home-banner";
     try {
-      const res = await fetch(`/api/ads/slot/${encodeURIComponent(SLOT)}`);
+      const res = await fetch(`/api/ads/slot/${encodeURIComponent(slot)}`);
       if (!res.ok) throw new Error("http");
       const data = await res.json();
       box.innerHTML = data.ad ? dolu(data.ad) : boş(data.contact);
+      // BOŞ LÖVHƏ GİZLƏNİR, BOŞ BANNER YOX.
+      //
+      // Fərq yerdədir: banner məzmun axınının içindədir və orada «bu yer
+      // satılır» yazısı satıcı rolunu oynayır. Yan lövhə isə səhifənin
+      // kənarındadır - orada boş qutu sadəcə sınmış görünür və heç kim
+      // onu oxumur.
+      if (box.classList.contains("ad-rail")) {
+        box.hidden = !data.ad;
+      }
     } catch {
       // Reklam qatı səhifənin qalanını qırmamalıdır: slot sadəcə boş qalır.
       box.innerHTML = "";
+      if (box.classList.contains("ad-rail")) box.hidden = true;
     }
   }
+
+  const load = () => boxes.forEach(loadOne);
 
   load();
   document.addEventListener("basketiq:lang", load);

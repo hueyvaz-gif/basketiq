@@ -2463,6 +2463,57 @@ code {
 
 .ad-slot { display: block; }
 
+/* --- YAN REKLAM LÖVHƏLƏRİ (tap.az düzülüşü) ---
+   ============================================
+   Məzmunun solunda və sağında şaquli banner. Sətir arası bannerdən FƏRQLİ
+   inventar tipidir: o, axını bir dəfə kəsir, bunlar səhifə boyu görünür.
+
+   `position: fixed` SEÇİLDİ, `sticky` YOX. Sticky lövhə valideyn qutunun
+   hündürlüyünə bağlıdır və səhifə uzananda lövhə aşağıda «qalır»;
+   fixed isə həmişə görünən sahədədir - reklamın gözlədiyi davranış budur.
+
+   YERİ `--content` İLƏ HESABLANIR: məzmun 1024px-dir və mərkəzdədir, yəni
+   hər kənarda `(100vw - 1024px) / 2` boşluq qalır. Lövhə həmin boşluğun
+   ortasına oturur. Sabit `left: 20px` yazsaydıq, geniş ekranda lövhə
+   məzmundan qopardı, dar ekranda isə üstünə minərdi. */
+.ad-rail {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 160px;
+  z-index: 5;              /* üst paneldən (20) AŞAĞI: panel həmişə üstdədir */
+}
+
+.ad-rail-left  { left:  calc((100vw - var(--content)) / 4 - 80px); }
+.ad-rail-right { right: calc((100vw - var(--content)) / 4 - 80px); }
+
+.ad-rail .ad-card { flex-direction: column; padding: 0; overflow: hidden; }
+/* `max-height: none` VACİBDİR: baza `.ad-image` qaydasında 110px hədd var
+   (sətir arası bannerin qutusuna görə). Şaquli lövhədə həmin hədd kreativi
+   nazik zolağa çevirirdi - brauzerdə 160x600 SVG cəmi ~40px görünürdü. */
+.ad-rail .ad-image {
+  width: 100%;
+  height: auto;
+  max-height: none;
+  display: block;
+  border-radius: 0;
+}
+
+/* Şaquli lövhədə mətn bloku şəklin ALTINDA, kiçik və sakit qalır -
+   kreativin özü onsuz da mesajı daşıyır. */
+.ad-rail .ad-body { padding: var(--s2); gap: 2px; }
+.ad-rail .ad-title { font-size: 13px; }
+.ad-rail .ad-text { display: none; }
+.ad-rail .ad-by { font-size: 11px; }
+
+/* YER ÇATMAYANDA LÖVHƏ GİZLƏNİR, MƏZMUN SIXILMIR.
+   1024px məzmun + 2x160px lövhə + rahat boşluq ≈ 1440px. Bu həddən aşağıda
+   lövhə ya məzmunun üstünə minər, ya da onu sıxardı - müqayisə cədvəli isə
+   sıxılanda oxunmaz olur. Reklam gəlirindən bahalı seçim budur. */
+@media (max-width: 1439px) {
+  .ad-rail { display: none; }
+}
+
 .ad-card {
   position: relative;
   display: flex;

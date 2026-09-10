@@ -74,6 +74,23 @@
   <!-- ==========================================================
        İSTİFADƏÇİ PANELİ — defolt açıq
        ========================================================== -->
+  <!-- --- YAN REKLAM LÖVHƏLƏRİ ---
+       Məzmunun solunda və sağında şaquli banner (tap.az-dakı düzülüş).
+       Sətir arası bannerdən FƏRQLİ inventar tipidir: o, axını bir dəfə
+       kəsir, bunlar isə səhifə boyu görünür.
+
+       `aria-hidden` YOXDUR, amma `<aside>`-dır: ekran oxuyucusu onu əsas
+       məzmundan ayırır və istəsə keçir. Reklamı gizlətmək qaydanı pozardı -
+       reklam görünən olmalıdır (E19).
+
+       DAR EKRANDA CSS ONLARI GİZLƏDİR. Yer çatmayanda seçim ikidir: məzmunu
+       sıxmaq və ya reklamı gizlətmək. Sıxmaq qiymət cədvəlini oxunmaz edir -
+       müqayisə saytında bu, reklam gəlirindən bahalı olardı. -->
+  <aside class="ad-rail ad-rail-left" data-slot="home-rail-left"
+         aria-label="Reklam" data-i18n-attr="aria-label:ads.label"></aside>
+  <aside class="ad-rail ad-rail-right" data-slot="home-rail-right"
+         aria-label="Reklam" data-i18n-attr="aria-label:ads.label"></aside>
+
   <main class="panel" id="panel-user">
 
     <!-- --- AXTARIŞ (trolley: səhifənin ƏN ÜST elementi) ---

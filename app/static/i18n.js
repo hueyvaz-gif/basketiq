@@ -406,6 +406,9 @@
     // «Reklam» sözü ÜÇ DİLDƏ də açıq yazılır: sponsorlu məzmunun
     // nişanlanması qaydadır, tərcümə seçimi deyil.
     "ads.sponsored": { az: "Reklam", en: "Sponsored", ru: "Реклама" },
+    // Yan lövhənin `aria-label`-ı: ekran oxuyucusu bölmənin reklam olduğunu
+    // BAŞLANĞICDA bilməlidir - kreativi dinlədikdən sonra yox.
+    "ads.label": { az: "Reklam", en: "Advertisement", ru: "Реклама" },
     "ads.slotLabel": { az: "Reklam yeri", en: "Ad space", ru: "Рекламное место" },
     "ads.emptyTitle": {
       az: "Sizin reklamınız burada ola bilər",

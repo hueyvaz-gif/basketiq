@@ -35,6 +35,17 @@ SLOTS: dict[str, str] = {
     # mətn kəsilirdi (brauzerdə: «Ana səhifə — marke…»). İzah yuxarıdakı
     # şərhdədir - onun yeri koddur, interfeys deyil.
     "home-banner": "Ana səhifə — banner",
+
+    # YAN LÖVHƏLƏR (tap.az-dakı düzülüş): məzmunun solunda və sağında şaquli
+    # banner. Sətir arası bannerdən FƏRQLİ inventar tipidir - o, axını bir
+    # dəfə kəsir, bunlar isə səhifə boyu görünür (sticky).
+    #
+    # DAR EKRANDA GÖSTƏRİLMİR (`style.css`). Yan lövhə üçün kifayət qədər
+    # yer yoxdursa, iki seçim var: məzmunu sıxmaq və ya reklamı gizlətmək.
+    # Məzmunu sıxmaq qiymət cədvəlini oxunmaz edir - müqayisə saytında bu,
+    # reklam gəlirindən bahalı olardı.
+    "home-rail-left": "Ana səhifə — sol lövhə",
+    "home-rail-right": "Ana səhifə — sağ lövhə",
 }
 
 
@@ -200,6 +211,7 @@ def record_click(ad_id: int) -> str | None:
 # --------------------------------------------------------------- nümunə sifariş
 
 SAMPLE_IMAGE = "/static/images/ads/sample-banner.svg"
+SAMPLE_RAIL_IMAGE = "/static/images/ads/sample-rail.svg"
 
 
 def seed_sample_ad() -> int | None:
@@ -221,7 +233,9 @@ def seed_sample_ad() -> int | None:
         conn.close()
 
     bugün = date.today()
-    return create_ad(
+    son = bugün.replace(year=bugün.year + 1).isoformat()
+
+    ilk = create_ad(
         advertiser="Araz Market",
         title="Araz Market — həftənin endirimləri",
         body="Həftəlik kataloqdakı təkliflərə baxın.",
@@ -229,6 +243,22 @@ def seed_sample_ad() -> int | None:
         target_url="https://arazmarket.az/az/discount-magazine",
         slot="home-banner",
         starts_at=bugün.isoformat(),
-        ends_at=bugün.replace(year=bugün.year + 1).isoformat(),
+        ends_at=son,
         is_sample=True,
     )
+
+    # Yan lövhələr üçün də nümunə: boş slot «xarab görünür», dolu slot isə
+    # inventarın necə göründüyünü satıcıya da, istifadəçiyə də göstərir.
+    for slot in ("home-rail-left", "home-rail-right"):
+        create_ad(
+            advertiser="BasketIQ",
+            title="Bu lövhə satılır",
+            body="Şaquli reklam yeri — səhifə boyu görünür.",
+            image_path=SAMPLE_RAIL_IMAGE,
+            target_url="/admin",
+            slot=slot,
+            starts_at=bugün.isoformat(),
+            ends_at=son,
+            is_sample=True,
+        )
+    return ilk

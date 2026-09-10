@@ -265,10 +265,18 @@ def test_nümunə_sifariş_təkrar_yaranmır():
     """
     İdempotentlik: admin nümunəni silsə, o, növbəti başlanğıcda geri
     qayıtmamalıdır - əks halda silmək mümkünsüz görünərdi.
+
+    SAY ÜÇDÜR (banner + iki yan lövhə): hər satıla bilən yer üçün bir
+    nümunə. Boş lövhə «xarab görünür», dolu lövhə isə inventarın necə
+    göründüyünü həm satıcıya, həm istifadəçiyə göstərir.
     """
     seed_sample_ad()
-    assert seed_sample_ad() is None
-    assert len(list_ads()) == 1
+    assert seed_sample_ad() is None, "təkrar çağırış yeni sifariş yaratmamalıdır"
+
+    reklamlar = list_ads()
+    assert len(reklamlar) == len(SLOTS), "hər slot üçün bir nümunə olmalıdır"
+    assert {a["slot"] for a in reklamlar} == set(SLOTS)
+    assert all(a["is_sample"] for a in reklamlar)
 
 
 def test_nümunə_real_sifarişdən_ayrılır():
@@ -286,3 +294,71 @@ def test_nümunə_real_sifarişdən_ayrılır():
 def test_sayğac_funksiyaları_olmayan_sifarişə_toxunmur():
     record_impression(999999)      # xəta atmamalıdır
     assert record_click(999999) is None
+
+
+# ---------------------------------------------------------------- yan lövhələr
+
+
+def test_yan_lovheler_slot_kimi_qeydiyyatdadir():
+    """
+    Slot adı `SLOTS`-da olmasa, `current_ad()` onu rədd edir və lövhə
+    həmişə boş qalardı - səhv səssiz olardı, çünki səhifə yenə açılır.
+    """
+    assert "home-rail-left" in SLOTS
+    assert "home-rail-right" in SLOTS
+
+
+def test_html_de_yan_lovheler_var():
+    from pathlib import Path
+
+    html = Path("app/static/index.html").read_text(encoding="utf-8")
+    assert 'data-slot="home-rail-left"' in html
+    assert 'data-slot="home-rail-right"' in html
+    assert 'class="ad-rail ad-rail-left"' in html
+
+
+def test_ads_js_butun_slotlari_doldurur():
+    """
+    Əvvəl yalnız `#adSlot` doldurulurdu. Yan lövhələr üçün ikinci nüsxə
+    yazsaydıq, biri dəyişəndə digəri köhnə qalardı.
+    """
+    from pathlib import Path
+
+    js = Path("app/static/ads.js").read_text(encoding="utf-8")
+    assert 'querySelectorAll("[data-slot]")' in js
+    assert "getElementById(\"adSlot\")" not in js, "köhnə tək-slot yolu qalıb"
+
+
+def test_dar_ekranda_lovhe_gizlenir():
+    """
+    Yer çatmayanda seçim ikidir: məzmunu sıxmaq və ya reklamı gizlətmək.
+    Sıxmaq qiymət cədvəlini oxunmaz edir - müqayisə saytında bu, reklam
+    gəlirindən bahalı olardı.
+    """
+    from pathlib import Path
+
+    css = Path("app/static/style.css").read_text(encoding="utf-8")
+    assert ".ad-rail { display: none; }" in css
+    assert "max-width: 1439px" in css
+
+
+def test_yan_lovhenin_sekli_hedd_ile_kicilmir():
+    """
+    REQRESİYA: baza `.ad-image` qaydasında `max-height: 110px` var (sətir
+    arası bannerin qutusuna görə). Şaquli lövhədə həmin hədd 160x600
+    kreativi ~40px-lik nazik zolağa çevirirdi - brauzerdə görüldü.
+    """
+    from pathlib import Path
+
+    css = Path("app/static/style.css").read_text(encoding="utf-8")
+    rail = css.split(".ad-rail .ad-image")[1].split("}")[0]
+    assert "max-height: none" in rail
+
+
+def test_numune_kreativ_ozunu_gizletmir():
+    """Nümunə kreativ real sifariş kimi görünməməlidir."""
+    from pathlib import Path
+
+    svg = Path("app/static/images/ads/sample-rail.svg").read_text(encoding="utf-8")
+    assert "NÜMUNƏ" in svg
+    assert "160 × 600" in svg or "160x600" in svg.replace(" ", "")
