@@ -3,8 +3,9 @@
 # ============================================================
 
 import os
+
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
 
 # .env faylındakı açarları mühit dəyişəninə yükləyirik
 load_dotenv()
@@ -19,9 +20,7 @@ izleme_aktivdir = os.environ.get("LANGSMITH_TRACING") == "true"
 print("İzləmə aktivdir?:", izleme_aktivdir)
 print("Layihə adı:", os.environ.get("LANGSMITH_PROJECT"))
 
-# Modeli yaradırıq
-from langchain_anthropic import ChatAnthropic
-
+# Modeli yaradırıq (idxal faylın başındadır)
 model = ChatAnthropic(model="claude-haiku-4-5-20251001")
 
 # Sadə bir sorğu göndəririk - bu zəng AVTOMATİK olaraq LangSmith-ə yazılacaq
