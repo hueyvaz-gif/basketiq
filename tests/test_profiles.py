@@ -77,14 +77,35 @@ def test_yalnız_işlək_mənbə_çəkilə_bilir():
         assert profile.scrapeable is gözlənilir
 
 
-def test_ünvanı_olmayan_market_uydurma_mənbə_almır():
+def test_rahatın_mənbəyi_ölçülüb_və_qeydiyyatdadır():
     """
-    Rahat üçün yoxlanmış kataloq mənbəyi TAPILMAYIB. Boş qalması qəsdəndir -
-    uydurma ünvan «mənbə var» təəssüratı yaradar və səhv yalnız çəkiliş boş
-    qayıdanda üzə çıxardı.
+    2026-09-10-a QƏDƏR bu test əksini yoxlayırdı: «Rahat üçün mənbə
+    tapılmayıb, `page_url` boş olmalıdır».
+
+    FAKT DƏYİŞDİ. Mənbə var idi - `rahatmarket.az/az/aksiyalar/rahat-market`
+    səhifəsində PDF kataloq. Onu görməyimizə mane olan saytın özü deyil,
+    BİZİM QÜSURUMUZ idi: səhifə `<base href>` işlədir, `find_catalog_links()`
+    isə onu nəzərə almırdı və ünvanlar 404-ə həll olunurdu
+    (`tests/test_scraper.py:test_base_teqi_nezere_alinir`).
+
+    Testin NİYYƏTİ dəyişmir: ünvan yalnız ÖLÇÜLDÜKDƏN sonra yazılır.
     """
-    assert profile_for("rahat").page_url is None
-    assert profile_for("rahat").status == MANUAL
+    profile = profile_for("rahat")
+    assert profile.page_url == "https://rahatmarket.az/az/aksiyalar/rahat-market"
+    assert profile.status == ACTIVE
+    assert profile.fmt == "pdf"
+
+
+def test_mənbəsi_olmayan_market_uydurma_ünvan_almır():
+    """
+    Bazar Store-un saytı baxımdadır (2026-09-10-da təkrar ölçüldü, dəyişməyib)
+    və Wolt-da da yoxdur. `status` bunu açıq deyir - uydurma ünvan «mənbə var»
+    təəssüratı yaradar və səhv yalnız çəkiliş boş qayıdanda üzə çıxardı.
+    """
+    profile = profile_for("bazar-store")
+    assert profile.status == BLOCKED
+    assert profile.scrapeable is False
+    assert "baxımdadır" in profile.note
 
 
 def test_çəkilə_bilən_hər_profilin_scraper_qeydiyyatı_var():

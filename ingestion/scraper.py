@@ -79,6 +79,17 @@ SOURCES: dict[str, Source] = {
         page_url="https://arazmarket.az/az/discount-magazine",
         note="Statik HTML, 1 PDF, 54 səhifə (~9 MB) - mütləq max_pages ilə çağır",
     ),
+    "rahat": Source(
+        key="rahat",
+        # Adı `Rahat` yazılır, `Rahat Market` yox: `get_or_create_store()` ADI
+        # slug-a çevirir və «Rahat Market» -> `rahat-market` ikinci market
+        # sətri yaradardı. Eyni tələ Araz və Bravoda bir dəfə baş verib
+        # (`app/db.py:STORE_MERGES`).
+        store="Rahat",
+        page_url="https://rahatmarket.az/az/aksiyalar/rahat-market",
+        note="Statik HTML, `<base href>` işlədir. İki PDF: 1 səhifəlik afişa "
+             "və 11 səhifəlik jurnal, ikisi də SKAN (mətn qatı yoxdur).",
+    ),
 }
 
 
@@ -271,6 +282,21 @@ def find_catalog_links(html: str, page_url: str) -> list[str]:
     əks halda saytın bütün loqoları və məhsul şəkilləri siyahıya düşərdi.
     """
     soup = BeautifulSoup(html, "lxml")
+
+    # `<base href>` NƏZƏRƏ ALINIR (ölçüldü 2026-09-10, Rahat Market).
+    #
+    # BRAUZERDƏ GÖRÜLDÜ: `rahatmarket.az/az/aksiyalar/rahat-market` səhifəsində
+    # kataloq PDF-inin href-i `assets/files/...` şəklindədir və səhifə
+    # `<base href="https://rahatmarket.az/">` daşıyır. Brauzer nisbi ünvanı
+    # BASE-ə görə həll edir -> `/assets/files/...` (işləyir). Biz isə SƏHİFƏ
+    # ünvanına görə həll edirdik -> `/az/aksiyalar/assets/files/...` (404).
+    #
+    # Nəticə: linklər TAPILIRDI, amma endirmə 404 verirdi - yəni market
+    # «mənbəsiz» görünürdü, halbuki kataloqu vardı. Səhv səssiz idi, çünki
+    # `find_catalog_links()` özü uğurla siyahı qaytarırdı.
+    base_tag = soup.find("base", href=True)
+    base_url = urlparse.urljoin(page_url, base_tag["href"]) if base_tag else page_url
+
     pdfs: list[str] = []
     imgs: list[str] = []
 
@@ -282,7 +308,7 @@ def find_catalog_links(html: str, page_url: str) -> list[str]:
         raw = tag.get("href") or tag.get("src") or tag.get("data-src")
         if not raw:
             continue
-        full = urlparse.urljoin(page_url, raw)
+        full = urlparse.urljoin(base_url, raw)
         path = urlparse.urlparse(full).path.lower()
 
         if path.endswith(PDF_EXT):

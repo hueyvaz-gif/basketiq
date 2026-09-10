@@ -193,3 +193,75 @@ def test_nameluм_menbe_400_qaytarir():
         res = client.post("/api/scrape/yoxdur")
         assert res.status_code == 400
         assert "Naməlum mənbə" in res.json()["detail"]
+
+
+# ---------------------------------------------------------------- <base href>
+
+
+BASE_HTML = """
+<html><head><base href="https://rahatmarket.az/"></head>
+<body>
+  <a href="assets/files/kataloq.pdf">Kataloq</a>
+  <img src="assets/cache/images/aksiyalar/endirim-1.png">
+</body></html>
+"""
+
+
+def test_base_teqi_nezere_alinir():
+    """
+    ÖLÇÜLDÜ 2026-09-10 (Rahat Market): səhifə
+    `rahatmarket.az/az/aksiyalar/rahat-market` ünvanındadır, amma
+    `<base href="https://rahatmarket.az/">` daşıyır. Nisbi link SƏHİFƏYƏ görə
+    həll olunsaydı `/az/aksiyalar/assets/files/kataloq.pdf` alınardı - və o
+    ünvan 404 verir.
+
+    SƏHV SƏSSİZ İDİ: `find_catalog_links()` uğurla siyahı qaytarırdı, xəta
+    yalnız endirmə anında görünürdü. Market bu səbəbdən «mənbəsiz» sayılmışdı.
+    """
+    links = find_catalog_links(BASE_HTML, "https://rahatmarket.az/az/aksiyalar/rahat-market")
+    assert "https://rahatmarket.az/assets/files/kataloq.pdf" in links
+    assert not any("/az/aksiyalar/assets/" in u for u in links), (
+        "nisbi ünvan səhifəyə görə həll olundu - <base> nəzərə alınmayıb"
+    )
+
+
+def test_base_teqi_yoxdursa_sehife_unvanina_gore_hell_olunur():
+    """`<base>` olmayan saytda davranış DƏYİŞMƏMƏLİDİR (Araz belədir)."""
+    html = '<html><body><a href="files/kataloq.pdf">K</a></body></html>'
+    links = find_catalog_links(html, "https://example.az/az/aksiyalar/sehife")
+    assert links == ["https://example.az/az/aksiyalar/files/kataloq.pdf"]
+
+
+def test_nisbi_base_de_islenir():
+    """`<base href="/katalog/">` kimi nisbi base də düzgün birləşməlidir."""
+    html = '<html><head><base href="/katalog/"></head><body>' \
+           '<a href="a.pdf">A</a></body></html>'
+    links = find_catalog_links(html, "https://example.az/az/sehife")
+    assert links == ["https://example.az/katalog/a.pdf"]
+
+
+def test_rahat_menbe_kimi_qeydiyyatdadir():
+    """Mənbə tapıldı (2026-09-10) - profil və SOURCES uyğun olmalıdır."""
+    from ingestion.profiles import profile_for
+    from ingestion.scraper import SOURCES
+
+    assert "rahat" in SOURCES
+    profile = profile_for("rahat")
+    assert profile.scrapeable is True
+    assert profile.fmt == "pdf"
+    assert SOURCES["rahat"].page_url == profile.page_url, (
+        "SOURCES və profil eyni ünvanı göstərməlidir - əks halda çəkiliş bir "
+        "səhifədən, profil başqasından danışar"
+    )
+
+
+def test_rahat_market_adi_dublikat_slug_yaratmir():
+    """
+    `Source.store` ADI slug-a çevrilir. «Rahat Market» yazsaydıq
+    `rahat-market` slug-u yaranardı, reyestrdəki isə `rahat`-dır.
+    Eyni tələ Araz və Bravoda bir dəfə baş verib.
+    """
+    from ingestion.ingest import slugify
+    from ingestion.scraper import SOURCES
+
+    assert slugify(SOURCES["rahat"].store) == "rahat"

@@ -114,18 +114,32 @@ PROFILES: dict[str, StoreProfile] = {
         # Bütün sayt (robots.txt daxil) baxım elanı qaytarır; səhifədə cəmi
         # bir `mailto:` linki var. Sayt qayıdanda burada yalnız `status`
         # dəyişməlidir.
+        #
+        # TƏKRAR ÖLÇÜLDÜ 2026-09-10: vəziyyət DƏYİŞMƏYİB. `bazarstore.az`,
+        # `www.bazarstore.az` və `/az` - üçü də eyni «yenilənmə işləri»
+        # elanını qaytarır (378 simvol mətn). Wolt-da da yoxdur: Bakı ərzaq
+        # siyahısındakı 177 məkanın heç biri Bazar Store deyil («bazar»
+        # uyğunluqları meyvə-tərəvəz dükanlarıdır, məsələn `bazar1` =
+        # «AQRO AZ Fruit & Vegetables»).
         note="Sayt baxımdadır: bütün ünvanlar «yenilənmə işləri» elanını "
-             "qaytarır, çəkiləcək məhsul yoxdur.",
+             "qaytarır, çəkiləcək məhsul yoxdur. Wolt-da da mövcud deyil "
+             "(2026-09-10 yoxlanıldı).",
     ),
     "rahat": StoreProfile(
         slug="rahat",
-        fmt="image",
-        status=MANUAL,
-        # Ünvan YAZILMIR: yoxlanmış kataloq mənbəyi tapılmayıb. Uydurma ünvan
-        # yazmaq «mənbə var» təəssüratı yaradar və çəkiliş səssizcə boş
-        # nəticə verərdi.
-        note="Yoxlanmış onlayn kataloq mənbəyi tapılmayıb. Kataloq şəkli əl "
-             "ilə yüklənə bilər - emal zənciri hazırdır.",
+        fmt="pdf",
+        # MƏNBƏ TAPILDI (2026-09-10). Əvvəl «tapılmayıb» yazılırdı; səbəb
+        # saytın olmaması DEYİL, `<base href>` qüsuru idi - linklər tapılırdı,
+        # amma səhifə ünvanına görə həll olunub 404 verirdi. Qüsur
+        # `scraper.py:find_catalog_links()`-də bağlandı.
+        status=ACTIVE,
+        page_url="https://rahatmarket.az/az/aksiyalar/rahat-market",
+        # 11 SƏHİFƏ ÖLÇÜLDÜ (5_18_avqust.pdf). Afişa PDF-i 1 səhifədir.
+        # Limit qoymuruq - Arazdakı 54 səhifə ilə müqayisədə kiçikdir.
+        max_pages=12,
+        psm=6,          # vahid blok - kataloq kartları belə oxunur
+        note="Aksiyalar səhifəsində PDF kataloq: 1 səhifəlik afişa (3 MB) və "
+             "11 səhifəlik jurnal (8 MB). İkisi də skan - OCR lazımdır.",
     ),
 }
 
