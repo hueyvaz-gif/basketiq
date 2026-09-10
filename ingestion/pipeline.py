@@ -267,16 +267,19 @@ def save_snapshots(
             is_promo = 1 if product.old_price else 0
 
             cur.execute(
-                "INSERT INTO price_snapshots (product_id, store_id, price, unit_price, "
-                "                             is_promo, source, observed_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now'))) "
+                "INSERT INTO price_snapshots (product_id, store_id, price, old_price, "
+                "                             unit_price, is_promo, source, observed_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now'))) "
                 "ON CONFLICT(product_id, store_id, source, date(observed_at)) DO UPDATE SET "
-                "  price = excluded.price, unit_price = excluded.unit_price, "
-                "  is_promo = excluded.is_promo",
+                "  price = excluded.price, old_price = excluded.old_price, "
+                "  unit_price = excluded.unit_price, is_promo = excluded.is_promo",
                 (
                     product_id,
                     store_id,
                     product.price,
+                    # KÖHNƏ QİYMƏT ARTIQ ATILMIR. Əvvəl yalnız `is_promo`
+                    # yazılırdı və faiz itirdi - bax `app/db.py` miqrasiyası.
+                    product.old_price,
                     product.unit_price,
                     is_promo,
                     source,

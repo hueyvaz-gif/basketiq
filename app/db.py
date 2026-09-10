@@ -88,6 +88,7 @@ CREATE TABLE IF NOT EXISTS price_snapshots (
     product_id   INTEGER NOT NULL REFERENCES products(id),
     store_id     INTEGER NOT NULL REFERENCES stores(id),
     price        REAL    NOT NULL,
+    old_price    REAL,                    -- endirimdən əvvəlki qiymət (varsa)
     unit_price   REAL,                    -- 1 kq / 1 L üzrə
     is_promo     INTEGER NOT NULL DEFAULT 0,
     source       TEXT    NOT NULL CHECK (source IN ('site', 'catalog')),
@@ -252,18 +253,21 @@ CREATE INDEX IF NOT EXISTS idx_ads_slot ON ads(slot, active);
 #
 # `layer` sütunu mənşəyi saxlayır: UI «neçəsi rəfdən, neçəsi kataloqdan»
 # sualına cavab verə bilsin.
-# `old_price` YALNIZ KATALOQDA VAR. `price_snapshots` köhnə qiyməti saxlamır
-# (yalnız `is_promo` nişanını) - ona görə sayt sətrində NULL qalır və endirim
-# faizi hesablanmır. Uydurma köhnə qiymət yazmaqdansa, faizi ümumiyyətlə
-# göstərməmək düzgündür.
+# `old_price` HƏR İKİ QATDA VAR (2026-09-10-dan). Əvvəl `price_snapshots`
+# yalnız `is_promo` bayrağını saxlayırdı və sayt sətrində köhnə qiymət NULL
+# qalırdı - nəticədə mağaza qatının endirimləri faizi hesablana bilmirdi və
+# «bugünün endirimləri» siyahısı yalnız kataloq qatından ibarət görünürdü.
 PRICE_ROWS_CTE = """
 WITH price_rows AS (
     SELECT product_id, store_id, catalog_id, price, old_price, unit_price,
-           seen_at AS at, 'catalog' AS layer
+           flags, seen_at AS at, 'catalog' AS layer
       FROM prices
     UNION ALL
-    SELECT product_id, store_id, NULL AS catalog_id, price, NULL AS old_price, unit_price,
-           observed_at AS at, 'site' AS layer
+    -- `flags` YALNIZ KATALOQ QATINDADIR: sağlamlıq yoxlaması OCR sətrinə
+    -- baxır, mağaza qatında isə OCR yoxdur (data strukturludur). Sayt
+    -- sətrində NULL qalır - yəni karantin şərti onu atmır.
+    SELECT product_id, store_id, NULL AS catalog_id, price, old_price, unit_price,
+           NULL AS flags, observed_at AS at, 'site' AS layer
       FROM price_snapshots
      WHERE source = 'site'
 )
@@ -369,6 +373,21 @@ def _migrate(conn: sqlite3.Connection) -> None:
     columns = {row["name"] for row in conn.execute("PRAGMA table_info(products)")}
     if "group_key" not in columns:
         conn.execute("ALTER TABLE products ADD COLUMN group_key TEXT")
+
+    # `old_price` MAĞAZA QATINA DA LAZIMDIR (2026-09-10).
+    #
+    # Cədvəl yalnız `is_promo` bayrağını saxlayırdı - «endirimdədir» demək
+    # olurdu, amma NEÇƏ FAİZ olduğunu yox. Nəticədə Bravonun 3 369 endirimli
+    # məhsulu «bugünün endirimləri» siyahısına PRİNSİPCƏ düşə bilmirdi və
+    # siyahı yalnız Arazdan ibarət görünürdü.
+    #
+    # Data ONSUZ DA VAR İDİ: Wolt kartından köhnə qiymət `parse_card()` ilə
+    # çıxarılır (`ExtractedProduct.old_price`), sadəcə yazılmırdı.
+    snapshot_columns = {
+        row["name"] for row in conn.execute("PRAGMA table_info(price_snapshots)")
+    }
+    if snapshot_columns and "old_price" not in snapshot_columns:
+        conn.execute("ALTER TABLE price_snapshots ADD COLUMN old_price REAL")
 
     # Onlayn mağazadan gələn əlavə sahələr (BasketIQ v2).
     # `barcode` matching üçün BİRİNCİ açardır: eyni barkod = eyni məhsul,

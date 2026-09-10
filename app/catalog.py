@@ -232,6 +232,42 @@ def _compare_note(offers: list[dict]) -> dict | None:
 # --------------------------------------------------------------- endirimlər
 
 
+def discount_pct(
+    price: float | None,
+    old_price: float | None,
+    *,
+    max_depth: float | None = MAX_DEPTH,
+) -> float | None:
+    """
+    ENDİRİM FAİZİNİN YEGANƏ HESABLANDIĞI YER.
+
+    NİYƏ AYRICA FUNKSİYA? Eyni hesablama üç yerdə təkrarlanırdı: market
+    səhifəsi, «bugünün endirimləri» və məhsul kartı. Hədlər bir yerdə
+    dəyişəndə digərləri köhnə qalırdı və nəticə İSTİFADƏÇİYƏ ZİDDİYYƏT kimi
+    görünürdü: market səhifəsində «-16%» yazılır, ana səhifədə isə həmin
+    məhsul ümumiyyətlə yoxdur.
+
+    `max_depth=None` -> dərinlik həddi tətbiq OLUNMUR. «Bugünün endirimləri»
+    məhz belə çağırır, çünki orada dərin endirim ATILMIR, əvvəlcə
+    `verify_claim()` ilə yoxlanılır: tarixçə iddianı təsdiqləyirsə, 70%-dən
+    dərin endirim də realdır (`todays_deals`-dakı izaha bax).
+
+    Qaytarır: faiz (1 onluq) və ya None - endirim yoxdursa/həddən kənardırsa.
+    """
+    if price is None or old_price is None:
+        return None
+    price = float(price)
+    old_price = float(old_price)
+    if old_price <= price or old_price <= 0:
+        return None
+
+    depth = (old_price - price) / old_price
+    if max_depth is not None and depth > max_depth:
+        return None
+    pct = round(depth * 100, 1)
+    return pct if pct >= MIN_DISCOUNT_PCT else None
+
+
 def todays_deals(limit: int = 12) -> dict:
     """
     «Bugünün ən sərfəli endirimləri» — hər məhsul üçün ƏN BÖYÜK faiz endirim.
@@ -247,8 +283,21 @@ def todays_deals(limit: int = 12) -> dict:
             return {"items": [], "markets": [], "note": "market datası yoxdur"}
 
         store_marks = ",".join("?" * len(markets))
+        # HƏR İKİ QİYMƏT QATI (`PRICE_ROWS_CTE`): kataloq iddiası + mağaza
+        # rəf qiyməti.
+        #
+        # ƏVVƏL YALNIZ `prices` OXUNURDU və nəticə istifadəçiyə belə
+        # görünürdü: siyahı demək olar tamamilə Arazdan ibarətdir. Səbəb
+        # market deyil, SXEM idi - Bravonun 13 089 məhsulu `price_snapshots`
+        # cədvəlindədir və o cədvəldə `old_price` sütunu ümumiyyətlə yox idi,
+        # yəni 3 369 endirimli məhsul prinsipcə bura düşə bilmirdi.
+        #
+        # `flags` yalnız kataloq qatındadır - mağaza sətrində belə sütun
+        # yoxdur, ona görə karantin şərti `layer = 'catalog'` üçün tətbiq
+        # olunur. Mağaza qatının öz keyfiyyət yoxlaması `is_promo`-dur.
         rows = conn.execute(
             f"""
+            {PRICE_ROWS_CTE}
             SELECT p.id           AS product_id,
                    p.group_key    AS group_key,
                    p.name         AS name,
@@ -257,12 +306,13 @@ def todays_deals(limit: int = 12) -> dict:
                    p.size_unit    AS size_unit,
                    p.category     AS category,
                    p.image_path   AS image_path,
-                   pr.id          AS price_id,
+                   pr.product_id  AS price_id,
                    pr.store_id    AS store_id,
                    pr.price       AS price,
                    pr.old_price   AS old_price,
-                   pr.seen_at     AS seen_at
-            FROM prices pr
+                   pr.at          AS seen_at,
+                   pr.layer       AS layer
+            FROM price_rows pr
             JOIN products p ON p.id = pr.product_id
             WHERE pr.store_id IN ({store_marks})
               AND pr.old_price IS NOT NULL
@@ -271,7 +321,7 @@ def todays_deals(limit: int = 12) -> dict:
               -- «bugünün endirimləri» siyahısına BURAXILMIR. Sətir bazada
               -- qalır və admin panelində görünür - orada insan qərar verir.
               AND (pr.flags IS NULL OR pr.flags = '')
-            ORDER BY pr.seen_at, pr.id
+            ORDER BY pr.at
             """,
             tuple(markets),
         ).fetchall()
@@ -283,14 +333,14 @@ def todays_deals(limit: int = 12) -> dict:
         for row in rows:
             old = float(row["old_price"])
             price = float(row["price"])
-            depth = (old - price) / old
-            # Cüzi endirim (<3%) atılır. DƏRİN ENDİRİM İSƏ BURADA ATILMIR -
-            # qərar yoxlamadan SONRA verilir (aşağıda). Səbəb: dərinlik özü
-            # heç nə sübut etmir; son istifadə tarixi yaxınlaşan məhsul real
-            # olaraq 70%+ ucuzlaşa bilər və onu «ağlabatmayan» adlandırmaq
-            # istifadəçini ən sərfəli təklifdən uzaqlaşdırmaq deməkdir.
-            pct = round(depth * 100, 1)
-            if pct < MIN_DISCOUNT_PCT:
+            # Cüzi endirim (<3%) atılır. DƏRİN ENDİRİM İSƏ BURADA ATILMIR
+            # (`max_depth=None`) - qərar yoxlamadan SONRA verilir (aşağıda).
+            # Səbəb: dərinlik özü heç nə sübut etmir; son istifadə tarixi
+            # yaxınlaşan məhsul real olaraq 70%+ ucuzlaşa bilər və onu
+            # «ağlabatmayan» adlandırmaq istifadəçini ən sərfəli təklifdən
+            # uzaqlaşdırmaq deməkdir.
+            pct = discount_pct(price, old, max_depth=None)
+            if pct is None:
                 continue
 
             market = markets[row["store_id"]]
@@ -691,11 +741,11 @@ def store_page(slug: str, limit: int = 40) -> dict | None:
         for row in rows:
             price = float(row["price"])
             old = float(row["old_price"]) if row["old_price"] is not None else None
-            pct = None
-            if old and old > price:
-                depth = (old - price) / old
-                if depth <= MAX_DEPTH and depth * 100 >= MIN_DISCOUNT_PCT:
-                    pct = round(depth * 100, 1)
+            # EYNİ FUNKSİYA, EYNİ HƏDLƏR (`discount_pct`). Əvvəl hesablama
+            # burada təkrarlanırdı və «bugünün endirimləri» ilə fərqlənə
+            # bilirdi - istifadəçi market səhifəsində «-16%» görüb ana
+            # səhifədə həmin məhsulu tapmırdı.
+            pct = discount_pct(price, old)
 
             latest[row["group_key"]] = {
                 "product_id": row["product_id"],

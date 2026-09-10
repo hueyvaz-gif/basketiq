@@ -172,8 +172,23 @@ def delete_catalog(catalog_id: int):
         cur.execute("DELETE FROM catalogs WHERE id = ?", (catalog_id,))
         # Heç bir qiyməti qalmayan məhsul artıq mövcud deyil - onu saxlamaq
         # səbət axtarışında "qiymətsiz məhsul" kimi görünərdi.
+        #
+        # HƏR İKİ QAT YOXLANILIR (2026-09-10-da düzəldildi).
+        #
+        # Əvvəl yalnız `prices` sayılırdı. `price_snapshots` boş olduğu
+        # müddətdə bu fərq görünmürdü, amma mağaza qatı dolan kimi sətir
+        # TƏHLÜKƏLİ oldu: Bravonun 13 089 məhsulunun `prices` sətri yoxdur -
+        # onlar YALNIZ snapshot-dadır. Yəni İSTƏNİLƏN kataloqu silmək həmin
+        # 13 min məhsulu silməyə cəhd edirdi.
+        #
+        # Praktikada `DELETE /api/catalogs/{id}` 500 qaytarırdı
+        # (`price_snapshots.product_id` xarici açardır və silinməyə imkan
+        # vermir). Xarici açar yoxlaması sönülü olsaydı, səhv SƏSSİZ olardı
+        # və mağaza qatı bir kataloq silinməsi ilə yox olardı.
         cur.execute(
-            "DELETE FROM products WHERE id NOT IN (SELECT DISTINCT product_id FROM prices)"
+            "DELETE FROM products "
+            " WHERE id NOT IN (SELECT product_id FROM prices) "
+            "   AND id NOT IN (SELECT product_id FROM price_snapshots)"
         )
 
     return {"deleted": catalog_id}

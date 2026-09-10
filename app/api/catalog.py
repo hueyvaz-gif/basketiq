@@ -32,8 +32,23 @@ def markets():
 
 @router.get("/deals")
 def deals(limit: int = 12):
-    """«Bugünün ən sərfəli endirimləri» — hər məhsul üçün ən böyük faiz."""
-    limit = max(1, min(limit, 60))
+    """
+    «Bugünün ən sərfəli endirimləri» — hər məhsul üçün ən böyük faiz.
+
+    LİMİT QAPAĞI 60-DAN 500-Ə QALDIRILDI (2026-09-10).
+    ================================================
+    Köhnə qapaq SƏSSİZ İDİ: `limit=500` sorğusu 60-a çevrilirdi və çağıran
+    bunu heç yerdə görmürdü. Nəticə diaqnostikada belə göründü - «deals
+    siyahısı 100% Arazdır, deməli qeyri-Araz endirimlər süzülür».
+    Halbuki heç bir süzgəc yox idi: Bravonun yeganə endirimi (16.3%)
+    sıralamada 69-cu idi, çünki 67 Araz endirimi ondan dərindir. Yəni
+    market fərqi deyil, KƏSİK problemi idi.
+
+    500 niyə? Ana səhifə 6, market səhifəsi 40 istəyir - qapaq yalnız
+    diaqnostika/ixrac kimi böyük sorğulara toxunur. Hədsiz sorğu isə
+    cavabı meqabaytlara çıxarardı, ona görə qapaq tamamilə götürülmür.
+    """
+    limit = max(1, min(limit, 500))
     return todays_deals(limit=limit)
 
 
