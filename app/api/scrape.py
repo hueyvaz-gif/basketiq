@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from app.config import settings
 from app.security import require_admin
 from app.stores import market_for
+from ingestion.probe import probe_and_record, probe_history
 from ingestion.profiles import PROFILES
 from ingestion.scraper import SOURCES, ScrapeError, robots_allows, scrape_source
 
@@ -75,6 +76,54 @@ def list_sources(check_robots: bool = False):
                 item["robots_error"] = f"{type(e).__name__}: {e}"
         out.append(item)
     return out
+
+
+@router.post("/{key}/probe")
+def probe_endpoint(
+    key: str,
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+):
+    """
+    «Bu marketin saytı qayıdıbmı?» — yoxlayır və GÜNDƏLİK QEYD yazır.
+
+    NİYƏ ÇƏKİLİŞDƏN AYRI? Çəkiliş yalnız `status=ACTIVE` mənbələr üçün
+    mənalıdır. Yoxlama isə məhz BAĞLI mənbələr üçün lazımdır - Bazar Store
+    aylarla bağlı qala bilər və dəyişikliyi kimsə görməlidir.
+
+    Vəziyyəti AVTOMATİK dəyişmir: `profiles.py`-dəki `status` ölçülmüş
+    qərardır və izahı ilə birlikdə kodda yazılır. Yoxlama xəbər verir,
+    qərarı insan verir.
+    """
+    check_api_key(x_api_key)
+    if key not in PROFILES:
+        raise HTTPException(404, f"Naməlum mənbə: {key}")
+
+    result = probe_and_record(key)
+    payload = result.as_dict()
+
+    # DƏYİŞİKLİK NİŞANI: n8n hesabatı yalnız bunu oxuyub qərar verir.
+    # «Hər gün eyni cavab» ilə «bu gün fərqlidir» arasındakı fərq budur.
+    profile = PROFILES[key]
+    payload["expected_alive"] = profile.status == "active"
+    payload["changed"] = result.alive != payload["expected_alive"]
+    payload["status"] = profile.status
+    return payload
+
+
+@router.get("/{key}/probe/history")
+def probe_history_endpoint(key: str, limit: int = 30):
+    """Son N günün yoxlama qeydi - «nə vaxtdan bəri bağlıdır?»."""
+    if key not in PROFILES:
+        raise HTTPException(404, f"Naməlum mənbə: {key}")
+    rows = probe_history(key, limit=limit)
+    canli = [r for r in rows if r["alive"]]
+    return {
+        "slug": key,
+        "checks": len(rows),
+        "alive_days": len(canli),
+        "last_alive": canli[0]["checked_at"] if canli else None,
+        "history": rows,
+    }
 
 
 @router.post("/{key}")

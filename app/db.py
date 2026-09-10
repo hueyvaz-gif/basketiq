@@ -108,6 +108,34 @@ CREATE INDEX IF NOT EXISTS ix_snapshots_product_date
 CREATE UNIQUE INDEX IF NOT EXISTS ux_snapshot_daily
     ON price_snapshots(product_id, store_id, source, date(observed_at));
 
+-- MƏNBƏ YOXLAMASININ GÜNDƏLİK QEYDİ
+--
+-- NİYƏ LAZIMDIR? Üç marketin mənbəyi ölçülmüş səbəblərlə bağlıdır
+-- (`ingestion/profiles.py`). Bazar Store-un saytı «yenilənmə işləri»
+-- elanındadır və nə vaxt qayıdacağı bilinmir. Əl ilə yoxlamaq unudulur:
+-- sayt qayıdar, biz isə aylarla «mənbə yoxdur» yazmağa davam edərik.
+--
+-- CƏDVƏL TARİXÇƏDİR, BAYRAQ DEYİL. Yalnız «indi işləyir/işləmir» saxlasaq,
+-- «nə vaxtdan bəri bağlıdır?» və «keçən həftə bir gün açıq idimi?»
+-- suallarına cavab olmazdı. Sətir üstünə yazılmır - hər gün yeni sətir.
+--
+-- GÜNDƏ BİR SƏTİR: `price_snapshots`-dakı ilə eyni qayda və eyni səbəb -
+-- ifadəli unikal indeks. Gün ərzində təkrar yoxlama xəta vermir, həmin
+-- günün sətrini yeniləyir.
+CREATE TABLE IF NOT EXISTS source_probes (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug        TEXT    NOT NULL,
+    alive       INTEGER NOT NULL DEFAULT 0,   -- səhifədə real məzmun varmı?
+    http_status INTEGER,
+    text_length INTEGER,                      -- görünən mətnin uzunluğu
+    catalog_links INTEGER NOT NULL DEFAULT 0, -- tapılan PDF/şəkil linki
+    note        TEXT,                         -- nə görüldü (insan üçün)
+    checked_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_probe_daily
+    ON source_probes(slug, date(checked_at));
+
 -- İstifadəçinin səbəti
 CREATE TABLE IF NOT EXISTS baskets (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,

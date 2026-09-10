@@ -274,6 +274,46 @@
         370,
         -120
       ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Konfiqurasiya').first().json.basketiq_url }}/api/scrape/bazar-store/probe",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $('Konfiqurasiya').first().json.api_key }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "probe-bazar-store",
+      "name": "Bagli menbeni yoxla",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -160,
+        320
+      ],
+      "notes": "BAZAR STORE HER GUN YOXLANILIR. Saytin 2026-09-08-den beri «yenilenme isleri» elani var; ne vaxt qayidacagi bilinmir ve el ile yoxlamaq unudulur.\n\nAYRI QOLDADIR (Konfiqurasiya-dan birbasa gelir), esas zencire TOXUNMUR: yeni kataloq olmasa da islemelidir - «bagli market qayidibmi?» sualinin kataloqla elaqesi yoxdur.\n\nEndpoint neticeni `source_probes` cedveline yazir - GUNDE BIR SETIR. Yeni `status`-u AVTOMATIK deyismir: qerari insan verir."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Yoxlamanin neticesini insanin oxuyacagi bir setre cevirir.\n//\n// «changed» sahesi endpoint-den gelir: profildeki gozlenilen veziyyetle\n// real veziyyet fərqlidirse true olur. Yeni «her gun eyni cavab» ile\n// «BU GUN FERQLIDIR» arasindaki ferq mehz odur - hesabatda da yalniz\n// bu ferq vurgulanir, eks halda gundelik setir sesə cevrilir.\nconst r = $input.first().json;\nconst ad = r.slug;\nlet setir;\nif (r.changed && r.alive) {\n  setir = `DIQQET: ${ad} saytı QAYITDI (${r.note}). `\n        + `profiles.py-de status yenilenmelidir.`;\n} else if (r.changed) {\n  setir = `DIQQET: ${ad} isleyirdi, indi cavab vermir (${r.note}).`;\n} else {\n  setir = `${ad}: deyisiklik yoxdur (${r.note}).`;\n}\nreturn [{ json: { menbe_hesabati: setir, slug: ad, alive: r.alive, changed: r.changed } }];\n"
+      },
+      "id": "probe-report",
+      "name": "Menbe hesabati",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        60,
+        320
+      ]
     }
   ],
   "connections": {
@@ -293,6 +333,11 @@
         [
           {
             "node": "Kataloqu cek",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Bagli menbeni yoxla",
             "type": "main",
             "index": 0
           }
@@ -366,6 +411,17 @@
         [
           {
             "node": "Sebeti muqayise et",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bagli menbeni yoxla": {
+      "main": [
+        [
+          {
+            "node": "Menbe hesabati",
             "type": "main",
             "index": 0
           }
