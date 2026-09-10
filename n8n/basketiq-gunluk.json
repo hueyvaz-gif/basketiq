@@ -314,6 +314,103 @@
         60,
         320
       ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 5,
+              "triggerAtMinute": 30
+            }
+          ]
+        }
+      },
+      "id": "trigger-shop",
+      "name": "Her seher 05:30",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -620,
+        560
+      ],
+      "notes": "MAGAZA CEKILISI KATALOQDAN AYRI VAXTDADIR - 05:30, kataloq ise 07:00.\n\nSEBEB OLCULDU: Bravo cekilisi ~30 deqiqe cekir ve Selenium (Chrome) isledir; kataloq qolu ise yeni kataloq gunlerinde OCR + LLM ile 15-30 deqiqe tutur. Bu masinda bos yaddas 0.5-2 GB-dir ve 2026-09-10-da iki defe proses mehz yaddasa gore oldurulub. Iki agir zenciri eyni anda islətmek hemin riski qesden yaratmaq olardi.\n\n05:30 secildi ki, 07:00-da kataloq qolu baslayanda magaza cekilisi onsuz da bitmis olsun."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "url",
+              "name": "basketiq_url",
+              "value": "http://host.docker.internal:8000",
+              "type": "string"
+            },
+            {
+              "id": "key",
+              "name": "api_key",
+              "value": "dev-secret-change-me",
+              "type": "string"
+            },
+            {
+              "id": "src",
+              "name": "menbe",
+              "value": "bravo",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "shop-config",
+      "name": "Magaza konfiqurasiyasi",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -400,
+        560
+      ],
+      "notes": "NIYE IKINCI KONFIQURASIYA NODE-U? n8n-de `$('Konfiqurasiya')` yalniz HEMIN ICRADA islemis node-a muraciet ede bilir. Iki mustəqil trigger var (05:30 ve 07:00), ona gore hər zencirin oz konfiqurasiyasi olmalidir - eks halda 05:30 icrasinda `$('Konfiqurasiya')` bos qaytarardi.\n\nURL ve acar IKI YERDE tekrarlanir. Deyisende HER IKISINI yenile."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.basketiq_url }}/api/shop/{{ $json.menbe }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $json.api_key }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 3600000
+        }
+      },
+      "id": "shop-scrape",
+      "name": "Magaza qiymetlerini cek",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -180,
+        560
+      ],
+      "notes": "Limit YOXDUR - butun kateqoriyalar cekilir (olculdu: 44 kateqoriya, 13 460 mehsul, 29.5 deqiqe). Timeout 60 deqiqedir: cekilis uzana biler, amma yarida kesilse netice ITMIR - endpoint her kateqoriyani bitən kimi bazaya yazir (`ingestion/shop.py:on_category`)."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Cekilisi insanin oxuyacagi bir setre cevirir.\nconst r = $input.first().json;\nconst setir = `Magaza (${r.store}): ${r.category_count} kateqoriya, `\n  + `${r.found_count} mehsul tapildi, ${r.saved} yazildi, `\n  + `${r.elapsed_seconds} san.`;\nconst xeta = (r.errors || []).length\n  ? ` DIQQET: ${r.errors.length} kateqoriyada xeta.` : '';\nreturn [{ json: { magaza_hesabati: setir + xeta, saved: r.saved,\n                  errors: (r.errors || []).length } }];\n"
+      },
+      "id": "shop-report",
+      "name": "Magaza hesabati",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        40,
+        560
+      ]
     }
   ],
   "connections": {
@@ -422,6 +519,39 @@
         [
           {
             "node": "Menbe hesabati",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Her seher 05:30": {
+      "main": [
+        [
+          {
+            "node": "Magaza konfiqurasiyasi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Magaza konfiqurasiyasi": {
+      "main": [
+        [
+          {
+            "node": "Magaza qiymetlerini cek",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Magaza qiymetlerini cek": {
+      "main": [
+        [
+          {
+            "node": "Magaza hesabati",
             "type": "main",
             "index": 0
           }

@@ -171,3 +171,66 @@ def test_source_probes_cədvəli_sxemdədir():
         assert "ux_probe_daily" in adlar, "gündəlik unikal indeks yoxdur"
     finally:
         conn.close()
+
+
+# ---------------------------------------------------------------- mağaza çəkilişi
+
+
+def _workflow():
+    with open("n8n/basketiq-gunluk.json", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def test_magaza_cekilisi_axinda_var():
+    """Mağaza qatı yalnız əl ilə çəkilsəydi, gündəlik yenilənməzdi."""
+    wf = _workflow()
+    adlar = {n["name"] for n in wf["nodes"]}
+    assert "Magaza qiymetlerini cek" in adlar
+    node = next(n for n in wf["nodes"] if n["name"] == "Magaza qiymetlerini cek")
+    assert "/api/shop/" in node["parameters"]["url"]
+
+
+def test_magaza_cekilisi_kataloqdan_AYRI_vaxtdadir():
+    """
+    ÖLÇÜLMÜŞ SƏBƏB: mağaza çəkilişi ~30 dəqiqədir və Selenium (Chrome)
+    işlədir; kataloq qolu yeni kataloq günlərində OCR + LLM ilə 15-30 dəqiqə
+    tutur. Bu maşında boş yaddaş 0.5-2 GB-dir və 2026-09-10-da iki dəfə
+    proses məhz yaddaşa görə öldürülüb.
+
+    İki ağır zənciri eyni saata qoymaq həmin riski qəsdən yaratmaq olardı.
+    """
+    wf = _workflow()
+    saatlar = {
+        n["name"]: n["parameters"]["rule"]["interval"][0]["triggerAtHour"]
+        for n in wf["nodes"]
+        if n["type"].endswith("scheduleTrigger")
+    }
+    assert len(saatlar) == 2, f"iki trigger gözlənilirdi: {saatlar}"
+    assert len(set(saatlar.values())) == 2, f"triggerlər eyni saatdadır: {saatlar}"
+
+
+def test_magaza_zencirinin_oz_konfiqurasiyasi_var():
+    """
+    n8n-də `$('Konfiqurasiya')` yalnız HƏMİN İCRADA işləmiş node-a müraciət
+    edə bilir. İki müstəqil trigger var, ona görə hər zəncirin öz
+    konfiqurasiyası olmalıdır - əks halda 05:30 icrasında boş qayıdardı.
+    """
+    wf = _workflow()
+    node = next(n for n in wf["nodes"] if n["name"] == "Magaza qiymetlerini cek")
+    url = node["parameters"]["url"]
+    assert "$('Konfiqurasiya')" not in url, (
+        "başqa zəncirin node-una müraciət - 05:30 icrasında boş qayıdacaq"
+    )
+    hədəflər = [
+        c["node"]
+        for grup in wf["connections"]["Her seher 05:30"]["main"]
+        for c in grup
+    ]
+    assert "Magaza konfiqurasiyasi" in hədəflər
+
+
+def test_magaza_cekilisinin_timeoutu_kifayetdir():
+    """Ölçüldü: 44 kateqoriya, 13 460 məhsul, 29.5 dəqiqə. 60 dəqiqə bol yerdir."""
+    wf = _workflow()
+    node = next(n for n in wf["nodes"] if n["name"] == "Magaza qiymetlerini cek")
+    assert node["parameters"]["options"]["timeout"] >= 1_800_000
