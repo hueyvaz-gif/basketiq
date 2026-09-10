@@ -51,7 +51,6 @@ from __future__ import annotations
 import re
 import time
 from collections.abc import Callable
-from contextlib import contextmanager
 from dataclasses import dataclass, field
 
 from app.config import settings
@@ -162,8 +161,57 @@ class ShopReport:
 # ---------------------------------------------------------------- brauzer
 
 
-@contextmanager
-def _browser():
+class _BrowserSession:
+    """
+    Brauzeri saxlayır və ÖLƏNDƏ yenidən qaldırır.
+
+    NİYƏ LAZIM OLDU (ölçüldü 2026-09-10, real çəkilişdə): bütün 44
+    kateqoriya üçün TƏK brauzer işlədilirdi. 13-cü kateqoriyada Chrome
+    öldü (`InvalidSessionIdException: session deleted as the browser has
+    closed the connection`) və QALAN 29 KATEQORİYA ardıcıl düşdü - nəticə
+    13 460 əvəzinə 3 017 məhsul oldu.
+
+    Səhv «bir kateqoriya düşsə qalanı davam edir» qaydası ilə maskalanmışdı:
+    dövr həqiqətən davam edirdi, amma ölü brauzerlə - yəni hər addım eyni
+    xətanı təkrarlayırdı.
+
+    Brauzer NİYƏ ÖLÜR? İki səbəb ölçüldü: şəbəkənin anlıq düşməsi
+    (`ERR_NAME_NOT_RESOLVED`, 2 dəfə) və yaddaş təzyiqi - bu maşında boş
+    yaddaş 0.5-2 GB-dir və Chrome ilk qurbandır.
+    """
+
+    def __init__(self) -> None:
+        self.driver = _new_driver()
+        self.restarts = 0
+
+    def restart(self) -> None:
+        try:
+            self.driver.quit()
+        except Exception:  # noqa: BLE001 - ölü brauzeri bağlamaq da xəta verə bilər
+            pass
+        self.driver = _new_driver()
+        self.restarts += 1
+
+    def close(self) -> None:
+        try:
+            self.driver.quit()
+        except Exception:  # noqa: BLE001
+            pass
+
+
+def _is_dead_browser(exc: Exception) -> bool:
+    """
+    Xəta brauzerin ölməsindənmi qaynaqlanır?
+
+    Ad üzrə yoxlanılır, sinif üzrə yox: selenium sinifləri lazy import
+    olunur və modul səviyyəsində idxal etmək Chrome quraşdırılmayan
+    maşında bütün layihəni qırardı.
+    """
+    ad = type(exc).__name__
+    return ad in ("InvalidSessionIdException", "WebDriverException", "MaxRetryError")
+
+
+def _new_driver():
     """
     Headless Chrome — bir dəfə qaldırılır, bütün kateqoriyalar üçün işlədilir.
 
@@ -186,11 +234,8 @@ def _browser():
     opts.add_argument(f"--user-agent={settings.user_agent}")
 
     driver = webdriver.Chrome(options=opts)
-    try:
-        driver.set_page_load_timeout(settings.request_timeout_seconds)
-        yield driver
-    finally:
-        driver.quit()
+    driver.set_page_load_timeout(settings.request_timeout_seconds)
+    return driver
 
 
 def _open(driver, url: str, settle: float = 8.0) -> None:
@@ -422,9 +467,10 @@ def scrape_shop(
         shop_url=profile.shop_url,
     )
 
-    with _browser() as driver:
+    session = _BrowserSession()
+    try:
         try:
-            cats = discover_categories(driver, profile.shop_url)
+            cats = discover_categories(session.driver, profile.shop_url)
         except Exception as e:  # noqa: BLE001 - səbəb hesabata yazılır
             raise ShopError(f"Kateqoriyalar oxunmadı: {type(e).__name__}: {e}") from e
 
@@ -439,14 +485,29 @@ def scrape_shop(
         for name, url in cats:
             report.categories.append(name)
             başlanğıc = time.monotonic()
-            try:
-                rows = harvest_category(driver, url)
-            except Exception as e:  # noqa: BLE001
-                # BİR KATEQORİYA DÜŞSƏ, QALANI DAVAM EDİR: 40 kateqoriyanın
-                # birində şəbəkə qırılması bütün çəkilişi ləğv etməməlidir.
-                report.errors.append(f"{name}: {type(e).__name__}: {e}")
-                report.category_stats.append({"category": name, "found": 0, "saved": 0,
-                                              "error": f"{type(e).__name__}"})
+            rows = None
+            # İKİ CƏHD: birincisi düşsə və səbəb BRAUZERİN ÖLMƏSİdirsə,
+            # brauzer yenidən qaldırılır və kateqoriya təkrar sınanır.
+            #
+            # Onsuz bir ölüm bütün qalan kateqoriyaları aparırdı (ölçüldü:
+            # 13-cü kateqoriyada Chrome öldü, qalan 29-u ardıcıl düşdü,
+            # nəticə 13 460 əvəzinə 3 017 məhsul).
+            for cəhd in (1, 2):
+                try:
+                    rows = harvest_category(session.driver, url)
+                    break
+                except Exception as e:  # noqa: BLE001
+                    if cəhd == 1 and _is_dead_browser(e):
+                        session.restart()
+                        continue
+                    # BİR KATEQORİYA DÜŞSƏ, QALANI DAVAM EDİR: 44
+                    # kateqoriyanın birində qırılma bütün çəkilişi ləğv
+                    # etməməlidir.
+                    report.errors.append(f"{name}: {type(e).__name__}: {e}")
+                    report.category_stats.append({"category": name, "found": 0, "saved": 0,
+                                                  "error": f"{type(e).__name__}"})
+                    break
+            if rows is None:
                 continue
 
             bölmə: list[ExtractedProduct] = []
@@ -487,6 +548,13 @@ def scrape_shop(
 
             if max_products and report.found >= max_products:
                 break
+    finally:
+        session.close()
 
+    if session.restarts:
+        report.errors.append(
+            f"Brauzer {session.restarts} dəfə yenidən qaldırıldı "
+            f"(şəbəkə və ya yaddaş) - kateqoriyalar təkrar sınandı"
+        )
     report.elapsed_seconds = time.monotonic() - started
     return report

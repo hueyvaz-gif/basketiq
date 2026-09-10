@@ -63,6 +63,31 @@ docker exec <konteyner> n8n import:workflow --input=/tmp/wf.json
 
 ### Konsoldan işə salmaq
 
+**TƏLƏ: `execute` YALNIZ BİRİNCİ TRIGGER-İ İŞLƏDİR.** Axında iki cədvəl
+trigger-i var (07:00 kataloq, 05:30 mağaza). Ölçüldü (2026-09-10):
+
+```
+docker exec ... n8n execute --id basketiqGunluk01
+  -> trigger: «Her seher 07:00»
+  -> işləyən node-lar: Konfiqurasiya, Kataloqu cek, Yeni kataloq varmi,
+     Deyisiklik yoxdur, Bagli menbeni yoxla, Menbe hesabati
+  -> «Magaza qiymetlerini cek» İŞƏ DÜŞMÜR
+```
+
+Yəni CLI ilə mağaza zəncirini yoxlamaq mümkün deyil. İki yol var:
+
+- **İnterfeysdən:** workflow-u aç, `Her seher 05:30` node-unu seç və
+  «Execute workflow» de - yalnız həmin qol işləyir.
+- **Endpoint-i birbaşa çağır** (node onsuz da bunu edir):
+
+  ```bash
+  curl -X POST "http://127.0.0.1:8000/api/shop/bravo"        -H "X-API-Key: dev-secret-change-me" --max-time 5400
+  ```
+
+  Bu, n8n bağlantısını YOXLAMIR - yalnız işin özünü.
+
+
+
 ```bash
 docker exec -e N8N_RUNNERS_BROKER_PORT=5690 -e N8N_PORT=5691 <konteyner> n8n execute --id basketiqGunluk01
 ```

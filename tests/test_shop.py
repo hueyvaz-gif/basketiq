@@ -405,3 +405,66 @@ def test_kateqoriya_statistikası_hesabatda_görünür():
     d = r.as_dict()
     assert d["category_stats"][1]["found"] == 0
     assert d["found_count"] == 93
+
+
+# ---------------------------------------------------------------- brauzer bərpası
+
+
+def test_olu_brauzer_xetasi_taninir():
+    """
+    ÖLÇÜLDÜ (real çəkiliş, 2026-09-10): 13-cü kateqoriyada Chrome öldü
+    (`InvalidSessionIdException: session deleted as the browser has closed
+    the connection`) və QALAN 29 KATEQORİYA ardıcıl düşdü - nəticə 13 460
+    əvəzinə 3 017 məhsul oldu.
+
+    Səhv «bir kateqoriya düşsə qalanı davam edir» qaydası ilə MASKALANMIŞDI:
+    dövr həqiqətən davam edirdi, amma ölü brauzerlə - hər addım eyni xətanı
+    təkrarlayırdı.
+    """
+    from ingestion.shop import _is_dead_browser
+
+    class InvalidSessionIdException(Exception):
+        pass
+
+    class WebDriverException(Exception):
+        pass
+
+    assert _is_dead_browser(InvalidSessionIdException("session deleted"))
+    assert _is_dead_browser(WebDriverException("ERR_NAME_NOT_RESOLVED"))
+
+
+def test_adi_xeta_brauzer_olumu_sayilmir():
+    """
+    Hər xətada brauzeri yenidən qaldırmaq bahalıdır (~4 saniyə) və səbəbi
+    gizlədir. Yalnız SESSİYA xətaları bərpa tələb edir.
+    """
+    from ingestion.shop import _is_dead_browser
+
+    assert not _is_dead_browser(TimeoutError("gecikdi"))
+    assert not _is_dead_browser(ValueError("səhv dəyər"))
+
+
+def test_sinif_adina_gore_yoxlanilir_idxala_gore_yox():
+    """
+    Selenium sinifləri LAZY idxal olunur: modul səviyyəsində idxal etmək
+    Chrome quraşdırılmayan maşında bütün layihəni qırardı. Ona görə yoxlama
+    sinif ADI üzrədir.
+    """
+    from pathlib import Path
+
+    src = Path("ingestion/shop.py").read_text(encoding="utf-8")
+    gövdə = src.split("def _is_dead_browser")[1].split("\ndef ")[0]
+    assert "type(exc).__name__" in gövdə
+    assert "from selenium" not in gövdə
+
+
+def test_brauzer_berpasi_hesabata_dusur():
+    """
+    Bərpa SƏSSİZ olmamalıdır: nəticə əskik gəlirsə, səbəbin hesabatda
+    görünməsi lazımdır.
+    """
+    from pathlib import Path
+
+    src = Path("ingestion/shop.py").read_text(encoding="utf-8")
+    assert "session.restarts" in src
+    assert "yenidən qaldırıldı" in src
