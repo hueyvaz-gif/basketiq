@@ -257,7 +257,7 @@
           hoverBackgroundColor: hover,
           borderRadius: 6,
           borderSkipped: false,
-          maxBarThickness: 84,
+          maxBarThickness: 44,
         }],
       },
       options,

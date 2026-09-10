@@ -4,6 +4,16 @@
        stroke-linecap="round" stroke-linejoin="round"></g>
   </defs>
 
+  <!-- Brend nişanı: market arabası. `icon-basket` (səbət) səbət düyməsində
+       və boş-səbət ekranında qalır - loqo ilə eyni ikon olsa, üst paneldə
+       iki eyni forma yan-yana düşürdü. -->
+  <symbol id="icon-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="9.5" cy="20" r="1.35"/>
+    <circle cx="17.8" cy="20" r="1.35"/>
+    <path d="M2.5 3.6h2.3l2.15 10.9a1.6 1.6 0 0 0 1.57 1.3h8.3a1.6 1.6 0 0 0 1.57-1.28L21.4 7H6.1"/>
+  </symbol>
+
   <symbol id="icon-basket" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
     <path d="M3 8h18l-1.6 10.2a2 2 0 0 1-2 1.8H6.6a2 2 0 0 1-2-1.8L3 8Z"/>

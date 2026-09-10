@@ -288,8 +288,7 @@ table.lines .num, .row-value {
   padding: var(--s3) var(--s4);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--s3);
+  gap: 12px;
 }
 
 /* Loqo həm `<div>`, həm `<a>` ola bilir (məhsul/axtarış səhifələrində keçiddir).
@@ -304,17 +303,21 @@ table.lines .num, .row-value {
 
 a.brand:hover .brand-name { color: var(--text-secondary); }
 
-/* Loqo nişanı: rəngli fon YOXDUR.
-   Əvvəl 36px yaşıl kvadrat idi. Apple dilində brend nişanı səhifədə rəng
-   ləkəsi yaratmır - o, mətnlə eyni tonda, sadəcə formadır. */
+/* Loqo nişanı: yumşaq aksent lövhəciyi.
+   Fon TAM aksent deyil - `color-mix` ilə 12% aksent götürülür, yəni nişan
+   səhifədə rəng ləkəsi yaratmır, sadəcə brendin yerini bildirir. Arxa fonu
+   dəstəkləməyən brauzerdə `color-mix` düşür və nişan şəffaf qalır: forma və
+   ölçü yerində olduğu üçün başlıq yenə düzgün oxunur. */
 .brand-mark {
-  width: 28px; height: 28px;
+  width: 34px; height: 34px;
   display: grid; place-items: center;
-  color: var(--text);
+  border-radius: 10px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
   flex: none;
 }
 
-.brand-mark svg { width: 22px; height: 22px; }
+.brand-mark svg { width: 20px; height: 20px; }
 
 .brand-name {
   font-size: 19px;
@@ -326,7 +329,12 @@ a.brand:hover .brand-name { color: var(--text-secondary); }
 /* --- Dil keçidi (AZ / EN / RU) ---
    Segmented control-un kiçik qardaşıdır: eyni məntiq, yalnız üç hərf.
    Yol 44px hündürlüyündədir - toxunma hədəfi qaydası buraya da şamildir. */
+/* BRAUZERDƏ GÖRÜLDÜ: `justify-content: space-between` dörd elementi (brend ·
+   dil · səbət · profil) bərabər payladığı üçün dil keçidi və səbət düyməsi
+   panelin ortasında «üzürdü». `margin-left: auto` dil keçidindən ƏVVƏL bütün
+   boşluğu yığır: brend solda, üç idarəetmə isə sağda bir qrup kimi durur. */
 .lang-switch {
+  margin-left: auto;
   display: flex;
   gap: 2px;
   padding: 2px;
@@ -943,8 +951,52 @@ table.lines td {
    YALNIZ BU CƏDVƏLDƏ: `is-dense` sinfi tələb olunur. Admin cədvəlləri
    (OCR sətirləri, kataloq siyahısı) uzun mətn daşıyır və orada sıxlıq
    oxunaqlığı əskildərdi. */
-table.lines.is-dense th { padding: 10px var(--s2); }
-table.lines.is-dense td { padding: 9px var(--s2); }
+table.lines.is-dense th,
+table.lines.is-dense td { padding: 10px 12px; }
+
+/* «Tezliklə» sütunu cədvəldə YER TUTMASIN: eni 56px-ə yığılır və bir ton da
+   sönür ki, göz ən ucuz qiymətə birbaşa düşsün. Sütun yenə silinmir (D17).
+   Başlıqda yalnız marketin nişanı qalır (bax `app.js`) - tam ad `title`-dədir. */
+table.lines.is-dense .is-soon-col {
+  /* 68px = «tezliklə» sözünün 12px-də ölçülmüş eni (52px) + 2x6px içəri
+     boşluq + 4px ehtiyat. 56px-də söz «tez...» kimi kəsilirdi və D16 pozulurdu:
+     «datası yoxdur» ilə «bu marketdə satılmır» (—) yenidən eyni görünərdi. */
+  width: 68px;
+  padding-inline: 6px;
+  opacity: .45;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dar sütunlar sıxılanda cədvəl kartın enindən çıxır - sətirlər qırılmaqdansa
+   sürüşsün. */
+#compareTableWrap { overflow-x: auto; }
+
+/* BRAUZERDƏ GÖRÜLDÜ: `table-layout: fixed` OLMADAN yuxarıdakı `width: 56px`
+   sadəcə TÖVSİYƏDİR - avtomatik yerləşdirmə artıq eni bütün sütunlara
+   payladığı üçün «tezliklə» sütunu 188px qalırdı. Fixed rejimdə enlər BAŞLIQ
+   SƏTRİNDƏN götürülür və hərfi mənada tətbiq olunur.
+
+   YALNIZ MÜQAYİSƏ CƏDVƏLİNDƏ (`#compareTableWrap`): `lines is-dense` admin
+   reklam siyahısında və əhatə cədvəlində də işlənir; orada sütunlar uzun mətn
+   daşıyır və fixed rejim onları kəsərdi. */
+#compareTableWrap table.lines { table-layout: fixed; }
+
+/* BRAUZERDƏ GÖRÜLDÜ (420px): fixed rejim sütunları cədvələ SIĞDIRIR - telefon
+   enində qiymət sütunları 13px-ə əzilib rəqəmi kəsirdi. `min-width` sıxılmanın
+   qarşısını alır: cədvəl daralmaq əvəzinə `.table-scroll` içində sürüşür.
+   900px = ad sütunu 396 + iki qiymət sütunu 2x152 + iki «tezliklə» 2x68 + 64:
+   bu həddən aşağıda market adı başlıqda kəsilir (420px-də ölçüldü). */
+#compareTableWrap table.lines { min-width: 900px; }
+
+/* Fixed rejimdə eni verilməyən sütunlar qalıq eni BƏRABƏR bölür - məhsul adı
+   qiymət sütunu qədər dar qalardı. Ona görə cədvəlin iki ucunu özümüz təyin
+   edirik: ad sütunu (çoxsətirli məzmun) və silmə düyməsi. Ortadakı qiymət
+   sütunları qalanı öz aralarında bölüşür, sayı neçə olursa olsun. */
+#compareTableWrap table.lines th:first-child { width: 44%; }
+#compareTableWrap table.lines th:last-child { width: 64px; }
 
 /* --- B8: GENİŞ KART ---
    `--content` 1024px-dir və mətn üçün doğru endir. Cədvəl isə fərqli
@@ -1646,7 +1698,16 @@ td .row-note { display: block; margin-top: 2px; }
 
 /* Hündürlük CSS-dədir, HTML-də inline deyil - əks halda media query onu
    dəyişə bilmir (inline stil həmişə üstün gəlir). */
-.chart-box { position: relative; height: 240px; margin-top: var(--s2); }
+/* BRAUZERDƏ GÖRÜLDÜ: 240px hündürlük + kartın tam eni qiymət tarixçəsini
+   səhifənin ƏSAS elementi kimi göstərirdi, halbuki o köməkçi rəqəmdir.
+   200px və 640px limit qrafiki müqayisə cədvəlinin altında saxlayır. */
+.chart-box {
+  position: relative;
+  height: 200px;
+  max-width: 640px;
+  margin-top: var(--s2);
+  margin-inline: auto;
+}
 
 
 /* ============================================================================

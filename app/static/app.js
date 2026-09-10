@@ -348,19 +348,25 @@ function renderCompareTable(data) {
                 // D17: datası olmayan market SÜTUNU QALIR, üstünə «Tezliklə»
                 // yazılır. Sütunu silsək, istifadəçi dörd market vədinin
                 // əvəzinə iki sütun görər və səbəbini bilməzdi.
-                // Datasız sütun BİR QRUP kimi geri çəkilir (`is-soon`).
-                // Əvvəl başlıqda tam çəkili «Tezliklə» nişanı, altındakı hər
-                // xanada isə eyni söz təkrarlanırdı - altı sətirdə altı dəfə.
-                // İndi başlıq etiketi sakit qalır və bütün sütun bir ton
-                // aşağı düşür: göz onu «bir bölmə, sonra gələcək» kimi
-                // oxuyur, altı ayrı bildiriş kimi yox.
-                // Söz XANALARDAN SİLİNMİR (D16): «datası yoxdur» ilə «bu
-                // marketdə satılmır» eyni görünməməlidir.
-                const soon = s.available === false
-                  ? `<span class="pill is-soon">${t("common.soon")}</span>`
-                  : "";
-                const sütunSinfi = s.available === false ? "num is-soon-col" : "num";
-                return `<th scope="col" class="${sütunSinfi}">${storeChip(s.store, best)}${soon}</th>`;
+                // Datasız sütun BİR QRUP kimi geri çəkilir (`is-soon-col`)
+                // və 56px-ə daralır (`table-layout: fixed`, bax `style.css`).
+                // Əvvəl başlıqda tam ad + çəkili «Tezliklə» nişanı vardı,
+                // altındakı hər xanada isə eyni söz təkrarlanırdı - altı
+                // sətirdə altı dəfə. Daralmış sütuna onsuz da sığmır, ona
+                // görə BAŞLIQ yalnız marketin rəngli nişanına yığılır.
+                //
+                // MƏLUMAT İTMİR: tam ad `title` ilə üzərinə gələndə, ekran
+                // oxuyucusuna isə gizli mətnlə çatır. Söz XANALARDAN
+                // SİLİNMİR (D16): «datası yoxdur» ilə «bu marketdə satılmır»
+                // eyni görünməməlidir - sütunun nə demək olduğunu hər sətir
+                // özü deyir.
+                if (s.available === false) {
+                  const etiket = `${esc(s.store)} — ${esc(t("common.soon"))}`;
+                  return `<th scope="col" class="num is-soon-col" title="${etiket}">` +
+                    storeAvatar(s.store, "is-xs") +
+                    `<span class="sr-only">${etiket}</span></th>`;
+                }
+                return `<th scope="col" class="num">${storeChip(s.store, best)}</th>`;
               })
               .join("")}
             <th scope="col"><span class="sr-only">${t("col.action")}</span></th>
