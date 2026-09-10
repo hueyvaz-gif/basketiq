@@ -157,13 +157,21 @@
         </p>
       </div>
 
-      <div id="dealsGrid" class="deal-list">
+      <div id="dealsGrid" class="deal-list is-continued">
         <div class="skeleton-row" style="height:56px"></div>
       </div>
 
-      <div class="actions">
-        <button class="btn btn-secondary" id="dealsMore" type="button" data-i18n="deals.more">Daha çox göstər</button>
-      </div>
+      <!-- SİYAHININ DAVAMI DÜYMƏSİ, ADİ DÜYMƏ DEYİL.
+           Əvvəl bu, siyahının altında tək-tənha duran kiçik `btn-secondary`
+           idi - səhifənin sol kənarına yapışırdı və hansı siyahıya aid
+           olduğu görünmürdü. İndi siyahının eni qədərdir və üstündən nazik
+           xətlə ona bağlanır: forma özü «bu, siyahının davamıdır» deyir.
+           Etiketi `deals.js` doldurur (sayı daşıyır), ona görə burada
+           `data-i18n` YOXDUR - dil dəyişəndə modul onu özü yenidən yazır. -->
+      <button class="list-more" id="dealsMore" type="button">
+        <span class="list-more-text">Daha çox göstər</span>
+        <span class="list-more-chevron" aria-hidden="true"></span>
+      </button>
     </section>
 
         <!-- --- SƏBƏTİM ---

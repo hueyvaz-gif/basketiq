@@ -186,6 +186,18 @@
       ru: "Максимальная процентная скидка по каждому товару. Колонки справа — цена того же товара в других магазинах: даже настоящая скидка может оказаться дороже, чем у соседа.",
     },
     "deals.more": { az: "Daha çox göstər", en: "Show more", ru: "Показать ещё" },
+    // SAYLA BİRLİKDƏ: «daha çox» nə qədərdir? Rəqəm olmadan düymə istifadəçidən
+    // kor-koranə klik istəyir - siyahının 6, yoxsa 60 sətir uzanacağını bilmir.
+    "deals.moreN": {
+      az: "Daha {n} endirim göstər",
+      en: "Show {n} more deals",
+      ru: "Показать ещё {n}",
+    },
+    "deals.lessN": {
+      az: "Yalnız ilk {n}-nı göstər",
+      en: "Show only the first {n}",
+      ru: "Показать только первые {n}",
+    },
     "deals.available": { az: "Mövcuddur", en: "Available at", ru: "В наличии" },
     "deals.saving": { az: "qənaət", en: "saved", ru: "экономия" },
     "deals.onlyAt": { az: "Yalnız {store}-də tapılıb", en: "Found only at {store}", ru: "Найдено только в {store}" },
@@ -250,10 +262,13 @@
 
     // ================================================================ MÜQAYİSƏ
     "compare.title": { az: "Məhsul üzrə müqayisə", en: "Comparison by product", ru: "Сравнение по товарам" },
+    // MƏTN QAYDANI DÜZGÜN DEYİR: nişan «hər sətirdə» deyil, yalnız MÜQAYİSƏ
+    // olan sətirdə görünür. Bir market satırsa, «ən ucuz» heç nə demir -
+    // əvvəlki mətn istifadəçiyə tapmayacağı nişanı vəd edirdi.
     "compare.sub": {
-      az: "Hər sətirdə ən ucuz qiymət ✓ nişanı və çərçivə ilə işarələnib.",
-      en: "In each row the lowest price is marked with a ✓ and a border.",
-      ru: "В каждой строке самая низкая цена отмечена значком ✓ и рамкой.",
+      az: "İki və daha çox marketdə satılan məhsulda ən ucuz qiymət ✓ nişanı ilə işarələnir.",
+      en: "When two or more stores sell an item, its lowest price is marked with a ✓.",
+      ru: "Если товар продают два и более магазина, самая низкая цена отмечается значком ✓.",
     },
     "compare.addLabel": { az: "Məhsul axtar və səbətə əlavə et", en: "Search a product and add it to the basket", ru: "Найдите товар и добавьте в корзину" },
     "compare.addPlaceholder": { az: "süd, düyü, yağ…", en: "milk, rice, oil…", ru: "молоко, рис, масло…" },

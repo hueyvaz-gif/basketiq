@@ -21,6 +21,25 @@
   const FIRST = 6;
   const MORE = 24;
   let shown = FIRST;
+  let cəmi = 0;          // API-nin bildirdiyi ÜMUMİ endirim sayı
+
+  /**
+   * Düymənin etiketi: «daha çox» yox, «daha NEÇƏ».
+   *
+   * Rəqəmsiz etiket istifadəçidən kor-koranə klik istəyir - siyahının altı,
+   * yoxsa altmış sətir uzanacağını bilmir. Qalan sayı API-nin `total_found`
+   * dəyərindən çıxırıq; naməlum olsa (0 qayıtsa), köhnə mətnə düşürük.
+   */
+  function etiketiYenilə(yüklənir = false) {
+    const mətn = moreBtn.querySelector(".list-more-text");
+    if (yüklənir) { mətn.textContent = t("common.loading") + "…"; return; }
+    const qalan = Math.max(0, cəmi - FIRST);
+    if (shown === FIRST) {
+      mətn.textContent = qalan ? t("deals.moreN", { n: qalan }) : t("deals.more");
+    } else {
+      mətn.textContent = t("deals.lessN", { n: FIRST });
+    }
+  }
 
   // slug -> loqo ünvanı. Market qiymət sütunlarında marketin ADI yox,
   // LOQOSU görünür (trolley də belədir) - loqo daha tez tanınır.
@@ -154,9 +173,10 @@
       );
       render(deals.items || []);
 
-      const total = deals.total_found || 0;
-      const fitsAtOnce = shown === FIRST && (deals.items || []).length >= total;
+      cəmi = deals.total_found || 0;
+      const fitsAtOnce = shown === FIRST && (deals.items || []).length >= cəmi;
       moreBtn.classList.toggle("hidden", fitsAtOnce);
+      etiketiYenilə();
     } catch (e) {
       console.error("[deals]", e);
       grid.innerHTML =
@@ -166,10 +186,25 @@
     }
   }
 
-  moreBtn.addEventListener("click", () => {
+  moreBtn.addEventListener("click", async () => {
     shown = shown === FIRST ? MORE : FIRST;
-    moreBtn.textContent = shown === FIRST ? t("deals.more") : t("deals.less");
-    load(shown);
+    moreBtn.classList.toggle("is-open", shown !== FIRST);
+    // DÜYMƏ SORĞU BİTƏNƏ QƏDƏR BAĞLIDIR: siyahı skeletlə əvəzlənir, düymə isə
+    // yerində qalır - bağlanmasaydı, ard-arda iki klik iki sorğu göndərərdi
+    // və cavablar tərs sıra ilə gəlsəydi siyahı səhv uzunluqda qalardı.
+    moreBtn.disabled = true;
+    etiketiYenilə(true);
+    try {
+      await load(shown);
+    } finally {
+      moreBtn.disabled = false;
+      etiketiYenilə();
+    }
+    // Yığılanda siyahının başına qayıdırıq: əks halda istifadəçi qısalmış
+    // siyahının ALTINDA, boş sahədə qalır.
+    if (shown === FIRST) {
+      moreBtn.scrollIntoView({ block: "nearest" });
+    }
   });
 
   load(shown);

@@ -348,10 +348,19 @@ function renderCompareTable(data) {
                 // D17: datası olmayan market SÜTUNU QALIR, üstünə «Tezliklə»
                 // yazılır. Sütunu silsək, istifadəçi dörd market vədinin
                 // əvəzinə iki sütun görər və səbəbini bilməzdi.
+                // Datasız sütun BİR QRUP kimi geri çəkilir (`is-soon`).
+                // Əvvəl başlıqda tam çəkili «Tezliklə» nişanı, altındakı hər
+                // xanada isə eyni söz təkrarlanırdı - altı sətirdə altı dəfə.
+                // İndi başlıq etiketi sakit qalır və bütün sütun bir ton
+                // aşağı düşür: göz onu «bir bölmə, sonra gələcək» kimi
+                // oxuyur, altı ayrı bildiriş kimi yox.
+                // Söz XANALARDAN SİLİNMİR (D16): «datası yoxdur» ilə «bu
+                // marketdə satılmır» eyni görünməməlidir.
                 const soon = s.available === false
-                  ? `<span class="pill is-amber">${t("common.soon")}</span>`
+                  ? `<span class="pill is-soon">${t("common.soon")}</span>`
                   : "";
-                return `<th scope="col" class="num">${storeChip(s.store, best)}${soon}</th>`;
+                const sütunSinfi = s.available === false ? "num is-soon-col" : "num";
+                return `<th scope="col" class="${sütunSinfi}">${storeChip(s.store, best)}${soon}</th>`;
               })
               .join("")}
             <th scope="col"><span class="sr-only">${t("col.action")}</span></th>
@@ -368,12 +377,23 @@ function renderCompareTable(data) {
                   //   market datasızdır      -> «tezliklə»
                   //   market bu məhsulu satmır -> «—»
                   if (s.available === false) {
-                    return `<td class="num na">${t("compare.noData")}</td>`;
+                    return `<td class="num na is-soon-col">${t("compare.noData")}</td>`;
                   }
                   const p = item.prices[String(s.store_id)];
                   if (!p) return `<td class="num na">—</td>`;
-                  const cheap = item.cheapest_store_id === s.store_id;
-                  // Ən ucuz qiymət YAŞIL PILL içindədir.
+                  // «ƏN UCUZ» NİŞANI TƏK TƏKLİF OLANDA VERİLMİR.
+                  //
+                  // Qayda layihədə artıq var (`catalog.py`, `_rank_offers`):
+                  // «bir market varsa, ən ucuz heç nə demir - müqayisə
+                  // yoxdur». Cədvəl həmin qaydanı tətbiq etmirdi və nəticə
+                  // BRAUZERDƏ görüldü: altı sətrin beşi «1/4 marketdə» idi,
+                  // amma hamısında ✓ nişanı vardı - ekran isti aksentli
+                  // pillərlə dolurdu və nişan mənasını itirirdi.
+                  // M2.3-ün həddi də pozulurdu: bir ekranda ən çox iki isti
+                  // aksent.
+                  const cheap =
+                    item.cheapest_store_id === s.store_id && item.available_in > 1;
+                  // Ən ucuz qiymət PILL içindədir.
                   // Rəng TƏK siqnal deyil: pillin içində ikon və ekran
                   // oxuyucusu üçün gizli mətn də var, yəni rəngi ayırd edə
                   // bilməyən istifadəçi məlumatı itirmir.

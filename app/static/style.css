@@ -778,6 +778,11 @@ a.brand:hover .brand-name { color: var(--text-secondary); }
 
 .pill.is-green { background: var(--ok-soft); color: var(--ok-ink); }
 .pill.is-amber { background: var(--info-soft); color: var(--info-ink); }  /* sərhəd qalır: fon səthlə eynidir */
+
+/* «Tezliklə» nişanı: BİLDİRİŞ DEYİL, HAL. Market datası hazır olmayanda
+   sütun başlığında bir dəfə görünür və diqqət tələb etmir - `is-amber`
+   çəkisi onu qonşu market adları ilə yarışdırırdı. */
+.pill.is-soon { background: var(--bg-subtle); color: var(--text-tertiary); }
 .pill.is-red   { background: var(--danger-soft);   color: var(--danger-ink); }
 .pill.is-accent{ background: var(--accent-soft); color: var(--accent-ink); }
 .pill.is-ai    { background: var(--ai-soft); color: var(--ai); }
@@ -1039,8 +1044,22 @@ table.lines td.na { color: var(--text-3); }
 table.lines tbody tr:hover .avatar { background: color-mix(in srgb, currentColor 20%, var(--surface)); }
 
 .entity-text { min-width: 0; }
-.entity-name { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.entity-meta { font-size: 12px; color: var(--text-2); }
+
+/* AD VƏ META AYRI SƏTİRDƏDİR — `display: block` ŞƏRTDİR.
+   BRAUZERDƏ TAPILDI: hər ikisi `<span>` idi və blok səviyyəsinə salınmamışdı,
+   yəni bir abzas kimi axırdılar. Nəticə müqayisə cədvəlində göründü:
+   «Tek Süd pendir süd | məhsulları» - kateqoriya adın ardınca yapışıb ikinci
+   sətrə keçirdi. Sətir hündürlükləri məhsul adının uzunluğundan asılı olurdu
+   və cədvəlin sətirləri bir-birindən 20-30px fərqlənirdi.
+
+   `white-space: nowrap` + ellipsis da yalnız blokda işləyir: inline span-da
+   `overflow` təsir etmir, ona görə uzun ad kəsilmirdi, sadəcə sarınırdı. */
+.entity-name {
+  display: block;
+  font-size: 15px; font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.entity-meta { display: block; font-size: 12px; color: var(--text-2); }
 
 
 /* ============================================================================
@@ -1165,6 +1184,72 @@ a.btn { text-decoration: none; }
    `is-quiet` = qırmızı hover YOXDUR - bu, silmə düyməsi deyil, keçiddir. */
 .icon-btn.is-quiet { text-decoration: none; background: var(--surface); box-shadow: var(--shadow); }
 .icon-btn.is-quiet:hover { background: var(--accent-soft); color: var(--accent); }
+
+/* DATASIZ MARKET SÜTUNU (`is-soon-col`)
+   ------------------------------------
+   Sütunun BÜTÜN xanaları bir ton aşağı düşür ki, göz onu «bir bölmə, sonra
+   gələcək» kimi oxusun - altı ayrı bildiriş kimi yox. Sütun SİLİNMİR (D17):
+   dörd market vəd edilib, ikisini gizlətsək istifadəçi səbəbini bilməzdi. */
+.lines td.is-soon-col,
+.lines th.is-soon-col { color: var(--text-tertiary); }
+.lines td.is-soon-col { font-size: 13px; }
+
+/* SİYAHININ DAVAMI DÜYMƏSİ (`.list-more`)
+   ----------------------------------------
+   BRAUZERDƏ GÖRÜLDÜ: «Daha çox göstər» siyahının altında tək-tənha, sol
+   kənara yapışmış kiçik düymə idi. Nə hansı siyahıya aid olduğu görünürdü,
+   nə də neçə sətir əlavə olunacağı - istifadəçi kor-koranə klikləyirdi.
+
+   İndi düymə siyahının ENİ qədərdir və üstündən nazik xətlə ona bağlanır:
+   forma özü «bu, siyahının davamıdır» deyir. Etiket sayı daşıyır
+   («Daha 6 endirim göstər»), oxu isə istiqaməti - açılanda 180° dönür.
+
+   RƏNG YOXDUR: bu, ikinci dərəcəli hərəkətdir. Səhifədə yeganə isti aksent
+   endirim nişanıdır (M2.3) - siyahını uzatmaq onunla yarışmamalıdır. */
+/* Siyahı ilə düymə TƏK qutudur: siyahının alt küncləri düzəlir, düymə isə
+   onun davamı kimi altına yapışır. Ayrı dursaydılar, aralarında iki üfüqi
+   xətt görünərdi - siyahının alt kənarı və düymənin üst kənarı. */
+.deal-list.is-continued { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+
+.list-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  width: 100%;
+  margin-top: 0;
+  padding: 13px var(--s3);
+  background: transparent;
+  /* Üst kənar YOXDUR: onu siyahının öz alt xətti verir. */
+  border: 1px solid var(--hairline);
+  border-top: 0;
+  border-radius: 0 0 var(--r-card) var(--r-card);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--ease), color var(--ease);
+}
+
+.list-more:hover { background: var(--bg-subtle); color: var(--text); }
+.list-more:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* Bağlı düymə sorğu gedən müddətdədir - kursor da bunu deməlidir. */
+.list-more[disabled] { cursor: progress; opacity: 1; color: var(--text-tertiary); }
+
+/* Ox `.fold-head`-dəki eyni üsulla çəkilir - layihədə ikinci ox dili
+   yaranmasın deyə. Aşağı baxır; açılanda yuxarı dönür. */
+.list-more-chevron {
+  width: 8px; height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform var(--ease);
+  flex: none;
+}
+
+.list-more.is-open .list-more-chevron { transform: translateY(1px) rotate(-135deg); }
 
 .actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
 .actions.flush { margin-top: 0 !important; }
@@ -1787,7 +1872,7 @@ code {
    istifadəçi hansının vacib olduğunu bilmirdi. İndi başlıq ölçüsü qərarı
    özü verir:
 
-     is-primary    24px - qiymət tarixçəsi (səhifənin əsas vədi)
+     is-primary    20px - qiymət tarixçəsi (səhifənin əsas vədi)
      is-secondary  17px - AI qeydi, endirim yoxlaması, profil (köməkçi alətlər)
 
    İKİNCİ DƏRƏCƏLİ BÖLMƏ GİZLƏDİLMİR və mətni solğunlaşdırılmır - yalnız
@@ -1797,8 +1882,18 @@ code {
 .fold.is-secondary > .fold-head .section-heading { font-size: 17px; }
 .fold.is-secondary > .fold-head svg { width: 17px; height: 17px; }
 
+/* ADDIM 24 → 20 KİÇİLDİ. BRAUZERDƏ GÖRÜLDÜ: qiymət tarixçəsi ilə AI qeydi
+   `.duo` şəbəkəsində YAN-YANA durur, yəni iki başlıq bir sətirdə oxunur.
+   24px ilə 17px arasındakı fərq o məsafədə «vacib bölmə» yox, «bu qutu
+   səhvən böyük qalıb» kimi görünürdü - biri digərinin başlığından yarım
+   sətir hündür idi.
+
+   İYERARXİYA SİLİNMİR, YALNIZ ADDIM YIĞILIR: 20 > 17, yəni tarixçə hələ də
+   birinci oxunur; sadəcə qonşusunu əzmir. Ölçü `.subheading` (19px) ilə
+   `.section-heading` (24px) arasındadır - yeni miqyas addımı icad edilmir. */
 .fold.is-primary > .fold-head { padding: var(--s3) var(--s4); }
-.fold.is-primary > .fold-head .section-heading { font-size: 24px; }
+.fold.is-primary > .fold-head .section-heading { font-size: 20px; }
+.fold.is-primary > .fold-head svg { width: 18px; height: 18px; }
 
 /* Hero-nun içindəki «Market üzrə ətraflı» - kart deyil, sadə açılan sətir */
 .fold-inline {
