@@ -30,6 +30,7 @@ ADMIN_YOLLARI = [
     ("GET", "/api/review/flagged"),
     ("POST", "/api/review/flagged/1/approve"),
     ("GET", "/api/scrape/sources"),
+    ("GET", "/api/match/groups"),
 ]
 
 İSTİFADƏÇİ_YOLLARI = [
@@ -132,9 +133,14 @@ def test_hər_admin_router_i_qapının_arxasındadır():
     # `/api/scrape` ilə eyni səthdir: brauzer qaldırır, xarici sayta sorğu
     # göndərir, bazaya yazır. Açıq qalsa, kənar adam onu təkrar-təkrar
     # çağırıb həm bizi, həm Wolt-u yükləyə bilərdi.
+    # `/api/match` (2026-09-11): `/run` məhsul qruplarını DƏYİŞİR və pullu
+    # LLM-i çağırır; `/candidates` 13 min məhsul üzərində hesablama aparır.
+    # Açıq idi və onu çağıran yeganə səhifə `/admin`-dir - istifadəçi səthindən
+    # heç nə itmir. Oxu tərəfi (qruplaşmış qiymətlər) bu router-dən keçmir:
+    # o, `group_key` vasitəsilə kataloq və səbət cavablarının içindədir.
     ADMİN_PREFİKSLƏRİ = (
         "/api/catalogs", "/api/scrape", "/api/shop", "/api/review",
-        "/api/admin/ads", "/api/images",
+        "/api/admin/ads", "/api/images", "/api/match",
     )
 
     yoxlanan = 0
@@ -160,7 +166,7 @@ def test_istifadəçi_routerləri_qapının_arxasında_deyil():
     for prefiks, router in _routerlər():
         if prefiks.startswith(
             ("/api/catalogs", "/api/scrape", "/api/shop", "/api/review",
-             "/api/admin/ads", "/api/images")
+             "/api/admin/ads", "/api/images", "/api/match")
         ):
             continue
         asılılıqlar = [d.dependency for d in getattr(router, "dependencies", [])]

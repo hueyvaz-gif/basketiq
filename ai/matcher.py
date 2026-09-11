@@ -32,7 +32,7 @@ from langchain_core.runnables import RunnableLambda
 from pydantic import BaseModel, Field
 
 from ai import cache
-from ai.blocking import candidate_pairs
+from ai.blocking import candidate_pairs, known_brands, product_brand
 from ai.llm import active_model_name, get_llm, message_text
 from ai.prompts import MATCH_PROMPT, MATCH_PROMPT_VERSION
 from app.config import settings
@@ -295,8 +295,8 @@ def load_products() -> list[dict]:
     conn = get_connection()
     try:
         rows = conn.execute(
-            "SELECT id, canonical_key, match_key, name, brand, size_value, size_unit, group_key "
-            "FROM products ORDER BY id"
+            "SELECT id, canonical_key, match_key, name, brand, size_value, size_unit, "
+            "group_key, barcode FROM products ORDER BY id"
         ).fetchall()
         stores: dict[int, set[int]] = {}
         for row in conn.execute(
@@ -316,71 +316,258 @@ def load_products() -> list[dict]:
     return products
 
 
-def apply_groups(products: list[dict], confirmed: list[Candidate]) -> int:
+# ------------------------------------------------------------- üç pillə (ADDIM 3)
+#
+# HƏDLƏR REAL BAZADA ÖLÇÜLÜB (2026-09-11, bloklamadan sonra 2 811 namizəd):
+#   ≥0.90         37 cüt  -> brend və ölçü də eynidirsə AVTOMATİK
+#   0.75-0.90    284 cüt  -> ŞÜBHƏLİ: LLM qərar verir, insan yoxlaya bilər
+#   <0.75      2 490 cüt  -> atılır. Burada əsasən «ümumi ↔ konkret» cütlər
+#                            var: «dondurma [Milla]» ⇄ «Milla Vanilli Dondurma»
+#                            (0.57). Kataloq sətri hansı dondurma olduğunu
+#                            demir — birləşdirmək səhv olardı.
+AUTO_MIN_SIMILARITY = 0.90
+LLM_MIN_SIMILARITY = 0.75
+
+
+def _size_of(product: dict) -> str:
+    """'milla|sud|1l' -> '1l'.  Ölçü bilinmirsə boş sətir."""
+    return key_parts(product.get("match_key") or product["canonical_key"])[1]
+
+
+def barcode_candidates(products: list[dict]) -> list[Candidate]:
+    """
+    1-ci pillə: eyni barkod FƏRQLİ marketlərdə = eyni məhsul (100% dəqiq).
+
+    BU GÜN BAZADA BARKOD YOXDUR (0 dolu sətir): nə OCR kataloqu, nə Wolt
+    kartı onu vermir. Pillə yenə də burada durur — mənbə barkod verməyə
+    başlasa, heç bir LLM çağırışı olmadan işə düşəcək.
+    """
+    by_code: dict[str, list[dict]] = {}
+    for p in products:
+        code = (p.get("barcode") or "").strip()
+        if code:
+            by_code.setdefault(code, []).append(p)
+
+    found: list[Candidate] = []
+    for members in by_code.values():
+        for i, a in enumerate(members):
+            for b in members[i + 1:]:
+                # Eyni marketdə eyni barkod iki sətirdirsə, bu, datanın öz
+                # təkrarıdır - uyğunlaşdırmanın işi deyil.
+                if a.get("stores") and b.get("stores") and a["stores"] & b["stores"]:
+                    continue
+                found.append(
+                    Candidate(
+                        a_id=a["id"],
+                        b_id=b["id"],
+                        a_text=product_text(a),
+                        b_text=product_text(b),
+                        similarity=1.0,
+                    )
+                )
+    return found
+
+
+def classify_candidates(
+    products: list[dict], candidates: list[Candidate]
+) -> tuple[list[Candidate], list[Candidate]]:
+    """
+    2-ci pillə: namizədləri AVTOMATİK və ŞÜBHƏLİ-yə ayırır.
+
+    AVTOMATİK = bal ≥0.90 VƏ brend hər iki tərəfdə bilinir və eynidir VƏ
+    ölçü hər iki tərəfdə bilinir və eynidir.
+
+    NİYƏ YALNIZ BAL KİFAYƏT DEYİL? Real bazada «President kərə yağı»
+    (kataloq, ölçüsüz) həm «...200qr», həm «...1kq» ilə 1.00 verir. Bal
+    eynidir, amma kataloq sətrinin hansı olduğunu yalnız LLM (və ya insan)
+    deyə bilər. Brend üçün də eyni: brendsiz «sirab su» brendli məhsulla
+    birləşməzdən əvvəl yoxlanılmalıdır.
+    """
+    brands = known_brands(products)
+    by_id = {p["id"]: p for p in products}
+    auto: list[Candidate] = []
+    suspicious: list[Candidate] = []
+
+    for c in candidates:
+        if c.similarity < LLM_MIN_SIMILARITY:
+            continue
+        a, b = by_id[c.a_id], by_id[c.b_id]
+        brand_a, brand_b = product_brand(a, brands), product_brand(b, brands)
+        size_a, size_b = _size_of(a), _size_of(b)
+        certain = bool(brand_a) and brand_a == brand_b and bool(size_a) and size_a == size_b
+        if c.similarity >= AUTO_MIN_SIMILARITY and certain:
+            auto.append(c)
+        else:
+            suspicious.append(c)
+
+    return auto, suspicious
+
+
+class GuardedUnion(UnionFind):
+    """
+    UnionFind + iki qadağa. Birləşmə qrupda bunlardan birini yaradırsa, RƏDD edilir:
+      - iki fərqli ölçü           (200 q kərə yağı ≠ 1 kq kərə yağı)
+      - eyni marketin iki məhsulu (market bir məhsulu rəfində iki dəfə satmır)
+
+    NİYƏ ADİ UnionFind TƏHLÜKƏLİDİR? Keçişli birləşmə: A=B və A=C təsdiqlənsə,
+    B=C avtomatik olur. Real bazada ölçüsüz «President kərə yağı» həm 200 q,
+    həm 1 kq ilə 1.00 verir — adi UnionFind ikisini BİR məhsula çevirərdi və
+    səbət 1 kq-ın qiymətini 200 q ilə müqayisə edərdi.
+
+    Əvvəlki qaçışların qrupları (eyni group_key) TOXUM kimi əvvəlcədən
+    birləşdirilir ki, yeni qaçış onları sındırmasın.
+    """
+
+    def __init__(self, products: list[dict]) -> None:
+        super().__init__()
+        self.stores: dict[int, set] = {}
+        self.sizes: dict[int, set[str]] = {}
+        by_group: dict[str, list[int]] = {}
+        for p in products:
+            self.find(p["id"])
+            self.stores[p["id"]] = set(p.get("stores") or ())
+            size = _size_of(p)
+            self.sizes[p["id"]] = {size} if size else set()
+            if p.get("group_key"):
+                by_group.setdefault(p["group_key"], []).append(p["id"])
+        for members in by_group.values():
+            for other in members[1:]:
+                self._merge(self.find(members[0]), self.find(other))
+
+    def _merge(self, root_a: int, root_b: int) -> None:
+        if root_a == root_b:
+            return
+        self.parent[root_b] = root_a
+        self.stores[root_a] |= self.stores.pop(root_b)
+        self.sizes[root_a] |= self.sizes.pop(root_b)
+
+    def union(self, a: int, b: int) -> bool:  # type: ignore[override]
+        """Birləşdirildisə (və ya onsuz da birdirsə) True, qadağa varsa False."""
+        root_a, root_b = self.find(a), self.find(b)
+        if root_a == root_b:
+            return True
+        if self.stores[root_a] & self.stores[root_b]:
+            return False
+        if len(self.sizes[root_a] | self.sizes[root_b]) > 1:
+            return False
+        self._merge(root_a, root_b)
+        return True
+
+
+def apply_groups(products: list[dict], confirmed: list[Candidate], dry_run: bool = False) -> dict:
     """
     Təsdiqlənmiş cütləri qruplara çevirir və DB-yə yazır.
+
+    Cütlər BALA GÖRƏ azalan sırada birləşdirilir: iki cüt ziddiyyət
+    yaradırsa (bax `GuardedUnion`), daha etibarlı olan qalib gəlir, digəri
+    `refused` siyahısına düşür — itmir, göstərilir.
 
     Qrupun adı - içindəki ən kiçik canonical_key. Beləliklə nəticə
     təkrar işlətmədən asılı olmur (deterministikdir).
     """
-    if not confirmed:
-        return 0
+    union = GuardedUnion(products)
+    refused = [c for c in sorted(confirmed, key=lambda c: -c.similarity)
+               if not union.union(c.a_id, c.b_id)]
 
-    union = UnionFind()
-    by_id = {p["id"]: p for p in products}
-    for candidate in confirmed:
-        union.union(candidate.a_id, candidate.b_id)
+    groups: dict[int, list[dict]] = {}
+    for p in products:
+        groups.setdefault(union.find(p["id"]), []).append(p)
 
-    groups: dict[int, list[int]] = {}
-    for product_id in list(union.parent):
-        groups.setdefault(union.find(product_id), []).append(product_id)
+    # Yalnız DƏYİŞƏN sətirlər yazılır: 13 min məhsulun hamısını hər qaçışda
+    # yenidən yazmaq mənasızdır.
+    changes: list[tuple[str, int]] = []
+    for members in groups.values():
+        if len(members) < 2:
+            continue
+        group_key = min(m["canonical_key"] for m in members)
+        changes += [(group_key, m["id"]) for m in members if m.get("group_key") != group_key]
 
-    updated = 0
-    with db_cursor() as cur:
-        for members in groups.values():
-            if len(members) < 2:
-                continue
-            group_key = min(by_id[m]["canonical_key"] for m in members)
-            for member in members:
-                cur.execute("UPDATE products SET group_key = ? WHERE id = ?", (group_key, member))
-                updated += 1
+    if changes and not dry_run:
+        with db_cursor() as cur:
+            cur.executemany("UPDATE products SET group_key = ? WHERE id = ?", changes)
 
-    return updated
+    return {"updated": len(changes), "refused": refused}
 
 
-def run_matching(limit: int = 20, use_cache: bool = True) -> dict:
+def split_by_size(
+    products: list[dict], suspicious: list[Candidate]
+) -> tuple[list[Candidate], list[Candidate]]:
     """
-    Bütün prosesi işə salır.
+    Şübhəliləri LLM-ə və İNSANA ayırır.
 
-    limit: LLM-ə göndəriləcək maksimum cüt sayı. GPU-suz maşında hər cüt
-    ~2 saniyədir, ona görə susmaya görə 20 ilə məhdudlaşdırılıb.
+    Ölçü YALNIZ BİR tərəfdə bilinirsə, cüt birbaşa insana gedir. Səbəb:
+    «Azərsüd ayran» (kataloq, ölçüsüz) Bravoda 290 ml, 200 ml və 1 l ilə
+    eyni balı verir. LLM də ölçünü görmür və prompt «ümumi ↔ konkret»
+    cütü EYNİ saydığı üçün üçünə də «bəli» deyərdi; GuardedUnion isə
+    birincini birləşdirib qalanını rədd edərdi — yəni təsadüfi ölçü
+    qalib gələrdi. Bunun üçün pul xərcləmək mənasızdır.
+
+    Ölçü: real bazada 310 şübhəlidən 236-sı belədir. Kataloq sətrinin
+    öz OCR mətnindən ölçü oxumaq da sınandı — 228 ölçüsüz məhsuldan
+    cəmi 4-də tapıldı, dördü də yanlış idi.
+    """
+    by_id = {p["id"]: p for p in products}
+    to_llm: list[Candidate] = []
+    to_human: list[Candidate] = []
+    for c in suspicious:
+        known_a = bool(_size_of(by_id[c.a_id]))
+        known_b = bool(_size_of(by_id[c.b_id]))
+        (to_human if known_a != known_b else to_llm).append(c)
+    return to_llm, to_human
+
+
+def run_matching(limit: int = 20, use_cache: bool = True, dry_run: bool = False) -> dict:
+    """
+    Üç pilləni işə salır: barkod -> oxşarlıq -> LLM (yalnız şübhəlilər).
+
+    limit: LLM-ə göndəriləcək maksimum ŞÜBHƏLİ cüt sayı. Avtomatik pillə
+    limitə daxil deyil - o, pulsuzdur.
+    dry_run: LLM çağırılmır və baza dəyişmir — nəyin birləşəcəyi və neçə
+    cütün LLM-ə gedəcəyi əvvəlcədən görünür.
     """
     products = load_products()
-    candidates = find_candidates(products)
+    candidates = find_candidates(products, min_similarity=LLM_MIN_SIMILARITY)
+    auto, suspicious = classify_candidates(products, candidates)
+    to_llm, to_human = split_by_size(products, suspicious)
+    by_barcode = barcode_candidates(products)
 
-    truncated = len(candidates) > limit
-    selected = candidates[:limit]
+    selected = to_llm[:limit]
+    if dry_run:
+        confirmed = []
+        stats = {"checked": 0, "from_cache": 0, "from_llm": 0, "failed": 0, "confirmed": 0}
+    else:
+        confirmed, stats = verify_candidates(selected, use_cache=use_cache)
 
-    confirmed, stats = verify_candidates(selected, use_cache=use_cache)
-    updated = apply_groups(products, confirmed)
+    merged = by_barcode + auto + confirmed
+    result = apply_groups(products, merged, dry_run=dry_run)
+
+    def pair(c: Candidate) -> dict:
+        return {"a": c.a_text, "b": c.b_text, "similarity": c.similarity}
 
     return {
+        "dry_run": dry_run,
         "products": len(products),
         "candidates_found": len(candidates),
+        "levels": {
+            "barcode": len(by_barcode),
+            "auto": len(auto),
+            "suspicious": len(suspicious),
+            "llm": len(to_llm),
+            "human": len(to_human),
+        },
         "candidates_checked": len(selected),
-        "truncated": truncated,
+        "truncated": len(to_llm) > limit,
+        # Ölçü yalnız bir tərəfdə bilinir - LLM deyə bilməz, insan baxmalıdır (ADDIM 5)
+        "needs_human": [dict(pair(c), reason="ölçü bilinmir") for c in to_human],
         "llm": stats,
-        "products_grouped": updated,
-        "pairs": [
-            {"a": c.a_text, "b": c.b_text, "similarity": c.similarity}
-            for c in confirmed
-        ],
+        "products_grouped": result["updated"],
+        "pairs": [pair(c) for c in merged if c not in result["refused"]],
+        # Qadağaya düşən cütlər (iki ölçü və ya eyni market bir qrupda olardı)
+        "refused": [pair(c) for c in result["refused"]],
         # Yoxlanılan, amma FƏRQLİ sayılan cütlər - şəffaflıq üçün
-        "rejected": [
-            {"a": c.a_text, "b": c.b_text, "similarity": c.similarity}
-            for c in selected
-            if c not in confirmed
-        ],
+        "rejected": [] if dry_run else [pair(c) for c in selected if c not in confirmed],
+        # dry_run-da: LLM-ə hansı cütlər GEDƏRDİ
+        "to_llm": [pair(c) for c in selected] if dry_run else [],
     }
 
 
