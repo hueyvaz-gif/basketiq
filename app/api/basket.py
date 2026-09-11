@@ -20,7 +20,7 @@ from pydantic import BaseModel
 from ai.advisor import build_facts, stream_advice, verify_numbers
 from ai.sanitize import strip_reasoning
 
-from app.db import db_cursor, get_connection
+from app.db import PRICE_ROWS_CTE, db_cursor, get_connection
 from app.profile import get_profile
 from app.stores import MARKETS, display_names, market_for
 from ingestion.normalize import display_label, display_size
@@ -100,10 +100,24 @@ def remove_item(product_id: int, basket_id: int = DEFAULT_BASKET_ID):
 
 def _latest_prices_by_group(group_keys: list[str]) -> dict:
     """
-    Hər (qrup, market) üçün ƏN SON qiyməti gətirir.
+    Hər (qrup, market) üçün ƏN SON qiyməti gətirir — HƏR İKİ qiymət qatından.
 
     Niyə ən son? Kataloqlar həftəlik yenilənir; köhnə qiymətlə müqayisə
     aparmaq istifadəçini yanıldardı. Tarixçə isə trend üçün DB-də qalır.
+
+    NİYƏ İKİ QAT (2026-09-11)? Əvvəl yalnız `prices` (kataloq iddiası)
+    oxunurdu. Bravonun 13 168 məhsulunun HAMISI mağaza qatındadır
+    (`price_snapshots`), kataloqu isə cəmi 8 sətirdir. Nəticə: səbətə Bravo
+    məhsulu əlavə edən istifadəçi «heç bir marketdə qiyməti yoxdur» görürdü,
+    uyğunlaşdırma Araz ilə Bravonu bir qrupa salsa belə Bravo sütunu boş
+    qalırdı — «1/4 marketdə» probleminin böyük hissəsi bu idi. Kataloq və
+    market səhifələri (`catalog.py`, `stores.py`) iki qatı artıq
+    `PRICE_ROWS_CTE` ilə oxuyurdu; səbət geridə qalmışdı.
+
+    SIRALAMA `at, layer, row_id` — `app/db.py`-dəki qaydadır: eyni kataloqun
+    sətirlərinin vaxtı eynidir, yalnız `at`-a görə sıralama qeyri-müəyyəndir.
+
+    `raw_line` yalnız kataloq sətrində var (OCR mətni); mağaza sətrində None-dur.
     """
     if not group_keys:
         return {}
@@ -113,19 +127,25 @@ def _latest_prices_by_group(group_keys: list[str]) -> dict:
     try:
         rows = conn.execute(
             f"""
-            SELECT p.group_key, s.id AS store_id, s.name AS store_name,
-                   pr.price, pr.unit_price, pr.raw_line, pr.seen_at,
-                   p.name, p.brand
-            FROM prices pr
-            JOIN products p ON p.id = pr.product_id
-            JOIN stores  s ON s.id = pr.store_id
-            WHERE p.group_key IN ({placeholders})
-              AND pr.id = (
-                  SELECT pr2.id FROM prices pr2
-                  JOIN products p2 ON p2.id = pr2.product_id
-                  WHERE p2.group_key = p.group_key AND pr2.store_id = pr.store_id
-                  ORDER BY pr2.seen_at DESC, pr2.id DESC LIMIT 1
-              )
+            {PRICE_ROWS_CTE},
+            ranked AS (
+                SELECT p.group_key, pr.store_id, pr.price, pr.unit_price, pr.at,
+                       pr.layer, pr.row_id, p.name, p.brand,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY p.group_key, pr.store_id
+                           ORDER BY pr.at DESC, pr.layer DESC, pr.row_id DESC
+                       ) AS rn
+                  FROM price_rows pr
+                  JOIN products p ON p.id = pr.product_id
+                 WHERE p.group_key IN ({placeholders})
+            )
+            SELECT r.group_key, s.id AS store_id, s.name AS store_name,
+                   r.price, r.unit_price, c.raw_line, r.at AS seen_at, r.layer,
+                   r.name, r.brand
+              FROM ranked r
+              JOIN stores s ON s.id = r.store_id
+              LEFT JOIN prices c ON r.layer = 'catalog' AND c.id = r.row_id
+             WHERE r.rn = 1
             """,
             group_keys,
         ).fetchall()
@@ -156,9 +176,11 @@ def _all_stores() -> list[dict]:
         names = display_names(conn)
         # Datası olan marketlərin baza id-si.
         by_slug: dict[str, int] = {}
+        # HƏR İKİ QAT: yalnız mağaza qiyməti olan market də «datası var» sayılır
+        # (bax `_latest_prices_by_group`). Əks halda onun sütunu «tezliklə» yazardı.
         for row in conn.execute(
-            "SELECT DISTINCT s.id AS id, s.slug AS slug FROM stores s "
-            "JOIN prices pr ON pr.store_id = s.id"
+            f"{PRICE_ROWS_CTE} SELECT DISTINCT s.id AS id, s.slug AS slug FROM stores s "
+            "JOIN price_rows pr ON pr.store_id = s.id"
         ):
             market = market_for(row["slug"])
             if market and row["id"] in names:
