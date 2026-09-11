@@ -28,6 +28,7 @@ from app.ads import (
     list_ads,
     record_click,
     record_impression,
+    rendered_slots,
     update_ad,
 )
 from app.config import settings
@@ -123,14 +124,40 @@ class AdPatch(BaseModel):
     active: bool | None = None
 
 
+def _require_rendered(slot: str) -> None:
+    """
+    Reyestrdə olan, amma HEÇ BİR səhifədə çəkilməyən slota yazmağı rədd edir.
+
+    Forma onu onsuz da təklif etmir; bu, API səviyyəsində ikinci qapıdır -
+    əl ilə göndərilən sorğu da görünməz reklam yarada bilməsin. Naməlum slotu
+    isə `create_ad`/`update_ad` özü rədd edir (reyestr yoxlaması).
+    """
+    if slot in SLOTS and slot not in rendered_slots():
+        raise HTTPException(
+            400,
+            f"«{SLOTS[slot]}» hazırda heç bir səhifədə göstərilmir - "
+            "bu yerə yazılan reklam görünməz olardı.",
+        )
+
+
 @admin_router.get("")
 def all_ads():
-    """Bütün sifarişlər + slot reyestri (forma seçim siyahısını oradan qurur)."""
-    return {"items": list_ads(), "slots": [{"key": k, "label": v} for k, v in SLOTS.items()]}
+    """
+    Bütün sifarişlər + formanın seçim siyahısı.
+
+    Seçim siyahısında YALNIZ səhifədə çəkilən slotlar var (`rendered_slots`).
+    Başqa slotdakı köhnə sifariş itmir: `on_page: false` ilə gəlir və admin
+    cədvəlində «niyə görünmür?» sualının cavabı elə orada yazılır.
+    """
+    görünən = rendered_slots()
+    items = [{**ad, "on_page": ad["slot"] in görünən} for ad in list_ads()]
+    slots = [{"key": k, "label": v} for k, v in SLOTS.items() if k in görünən]
+    return {"items": items, "slots": slots}
 
 
 @admin_router.post("")
 def add_ad(payload: AdIn):
+    _require_rendered(payload.slot)
     try:
         ad_id = create_ad(**payload.model_dump())
     except ValueError as e:
@@ -141,6 +168,10 @@ def add_ad(payload: AdIn):
 @admin_router.patch("/{ad_id}")
 def edit_ad(ad_id: int, payload: AdPatch):
     fields = {k: v for k, v in payload.model_dump().items() if v is not None}
+    # Yalnız slot DƏYİŞƏNDƏ yoxlanır: görünməyən slotdakı köhnə sifarişi
+    # dayandırmaq və ya tarixini dəyişmək hələ də mümkün olmalıdır.
+    if "slot" in fields:
+        _require_rendered(fields["slot"])
     try:
         if not update_ad(ad_id, **fields):
             raise HTTPException(404, "reklam tapılmadı")

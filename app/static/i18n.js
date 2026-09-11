@@ -470,6 +470,7 @@
     "adsAdmin.live": { az: "efirdə", en: "live", ru: "в эфире" },
     "adsAdmin.paused": { az: "dayanıb", en: "paused", ru: "остановлен" },
     "adsAdmin.sample": { az: "nümunə", en: "sample", ru: "пример" },
+    "adsAdmin.offPage": { az: "səhifədə görünmür", en: "not on any page", ru: "нет на странице" },
     "adsAdmin.pause": { az: "Dayandır", en: "Pause", ru: "Остановить" },
     "adsAdmin.resume": { az: "Davam et", en: "Resume", ru: "Возобновить" },
 

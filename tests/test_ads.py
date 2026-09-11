@@ -25,6 +25,7 @@ from app.ads import (
     list_ads,
     record_click,
     record_impression,
+    rendered_slots,
     seed_sample_ad,
     update_ad,
 )
@@ -206,23 +207,25 @@ def test_ictimai_slot_qapıdan_asılı_deyil():
 
 
 def test_sifariş_endpoint_ilə_yaradılır_və_silinir():
+    # Yer SƏHİFƏDƏ OLAN slotdur: görünməyən slota yazmaq artıq 400 verir
+    # (bax `test_görünməyən_yerə_sifariş_yazılmır`).
     res = client.post(
         "/api/admin/ads",
         json={
             "advertiser": "Endpoint Reklamverən",
             "title": "Endpoint sifarişi",
             "target_url": "https://example.com",
-            "slot": "home-banner",
+            "slot": "home-rail-left",
             "starts_at": DÜNƏN,
             "ends_at": SABAH,
         },
     )
     assert res.status_code == 200
     ad_id = res.json()["id"]
-    assert current_ad("home-banner")["id"] == ad_id
+    assert current_ad("home-rail-left")["id"] == ad_id
 
     assert client.delete(f"/api/admin/ads/{ad_id}").status_code == 200
-    assert current_ad("home-banner") is None
+    assert current_ad("home-rail-left") is None
 
 
 def test_dayandırma_reklamı_ekrandan_çıxarır():
@@ -244,10 +247,81 @@ def test_olmayan_sifarişin_silinməsi_404_verir():
     assert delete_ad(999999) is False
 
 
-def test_slot_reyestri_cavabda_gəlir():
-    """Admin forması slot siyahısını KODDAN alır, HTML-də sabit saxlamır."""
+def test_forma_yalnız_səhifədə_olan_yerləri_təklif_edir():
+    """
+    Admin forması slot siyahısını KODDAN alır, HTML-də sabit saxlamır - və
+    yalnız hansısa səhifədə HƏQİQƏTƏN çəkilən slotları.
+
+    REAL TƏLƏ (2026-09-11): `home-banner` səhifədən götürülmüşdü, forma isə
+    onu təklif etməyə davam edirdi. Yaradılan reklam aktiv və vaxtında idi,
+    amma heç yerdə görünmədi (göstərim 0).
+    """
     slots = {s["key"] for s in client.get("/api/admin/ads").json()["slots"]}
-    assert slots == set(SLOTS)
+    assert slots == rendered_slots()
+    assert "home-banner" not in slots
+
+
+# -------------------------------------------------- səhifədə olmayan slot
+
+
+def test_render_olunan_slotlar_html_dən_oxunur():
+    """
+    Həqiqət HTML-dədir (`data-slot`), ikinci əl siyahısında yox: problem
+    məhz köhnələn siyahıdan yarandı. Yan lövhələr ana səhifədədir, sətir
+    arası banner isə `bd01e6e`-dən bəri heç bir səhifədə yoxdur.
+    """
+    assert rendered_slots() == {"home-rail-left", "home-rail-right"}
+    assert "home-banner" in SLOTS, "reyestrdə qalır - köhnə sifarişlər itməsin"
+
+
+def test_görünməyən_yerə_sifariş_yazılmır():
+    """Forma onu təklif etmir; API də rədd edir - əl ilə sorğu da görünməz reklam yaratmasın."""
+    res = client.post(
+        "/api/admin/ads",
+        json={
+            "advertiser": "X", "title": "Y", "target_url": "https://example.com",
+            "slot": "home-banner", "starts_at": DÜNƏN, "ends_at": SABAH,
+        },
+    )
+    assert res.status_code == 400
+    assert "göstərilmir" in res.json()["detail"]
+    assert list_ads() == []
+
+
+def test_görünməyən_yerə_köçürmək_olmur_amma_köhnə_sifariş_idarə_olunur():
+    """
+    Slotu görünməyən yerə DƏYİŞMƏK qadağandır. Amma o yerdə artıq duran köhnə
+    sifarişi dayandırmaq, tarixini dəyişmək və ya görünən yerə köçürmək
+    mümkün olmalıdır - əks halda o, admin panelində ilişib qalardı.
+    """
+    lövhə = _sifariş(slot="home-rail-left")
+    assert client.patch(f"/api/admin/ads/{lövhə}", json={"slot": "home-banner"}).status_code == 400
+
+    köhnə = _sifariş(slot="home-banner")
+    assert client.patch(f"/api/admin/ads/{köhnə}", json={"active": False}).status_code == 200
+    assert client.patch(f"/api/admin/ads/{köhnə}", json={"slot": "home-rail-right"}).status_code == 200
+    assert {a["id"]: a for a in list_ads()}[köhnə]["slot"] == "home-rail-right"
+
+
+def test_admin_siyahısı_görünməyən_sifarişi_nişanlayır():
+    """«Niyə görünmür?» sualının cavabı admin cədvəlində yazılmalıdır."""
+    görünməz = _sifariş(slot="home-banner")
+    görünən = _sifariş(slot="home-rail-left")
+    items = {a["id"]: a for a in client.get("/api/admin/ads").json()["items"]}
+    assert items[görünməz]["on_page"] is False
+    assert items[görünən]["on_page"] is True
+
+
+def test_admin_cədvəli_görünməyən_sifarişi_efirdə_yazmır():
+    """
+    Əvvəl belə sifariş «efirdə» nişanı alırdı: admin görünməyən reklamı canlı
+    sanırdı. İndi `on_page` həm «canlı» şərtinə, həm də nişana daxildir.
+    """
+    from pathlib import Path
+
+    js = Path("app/static/ads-admin.js").read_text(encoding="utf-8")
+    assert 'ad.on_page !== false' in js
+    assert 't("adsAdmin.offPage")' in js
 
 
 # ------------------------------------------------------------ nümunə sifariş

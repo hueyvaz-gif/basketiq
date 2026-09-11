@@ -22,18 +22,21 @@ görünməz edərdi (və ya daha pisi: gözlənilməz yerdə göstərərdi).
 
 from __future__ import annotations
 
+import re
 from datetime import date
+from pathlib import Path
 
 from app.db import db_cursor, get_connection
 
 # Səhifədəki satıla bilən yerlər. Açar = `ads.slot`, dəyər = izah.
 SLOTS: dict[str, str] = {
-    # Market şəbəkəsi ilə «bugünün endirimləri» arasında. Qəsdən BU yer:
-    # istifadəçi marketi seçib endirimlərə keçərkən ora onsuz da baxır,
-    # amma axını kəsmir - pop-up deyil, sətir arası kartdır.
+    # Sətir arası banner (market şəbəkəsi ilə «bugünün endirimləri» arasında).
+    # HAZIRDA HEÇ BİR SƏHİFƏDƏ YOXDUR: `bd01e6e`-də ana səhifədən götürüldü.
+    # Reyestrdə QALIR - köhnə sifarişlər admin cədvəlində görünsün və slot
+    # başqa səhifədə yenidən açıla bilsin. Admin forması onu təklif ETMİR
+    # (`rendered_slots`), çünki bura yazılan reklam görünməz olardı.
     # AD QISADIR, çünki admin formasındakı seçim qutusunda görünür və uzun
-    # mətn kəsilirdi (brauzerdə: «Ana səhifə — marke…»). İzah yuxarıdakı
-    # şərhdədir - onun yeri koddur, interfeys deyil.
+    # mətn kəsilirdi (brauzerdə: «Ana səhifə — marke…»).
     "home-banner": "Ana səhifə — banner",
 
     # YAN LÖVHƏLƏR (tap.az-dakı düzülüş): məzmunun solunda və sağında şaquli
@@ -47,6 +50,29 @@ SLOTS: dict[str, str] = {
     "home-rail-left": "Ana səhifə — sol lövhə",
     "home-rail-right": "Ana səhifə — sağ lövhə",
 }
+
+
+# SLOT SƏHİFƏDƏ VARMI? (2026-09-11)
+#
+# REAL TƏLƏDƏN ÇIXIB: `home-banner` səhifədən götürüldü (`bd01e6e`), reyestrdə
+# isə qaldı. Admin forması onu «Ana səhifə — banner» kimi təklif etməyə davam
+# etdi və istifadəçi sifariş yaratdı: reklam aktiv idi, tarixi düzgün idi,
+# API onu qaytarırdı - amma HEÇ BİR səhifə o slotu çəkmirdi (göstərim 0).
+#
+# NİYƏ İKİNCİ ƏL SİYAHISI YOX? Problem məhz köhnələn siyahıdan yarandı.
+# Həqiqət HTML-dədir: `data-slot="..."` olan element varsa, `ads.js` onu
+# doldurur. Oxunan elə budur - banner hansısa səhifəyə qayıtsa, forma onu
+# özü görər, heç kim reyestri əl ilə yeniləməli olmaz.
+_STATIC = Path(__file__).resolve().parent / "static"
+_DATA_SLOT = re.compile(r'data-slot="([\w-]+)"')
+
+
+def rendered_slots() -> set[str]:
+    """Hazırda hansısa səhifədə çəkilən slotlar (reyestrlə kəsişmə)."""
+    found: set[str] = set()
+    for page in _STATIC.glob("*.html"):
+        found.update(_DATA_SLOT.findall(page.read_text(encoding="utf-8")))
+    return found & set(SLOTS)
 
 
 def _row_to_ad(row) -> dict:

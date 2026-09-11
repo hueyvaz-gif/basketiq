@@ -23,13 +23,18 @@
   /** Sifariş bu gün ekranda görünürmü? Admin «niyə görünmür?» sualını burada həll edir. */
   function canlı(ad) {
     const bugün = new Date().toISOString().slice(0, 10);
-    return ad.active && ad.starts_at <= bugün && ad.ends_at >= bugün;
+    return ad.active && ad.on_page !== false && ad.starts_at <= bugün && ad.ends_at >= bugün;
   }
 
   function sətir(ad) {
-    const hal = canlı(ad)
-      ? `<span class="pill is-green">${esc(t("adsAdmin.live"))}</span>`
-      : `<span class="pill is-amber">${esc(t("adsAdmin.paused"))}</span>`;
+    // SƏHİFƏDƏ OLMAYAN YER (2026-09-11): sifariş aktiv və vaxtında olsa da
+    // görünmür. Əvvəl belə sifariş «efirdə» yazılırdı - admin reklamı canlı
+    // sanırdı, halbuki göstərim sayı 0 idi. Səbəb elə bu nişandadır.
+    const hal = ad.on_page === false
+      ? `<span class="pill is-red">${esc(t("adsAdmin.offPage"))}</span>`
+      : canlı(ad)
+        ? `<span class="pill is-green">${esc(t("adsAdmin.live"))}</span>`
+        : `<span class="pill is-amber">${esc(t("adsAdmin.paused"))}</span>`;
 
     const nümunə = ad.is_sample
       ? `<span class="pill">${esc(t("adsAdmin.sample"))}</span>`
