@@ -65,6 +65,20 @@ def test_dockerfile_chromium_və_drayverini_quraşdırır():
     assert "CHROMEDRIVER_PATH=/usr/bin/chromedriver" in dockerfile
 
 
+def test_env_faylı_chromium_yolunu_ezə_bilmir():
+    """
+    `.env.example`-dakı boş `CHROME_BIN=` `cp .env.example .env` ilə env_file-a,
+    oradan konteynerə düşsəydi, Dockerfile-ın ENV-ini EZƏRDİ (compose:
+    environment > env_file > image ENV) - brauzer yolu boş qalardı.
+    """
+    env = _services()["basketiq"]["environment"]
+
+    assert env["CHROME_BIN"] == "/usr/bin/chromium"
+    assert env["CHROMEDRIVER_PATH"] == "/usr/bin/chromedriver"
+    nümunə = (ROOT / ".env.example").read_text(encoding="utf-8").splitlines()
+    assert not any(s.startswith(("CHROME_BIN=", "CHROMEDRIVER_PATH=")) for s in nümunə)
+
+
 def test_brauzer_seçimləri_konteyner_üçün_hazırdır(monkeypatch):
     from ingestion.browser import chrome_options
 

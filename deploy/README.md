@@ -2,31 +2,45 @@
 
 ## Əvvəlcə dürüst hesab: bu neçəyə başa gəlir?
 
-Layihənin ağır hissəsi FastAPI deyil, **LLM-dir**. Qiyməti o müəyyən edir.
+LLM serverdə işləmir: **Claude API** (`LLM_PROVIDER=claude`) əsasdır və
+Ollama-dan ~37 dəfə sürətlidir (bir kataloq sətri 1.7 san vs 64 san, ölçülüb).
+Ona görə RAM-ı LLM yox, **mağaza qatının headless Chrome-u** müəyyən edir —
+gündəlik qiymətlər (Wolt) brauzerlə çəkilir.
 
-| Konfiqurasiya | RAM | Aylıq (təxmini) | İşləyirmi? |
-|---|---|---|---|
-| Yalnız BasketIQ (LLM xaricdə) | 1 GB | ~$6 | ✅ dashboard, scraping, OCR işləyir; AI çıxarışı yox |
-| BasketIQ + Ollama `qwen3:4b` | 8 GB | ~$48 | ✅ hər şey işləyir, CPU-da yavaş (~10 san/sətir) |
-| BasketIQ + Ollama, 4 GB | 4 GB | ~$24 | ⚠️ model güclə sığır, OCR ilə eyni vaxtda swap-a düşür |
+Ölçülüb (lokal Docker, 2026-09-11):
 
-`qwen3:4b` diskdə ~2.6 GB, yüklənəndə ~4 GB RAM tutur. OCR də eyni anda
-150-300 MB istəyir. Ona görə **8 GB tövsiyə olunur**, 4 GB isə sərhəddədir.
+| Nə | Yaddaş |
+|---|---|
+| BasketIQ serveri, boşda | ~100 MB |
+| Chrome qalxanda | 171 MB |
+| Chrome real Wolt səhifəsində (gündəlik çəkiliş) | **665 MB pik** |
+| OCR, kataloq yükləyəndə | +150–300 MB |
+| n8n (`--profile n8n`) | ~250 MB (təxmini) |
+| Ubuntu + Docker | ~300 MB (təxmini) |
 
-**Tələbə üçün praktik yol:** əvvəlcə **1 GB droplet** ($6) götür, `APP_ENV=production`
-ilə dashboard və scraping-i işlət. AI çıxarışını lokal maşında (və ya lazım
-olanda müvəqqəti böyük droplet-də) apar. Kod dəyişmir — yalnız
-`OLLAMA_BASE_URL` fərqlidir.
+| Droplet | Aylıq (təxmini) | İşləyirmi? |
+|---|---|---|
+| 1 GB / 1 vCPU | ~$6 | ❌ Chrome çəkilişi (665 MB) + sistem sığmır |
+| **2 GB / 2 vCPU** | **~$18** | ✅ **tövsiyə** — çəkiliş, OCR, n8n eyni anda |
+| 2 GB / 1 vCPU | ~$12 | ✅ işləyir, çəkiliş və OCR yavaş |
+| 8 GB + Ollama `qwen3:4b` (`--profile ollama`) | ~$48 | ✅ yalnız LLM-i serverin öz CPU-sunda istəsən (~10 san/sətir) |
+
+Qiymətlər DigitalOcean-ındır və dəyişə bilər — götürməzdən əvvəl yoxla. Disk
+problem deyil: image Chromium ilə 1.79 GB, data ~40 MB. Ollama profili əlavə
+~9 GB image + 2.6 GB model istəyir.
 
 ## Addımlar
 
 ### 1. Droplet
 
-Ubuntu 24.04, ən azı 2 vCPU. Yaradıldıqdan sonra:
+Ubuntu 24.04, **2 GB RAM / 2 vCPU** (yuxarıdakı hesab). Yaradıldıqdan sonra:
 
 ```bash
 ssh root@<IP>
 adduser basketiq && usermod -aG sudo basketiq
+# 2 GB swap: Chrome çəkilişi və OCR eyni anda düşəndə yaddaş qoruyucusu
+fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
 ```
 
 ### 2. Docker
@@ -54,9 +68,15 @@ nano .env
 ```ini
 APP_ENV=production
 INGEST_API_KEY=<uzun təsadüfi sətir>     # openssl rand -hex 24
-OLLAMA_MODEL=qwen3:4b
+LLM_PROVIDER=claude
+ANTHROPIC_API_KEY=<açar>                  # console.anthropic.com -> API Keys
 TESSERACT_CMD=                            # Linux-da boş: binary PATH-dədir
+# ADMIN_ENABLED=1                         # reklamları serverdə idarə etmək üçün
 ```
+
+Chromium yollarını (`CHROME_BIN`, `CHROMEDRIVER_PATH`) `.env`-ə **yazma**:
+onları `Dockerfile` və `docker-compose.yml` verir; `.env`-dəki boş dəyər
+image-in yolunu ezib brauzeri tapılmaz edərdi.
 
 `TESSERACT_CMD` niyə boş? Windows-da tam yol lazımdır (`C:\Program Files\...`),
 Linux konteynerində isə `tesseract` elə PATH-dədir. Dolu qalsa, konteyner
@@ -79,14 +99,21 @@ mətndə yazır — səssiz qırılma olmur.
 ### 4. Qaldır
 
 ```bash
-docker compose up -d
-docker compose exec ollama ollama pull qwen3:4b     # ~2.6 GB, bir dəfə
-curl localhost:8000/health
+docker compose up -d                  # yalnız BasketIQ - Ollama və n8n seçimlidir
+curl localhost:8000/health            # "status": "ok", llm.status: "claude"
 ```
 
-`/health` cavabında `"model_available": true` görünməlidir. `false`-dursa
-model çəkilməyib — bu, layihənin ən çox rast gəlinən deployment səhvidir və
-məhz ona görə `/health` modeli ayrıca yoxlayır.
+Gündəlik avtomatik çəkiliş (n8n): `docker compose --profile n8n up -d`.
+
+LLM-i serverin öz CPU-sunda istəsən (8 GB droplet):
+
+```bash
+docker compose --profile ollama up -d
+docker compose exec ollama ollama pull qwen3:4b     # ~2.6 GB, bir dəfə
+```
+
+Onda `/health`-də `"model_available": true` görünməlidir — `false`-dursa model
+çəkilməyib (aşağıda «Bilinən problem»).
 
 ### 5. Domen və HTTPS
 
@@ -196,7 +223,11 @@ data silmək lazım deyil.
 
 | Yoxlanılıb (lokal Docker) | Necə |
 |---|---|
-| Image qurulur (684 MB; səslə 1.25 GB) | `docker build` |
+| Image qurulur (Chromium ilə 1.79 GB, 235 san) | `docker build`, `docker images` (2026-09-11) |
+| Chromium konteynerdə işləyir | Chromium 152 + eyni versiyalı chromedriver (Debian 13); `shop._new_driver()` real Wolt səhifəsini açdı — 24 məhsul kartı, pik 665 MB |
+| Ollama-sız `/health` | Claude aktiv, Ollama yox → HTTP 200, `"status": "ok"`, `llm.status: "claude"` |
+| Compose profilləri | defolt `up` → yalnız `basketiq`; `--profile ollama` → `basketiq ollama` |
+| `.env` Chromium yolunu ezmir | `docker compose config` → `CHROME_BIN: /usr/bin/chromium` (`environment`-dən) |
 | Konteyner sağlamdır | `HEALTHCHECK` → `healthy` |
 | OCR konteynerdə işləyir | nümunə kataloq yükləndi, 8 sətir çıxdı |
 | Azərbaycan dil faylları | `data/tessdata` image-dədir, `TESSDATA_DIR` göstərir |
@@ -213,7 +244,7 @@ data silmək lazım deyil.
 | Caddy + Let's Encrypt | real domen lazımdır |
 | `ollama pull` konteynerdə | 2.6 GB endirmə; model lokal maşında onsuz da var |
 
-## Bilinən problem: `model_available: false`
+## Bilinən problem: `model_available: false` (yalnız `--profile ollama`)
 
 Ən çox rast gəlinən hal. Səbəblər:
 

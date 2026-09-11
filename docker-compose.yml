@@ -32,6 +32,11 @@ services:
       OLLAMA_BASE_URL: http://ollama:11434
       DATA_DIR: /data
       MEDIA_DIR: /data/media
+      # Chromium yolları Dockerfile-dakı ilə EYNİDİR, amma burada da yazılır:
+      # .env-dəki boş `CHROME_BIN=` env_file ilə image-in ENV-ini ezərdi
+      # (üstünlük: environment > env_file > image ENV) - brauzer tapılmazdı.
+      CHROME_BIN: /usr/bin/chromium
+      CHROMEDRIVER_PATH: /usr/bin/chromedriver
     volumes:
       # Yazılan hər şey burada: baza, xam kataloqlar, OCR mətni, LLM keşi,
       # şəkillər (media/).
