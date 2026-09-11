@@ -46,3 +46,6 @@ node_modules/
 # Dizayn skill paketi (16 MB ekran sekli) - alet paketidir, layihe menbeyi deyil.
 trolley-design-design/
 logs/morning.md
+
+# Deploy data arxivi (baza + sekiller) - repoya dusmur (deploy/README.md «Ilk deploy»)
+basketiq-data*.tar.gz

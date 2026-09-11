@@ -31,6 +31,10 @@ app/static/images/ads/*
 app/static/product_images/
 app/static/images/products/
 
+# Deploy data arxivi serverdə repo qovluğuna köçürülür (deploy/README.md) -
+# image-ə düşsəydi, baza image qatında qalardı.
+basketiq-data*.tar.gz
+
 # Git və sənədlər
 .git/
 .gitignore
