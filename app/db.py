@@ -426,6 +426,12 @@ def _migrate(conn: sqlite3.Connection) -> None:
         ("product_url", "ALTER TABLE products ADD COLUMN product_url TEXT"),
         ("image_path", "ALTER TABLE products ADD COLUMN image_path TEXT"),
         ("name_norm", "ALTER TABLE products ADD COLUMN name_norm TEXT"),
+        # `match_key` — UYĞUNLAŞDIRMA açarı (`ingestion/normalize.py:match_key`).
+        # canonical_key-in yanında AYRICA saxlanılır: canonical_key UNIQUE-dir
+        # və mağaza çəkilişi məhsulu onunla tapır, ona görə dəyişdirilə bilməz.
+        # Geri qaytarmaq üçün sütunu nəzərə almamaq kifayətdir — heç bir köhnə
+        # sorğu onu oxumur.
+        ("match_key", "ALTER TABLE products ADD COLUMN match_key TEXT"),
     ):
         if column not in columns:
             conn.execute(ddl)
@@ -475,6 +481,23 @@ def _migrate(conn: sqlite3.Connection) -> None:
     # sətri kimi görünə bilər - onları birləşdirmək matching-in işidir,
     # bazanın deyil. İndeks yalnız axtarışı sürətləndirir.
     conn.execute("CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode)")
+
+    # match_key: `name_norm` ilə eyni qayda — yalnız NULL olanlar doldurulur.
+    # Yeni çəkilişdən gələn sətirlər növbəti başlanğıcda və ya uyğunlaşdırma
+    # işləyəndə (o, açarları özü yeniləyir) dolur.
+    from ingestion.normalize import match_key  # dövri idxaldan qaçmaq üçün burada
+
+    for row in conn.execute(
+        "SELECT id, name, brand, size_value, size_unit FROM products WHERE match_key IS NULL"
+    ).fetchall():
+        conn.execute(
+            "UPDATE products SET match_key = ? WHERE id = ?",
+            (
+                match_key(row["name"], row["brand"], row["size_value"], row["size_unit"]),
+                row["id"],
+            ),
+        )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_products_match_key ON products(match_key)")
 
     # group_key boş qalan sətirlər öz canonical_key-ini alır
     conn.execute(

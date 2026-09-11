@@ -106,6 +106,118 @@ def canonical_key(
     return key or "namelum"
 
 
+# ------------------------------------------------------------- uyğunlaşdırma açarı
+#
+# NİYƏ canonical_key KİFAYƏT ETMİR? (ölçüldü, 2026-09-11)
+# Bravo (Wolt) ölçünü çox vaxt ayrıca sətirdə yox, ADIN İÇİNDƏ yazır:
+#     «Milla Qatıq 1.5% 450qr»  ->  canonical_key = 450qr|milla|qatiq
+# «450qr» ölçü kimi yox, adi söz kimi açara düşür və Arazın
+# `azersud|qatiq|0.45kg` tipli açarı ilə HEÇ VAXT üst-üstə düşmür.
+# 13 168 Bravo məhsulundan cəmi 855-inin ölçüsü tanınırdı; addan oxuyanda 8 911.
+#
+# NİYƏ canonical_key-i DÜZƏLTMİRİK? O, `products` cədvəlində UNIQUE-dir və
+# mağaza çəkilişi məhsulu məhz onunla tapır. Hesablanma qaydası dəyişsə,
+# növbəti çəkiliş ~13 min YENİ sətir yaradardı: qiymət tarixçəsi ikiyə
+# bölünər, səbətdəki məhsullar köhnə sətirdə qalardı. Ona görə uyğunlaşdırma
+# üçün AYRICA açar hesablanır, köhnəsinə toxunulmur.
+
+# «450qr», «1kq», «10 L», «75ml», «10əd.», «(6əd.)», «1,5 litr»
+# `(?<![\w.,])` — «11x8sm»-dəki «8» və «2x100qr»-dakı «100» ölçü sayılmasın:
+# rəqəmdən əvvəl hərf varsa, bu, ölçü deyil (çoxluq və ya ölçü-ölçü yazısıdır).
+_NAME_SIZE_RE = re.compile(
+    r"(?<![\w.,])(\d+(?:[.,]\d+)?)\s*"
+    r"(kq|kg|qr|gr|ml|litr|lt|ədəd|eded|əd|ed|pcs|q|g|l)\.?(?!\w)",
+    re.IGNORECASE,
+)
+_NAME_UNITS = {
+    "kq": "kg", "kg": "kg",
+    "qr": "g", "gr": "g", "q": "g", "g": "g",
+    "ml": "ml", "litr": "l", "lt": "l", "l": "l",
+    "ədəd": "pcs", "eded": "pcs", "əd": "pcs", "ed": "pcs", "pcs": "pcs",
+}
+
+# Yağlılıq: «2.5%», «3,2 %», «45%» və Wolt-un vergülü itirdiyi «2 5%».
+_FAT_RE = re.compile(r"(?<![\w.,])(\d{1,2})(?:[.,]|\s)?(\d)?\s*%")
+
+
+def size_from_name(name: str | None) -> tuple[float | None, str | None]:
+    """
+    «Milla Qatıq 1.5% 450qr» -> (450.0, 'g').  Ölçü yoxdursa (None, None).
+
+    Bir neçə uyğunluq varsa SONUNCU götürülür: ölçü adətən adın sonundadır,
+    əvvəlindəki rəqəmlər isə çox vaxt model adıdır («7days», «Fairy 2»).
+    """
+    matches = list(_NAME_SIZE_RE.finditer(name or ""))
+    if not matches:
+        return None, None
+    value, unit = matches[-1].groups()
+    return float(value.replace(",", ".")), _NAME_UNITS[unit.lower()]
+
+
+def fat_percent(name: str | None) -> float | None:
+    """
+    «Milla Süd 2 5% 1l» -> 2.5.  Faiz yoxdursa None.
+
+    NİYƏ LAZIMDIR? canonical_key rəqəmləri atır, yəni 2.5% və 3.2% süd eyni
+    açara düşür. Bunlar FƏRQLİ məhsuldur (qiyməti də fərqlidir). Faiz açara
+    yazılmır — ölçü kimi ZİDDİYYƏT şərtidir: hər ikisində varsa və fərqlidirsə,
+    cüt birləşdirilmir.
+    """
+    matches = list(_FAT_RE.finditer(name or ""))
+    if not matches:
+        return None
+    whole, fraction = matches[-1].groups()
+    value = float(f"{whole}.{fraction}" if fraction else whole)
+    return value if 0 < value <= 100 else None
+
+
+def brand_from_name(name: str | None, known_brands: set[str]) -> str | None:
+    """
+    Addakı brendi TANINMIŞ brendlər siyahısına görə tapır. Nəticə slug-dır.
+
+        «Uzun Ömür İvanovka Qatıq 700qr», {"ivanovka"}  -> "ivanovka"
+        «Zeytun Bağları Zeytun Yağı 1l», {"zeytunbaglari"} -> "zeytunbaglari"
+
+    NİYƏ SİYAHI, «ilk söz» YOX? Bravo kartında brend sahəsi YOXDUR və ilk
+    söz çox vaxt brend deyil («Uzun Ömür ...», «Kənd ...»). Siyahı kataloqlardan
+    gəlir (Araz/Rahat-da brend ayrıca yazılır). Bu, həqiqət yox, BLOKLAMA
+    açarıdır: səhv brend ən pis halda cütü LLM-ə göndərir, birləşdirmir.
+
+    Çoxsözlü brendlər («Zeytun Bağları», «7 Days») üçün yan-yana sözlər də
+    birləşdirilib yoxlanılır; ən uzun uyğunluq üstündür.
+    """
+    tokens = [slug_token(t) for t in re.split(r"[\s/\\()-]+", name or "")]
+    tokens = [t for t in tokens if t]
+    for width in (3, 2, 1):
+        for start in range(len(tokens) - width + 1):
+            candidate = "".join(tokens[start:start + width])
+            if candidate in known_brands:
+                return candidate
+    return None
+
+
+def match_key(
+    name: str,
+    brand: str | None,
+    size_value: float | None,
+    size_unit: str | None,
+) -> str:
+    """
+    Uyğunlaşdırma açarı: canonical_key ilə eyni forma, amma ölçü addan da oxunur.
+
+        Bravo  ("Milla Süd 2 5% 1l", None, None, None) -> milla|sud|1l
+        Araz   ("süd", "Milla", 1.0, "l")             -> milla|sud|1l
+
+    Ayrıca sahədəki ölçü ÜSTÜNDÜR: o, kartın/kataloqun strukturlu hissəsindən
+    gəlir, addakı isə mətndir. Ölçü və faiz sözləri addan silinir ki, açara
+    «450qr» kimi söz düşməsin.
+    """
+    if not size_token(size_value, size_unit):
+        size_value, size_unit = size_from_name(name)
+    words = _FAT_RE.sub(" ", _NAME_SIZE_RE.sub(" ", name or ""))
+    return canonical_key(words, brand, size_value, size_unit)
+
+
 def display_label(name: str, brand: str | None) -> str:
     """
     "barilla" + "barilla makaronu" -> "barilla makaronu"
