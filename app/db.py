@@ -506,6 +506,73 @@ def _migrate(conn: sqlite3.Connection) -> None:
     )
 
     _merge_duplicate_stores(conn)
+    _migrate_match_decisions(conn)
+
+
+# UYĞUNLAŞDIRMA QƏRARLARI (ADDIM 4b) — `group_key`-in MƏNBƏYİ.
+#
+# NİYƏ CƏDVƏL? Əvvəl uyğunlaşdırmanın yeganə izi `products.group_key` idi.
+# Bu, üç suala cavab vermirdi:
+#   - bu iki məhsulu KİM birləşdirib - oxşarlıq, LLM, yoxsa insan?
+#   - insan «xeyr, ayrıdır» deyibsə, növbəti qaçış onları YENƏ birləşdirməsin;
+#   - LLM bir cütü artıq cavablandırıbsa, yenidən soruşulmasın.
+# İndi hər cüt üçün bir sətir var və `group_key` bu cədvəldən QURULUR
+# (`ai/matcher.py:rebuild_groups`). Qərar silinsə, qrup da dağılır.
+#
+# `source`:  barcode | auto | llm | human | legacy
+#   legacy — bu cədvəldən ƏVVƏLKİ qaçışların qrupları (aşağıda köçürülür);
+#            kim birləşdirdiyi bilinmir, ona görə ayrıca ad.
+# `decision`: same | different | pending
+#   pending  — maşın qərar verə bilmir, insan baxmalıdır (ADDIM 5).
+#
+# İNSAN QƏRARI ÜSTÜNDÜR: maşın qaçışı `source='human'` sətrinin üstünə
+# yazmır (`record_decisions`). Bu, `product_images.manual` ilə eyni qaydadır.
+#
+# `a_id < b_id`: cüt sırasız saxlanılır - (A,B) və (B,A) iki sətir olmasın.
+# ON DELETE CASCADE: məhsul silinəndə (`tools/purge_orphans.py`, kataloq
+# silinməsi) qərarlar da gedir; əks halda FOREIGN KEY silməni bloklayardı.
+#
+# GERİ QAYTARMAQ: `python -m tools.match_rollback --backup FAYL --yes`.
+_MATCH_DECISIONS_DDL = """
+CREATE TABLE IF NOT EXISTS match_decisions (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    a_id        INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    b_id        INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    decision    TEXT    NOT NULL CHECK (decision IN ('same', 'different', 'pending')),
+    source      TEXT    NOT NULL CHECK (source IN ('barcode', 'auto', 'llm', 'human', 'legacy')),
+    similarity  REAL,
+    reason      TEXT,
+    decided_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+    CHECK (a_id < b_id),
+    UNIQUE (a_id, b_id)
+);
+CREATE INDEX IF NOT EXISTS idx_match_decisions_decision ON match_decisions(decision, source);
+"""
+
+
+def _migrate_match_decisions(conn: sqlite3.Connection) -> None:
+    """
+    Cədvəli yaradır və KÖHNƏ qrupları qərara çevirir (yalnız cədvəl boşdursa).
+
+    Köçürmə olmasa, `group_key` qərarlardan yenidən qurulan kimi əvvəlki
+    qaçışların birləşdirdiyi qruplar sükutla dağılardı. Hər qrupdan ulduz
+    şəklində cüt yazılır (ən kiçik id + qalanları) - union-find üçün kifayətdir.
+    """
+    conn.executescript(_MATCH_DECISIONS_DDL)
+    if conn.execute("SELECT 1 FROM match_decisions LIMIT 1").fetchone():
+        return
+    groups = conn.execute(
+        "SELECT group_key, GROUP_CONCAT(id) AS ids FROM products "
+        "WHERE group_key IS NOT NULL GROUP BY group_key HAVING COUNT(*) > 1"
+    ).fetchall()
+    for group in groups:
+        ids = sorted(int(x) for x in group["ids"].split(","))
+        for other in ids[1:]:
+            conn.execute(
+                "INSERT OR IGNORE INTO match_decisions (a_id, b_id, decision, source, reason) "
+                "VALUES (?, ?, 'same', 'legacy', 'ADDIM 4-dən əvvəlki qrup')",
+                (ids[0], other),
+            )
 
 
 def init_db() -> None:

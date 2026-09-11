@@ -418,17 +418,34 @@ class GuardedUnion(UnionFind):
     birləşdirilir ki, yeni qaçış onları sındırmasın.
     """
 
-    def __init__(self, products: list[dict]) -> None:
+    def __init__(
+        self,
+        products: list[dict],
+        forbidden: set[tuple[int, int]] | None = None,
+        seed: bool = True,
+    ) -> None:
+        """
+        forbidden: «fərqlidir» qərarları (insan və ya LLM) - bu iki məhsul
+            HEÇ VAXT bir qrupda ola bilməz, üçüncü məhsul vasitəsilə də.
+        seed: mövcud group_key-ləri toxum kimi götür. `rebuild_groups` bunu
+            SÖNDÜRÜR: orada qruplar yalnız qərarlardan qurulur.
+        """
         super().__init__()
         self.stores: dict[int, set] = {}
         self.sizes: dict[int, set[str]] = {}
+        self.members: dict[int, set[int]] = {}
+        self.forbidden: dict[int, set[int]] = {}
+        for a, b in forbidden or ():
+            self.forbidden.setdefault(a, set()).add(b)
+            self.forbidden.setdefault(b, set()).add(a)
         by_group: dict[str, list[int]] = {}
         for p in products:
             self.find(p["id"])
             self.stores[p["id"]] = set(p.get("stores") or ())
             size = _size_of(p)
             self.sizes[p["id"]] = {size} if size else set()
-            if p.get("group_key"):
+            self.members[p["id"]] = {p["id"]}
+            if seed and p.get("group_key"):
                 by_group.setdefault(p["group_key"], []).append(p["id"])
         for members in by_group.values():
             for other in members[1:]:
@@ -440,6 +457,13 @@ class GuardedUnion(UnionFind):
         self.parent[root_b] = root_a
         self.stores[root_a] |= self.stores.pop(root_b)
         self.sizes[root_a] |= self.sizes.pop(root_b)
+        self.members[root_a] |= self.members.pop(root_b)
+
+    def _forbidden_between(self, root_a: int, root_b: int) -> bool:
+        """İki qrup arasında «fərqlidir» qərarı olan cüt varmı?"""
+        small, large = sorted((root_a, root_b), key=lambda r: len(self.members[r]))
+        others = self.members[large]
+        return any(self.forbidden.get(m, set()) & others for m in self.members[small])
 
     def union(self, a: int, b: int) -> bool:  # type: ignore[override]
         """Birləşdirildisə (və ya onsuz da birdirsə) True, qadağa varsa False."""
@@ -450,24 +474,38 @@ class GuardedUnion(UnionFind):
             return False
         if len(self.sizes[root_a] | self.sizes[root_b]) > 1:
             return False
+        if self._forbidden_between(root_a, root_b):
+            return False
         self._merge(root_a, root_b)
         return True
 
 
-def apply_groups(products: list[dict], confirmed: list[Candidate], dry_run: bool = False) -> dict:
+def apply_groups(
+    products: list[dict],
+    confirmed: list[Candidate],
+    dry_run: bool = False,
+    forbidden: set[tuple[int, int]] | None = None,
+    rebuild: bool = False,
+    ordered: bool = False,
+) -> dict:
     """
     Təsdiqlənmiş cütləri qruplara çevirir və DB-yə yazır.
 
-    Cütlər BALA GÖRƏ azalan sırada birləşdirilir: iki cüt ziddiyyət
-    yaradırsa (bax `GuardedUnion`), daha etibarlı olan qalib gəlir, digəri
-    `refused` siyahısına düşür — itmir, göstərilir.
+    Cütlər BALA GÖRƏ azalan sırada birləşdirilir (`ordered=True` olsa -
+    çağıranın sırası ilə): iki cüt ziddiyyət yaradırsa (bax `GuardedUnion`),
+    daha etibarlı olan qalib gəlir, digəri `refused` siyahısına düşür —
+    itmir, göstərilir.
+
+    rebuild=True: qruplar YALNIZ bu cütlərdən qurulur (mövcud group_key
+    toxum deyil) və heç bir qrupa düşməyən məhsul öz canonical_key-inə
+    qayıdır. `rebuild_groups` belə çağırır — qərar silinəndə qrup da dağılsın.
 
     Qrupun adı - içindəki ən kiçik canonical_key. Beləliklə nəticə
     təkrar işlətmədən asılı olmur (deterministikdir).
     """
-    union = GuardedUnion(products)
-    refused = [c for c in sorted(confirmed, key=lambda c: -c.similarity)
-               if not union.union(c.a_id, c.b_id)]
+    union = GuardedUnion(products, forbidden=forbidden, seed=not rebuild)
+    order = confirmed if ordered else sorted(confirmed, key=lambda c: -c.similarity)
+    refused = [c for c in order if not union.union(c.a_id, c.b_id)]
 
     groups: dict[int, list[dict]] = {}
     for p in products:
@@ -478,6 +516,9 @@ def apply_groups(products: list[dict], confirmed: list[Candidate], dry_run: bool
     changes: list[tuple[str, int]] = []
     for members in groups.values():
         if len(members) < 2:
+            alone = members[0]
+            if rebuild and alone.get("group_key") != alone["canonical_key"]:
+                changes.append((alone["canonical_key"], alone["id"]))
             continue
         group_key = min(m["canonical_key"] for m in members)
         changes += [(group_key, m["id"]) for m in members if m.get("group_key") != group_key]
@@ -487,6 +528,117 @@ def apply_groups(products: list[dict], confirmed: list[Candidate], dry_run: bool
             cur.executemany("UPDATE products SET group_key = ? WHERE id = ?", changes)
 
     return {"updated": len(changes), "refused": refused}
+
+
+# ------------------------------------------------------------- qərar yaddaşı (ADDIM 4b)
+#
+# `match_decisions` cədvəli `group_key`-in MƏNBƏYİDİR (sxem və səbəbi:
+# `app/db.py:_MATCH_DECISIONS_DDL`). Qruplar hər dəfə qərarlardan qurulur.
+
+# Ziddiyyətdə kim qalib gəlir? Siyahıda ƏVVƏL gələn.
+SOURCE_PRIORITY = {"human": 0, "barcode": 1, "auto": 2, "legacy": 3, "llm": 4}
+
+_UPSERT = (
+    "INSERT INTO match_decisions (a_id, b_id, decision, source, similarity, reason) "
+    "VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(a_id, b_id) DO UPDATE SET "
+    "decision = excluded.decision, source = excluded.source, decided_at = datetime('now'), "
+)
+# Maşın: bal və səbəb yenilənir, amma İNSAN QƏRARININ üstünə yazılmır.
+_UPSERT_MACHINE = _UPSERT + (
+    "similarity = excluded.similarity, reason = excluded.reason "
+    "WHERE match_decisions.source != 'human'"
+)
+# İnsan: hər şeyin üstündədir. Bal və səbəb (məs. «ölçü bilinmir») qalır -
+# admin ekranı sonra da cütün niyə soruşulduğunu göstərə bilsin.
+_UPSERT_HUMAN = _UPSERT + (
+    "similarity = COALESCE(excluded.similarity, match_decisions.similarity), "
+    "reason = COALESCE(excluded.reason, match_decisions.reason)"
+)
+
+
+def _pair_key(a_id: int, b_id: int) -> tuple[int, int]:
+    """Cüt sırasızdır: (A,B) və (B,A) eyni açardır (cədvəldə `a_id < b_id`)."""
+    return (a_id, b_id) if a_id < b_id else (b_id, a_id)
+
+
+def load_decisions() -> dict[tuple[int, int], dict]:
+    conn = get_connection()
+    try:
+        rows = conn.execute(
+            "SELECT a_id, b_id, decision, source, similarity, reason, decided_at "
+            "FROM match_decisions"
+        ).fetchall()
+    finally:
+        conn.close()
+    return {(r["a_id"], r["b_id"]): dict(r) for r in rows}
+
+
+def record_decisions(rows: list[dict]) -> int:
+    """MAŞIN qərarlarını yazır. `source='human'` sətrinə toxunmur."""
+    if not rows:
+        return 0
+    params = []
+    for r in rows:
+        a, b = _pair_key(r["a_id"], r["b_id"])
+        params.append((a, b, r["decision"], r["source"], r.get("similarity"), r.get("reason")))
+    with db_cursor() as cur:
+        cur.executemany(_UPSERT_MACHINE, params)
+    return len(params)
+
+
+def rebuild_groups(
+    products: list[dict] | None = None, dry_run: bool = False, extra: list[dict] | None = None
+) -> dict:
+    """
+    `group_key`-i BÜTÜN qərarlardan yenidən qurur.
+
+    Sıra: insan > barkod > avtomatik > köhnə > LLM; eyni mənbədə bala görə.
+    «different» qərarları qadağa kimi keçir - üçüncü məhsul vasitəsilə də.
+
+    extra: hələ YAZILMAMIŞ qərarlar (dry_run üçün) - cədvəldəki mənzərənin
+    üstünə qoyulur, amma insan qərarını əvəz etmir.
+    """
+    products = products if products is not None else load_products()
+    by_id = {p["id"]: p for p in products}
+
+    decisions = load_decisions()
+    for r in extra or ():
+        key = _pair_key(r["a_id"], r["b_id"])
+        if decisions.get(key, {}).get("source") != "human":
+            decisions[key] = {**r, "a_id": key[0], "b_id": key[1]}
+
+    same = [
+        d for d in decisions.values()
+        if d["decision"] == "same" and d["a_id"] in by_id and d["b_id"] in by_id
+    ]
+    same.sort(key=lambda d: (SOURCE_PRIORITY.get(d["source"], 9), -(d.get("similarity") or 0)))
+    forbidden = {key for key, d in decisions.items() if d["decision"] == "different"}
+
+    confirmed = [
+        Candidate(
+            a_id=d["a_id"],
+            b_id=d["b_id"],
+            a_text=product_text(by_id[d["a_id"]]),
+            b_text=product_text(by_id[d["b_id"]]),
+            similarity=d.get("similarity") or 1.0,
+        )
+        for d in same
+    ]
+    return apply_groups(
+        products, confirmed, dry_run=dry_run, forbidden=forbidden, rebuild=True, ordered=True
+    )
+
+
+def decide(a_id: int, b_id: int, same: bool) -> dict:
+    """
+    İNSAN qərarı (ADDIM 5, `/admin/matches`). Hər şeyin üstündədir və maşın
+    qaçışları onu dəyişmir. Qruplar dərhal yenidən qurulur - istifadəçi
+    düyməni basan kimi səbət müqayisəsi yeni vəziyyəti görür.
+    """
+    a, b = _pair_key(a_id, b_id)
+    with db_cursor() as cur:
+        cur.execute(_UPSERT_HUMAN, (a, b, "same" if same else "different", "human", None, None))
+    return rebuild_groups()
 
 
 def split_by_size(
@@ -531,15 +683,46 @@ def run_matching(limit: int = 20, use_cache: bool = True, dry_run: bool = False)
     to_llm, to_human = split_by_size(products, suspicious)
     by_barcode = barcode_candidates(products)
 
-    selected = to_llm[:limit]
+    # ARTIQ QƏRARI OLAN CÜT YENİDƏN SORUŞULMUR. Keş yalnız EYNİ MƏTNİ tutur
+    # (ad bir hərf dəyişsə, yenidən soruşardı); qərar cədvəli isə cütün özünü.
+    # İnsan qərarı olan cüt də LLM-ə getmir - cavabı onsuz da nəzərə alınmazdı.
+    known = load_decisions()
+
+    def answered(c: Candidate, sources: set[str]) -> bool:
+        d = known.get(_pair_key(c.a_id, c.b_id))
+        return bool(d) and d["source"] in sources and d["decision"] != "pending"
+
+    selected = [c for c in to_llm if not answered(c, {"llm", "human"})][:limit]
     if dry_run:
         confirmed = []
         stats = {"checked": 0, "from_cache": 0, "from_llm": 0, "failed": 0, "confirmed": 0}
     else:
         confirmed, stats = verify_candidates(selected, use_cache=use_cache)
 
+    def decision(c: Candidate, verdict: str, source: str, reason: str | None = None) -> dict:
+        return {"a_id": c.a_id, "b_id": c.b_id, "decision": verdict, "source": source,
+                "similarity": c.similarity, "reason": reason}
+
+    new = [decision(c, "same", "barcode") for c in by_barcode]
+    new += [decision(c, "same", "auto") for c in auto]
+    new += [decision(c, "same", "llm") for c in confirmed]
+    # «Fərqlidir» YALNIZ LLM HƏQİQƏTƏN cavab veribsə yazılır. Çağırışlardan biri
+    # uğursuz olubsa (şəbəkə, limit), hansının olduğu buradan bilinmir - onda
+    # heç biri «fərqli» yazılmır və növbəti qaçışda yenidən soruşulur. Xətanı
+    # «fərqlidir» kimi yadda saxlamaq həmin cütü əbədi ayırardı.
+    if not dry_run and not stats.get("failed"):
+        new += [decision(c, "different", "llm") for c in selected if c not in confirmed]
+    new += [
+        decision(c, "pending", "auto", "ölçü bilinmir")
+        for c in to_human
+        if not answered(c, {"human"})
+    ]
+
+    if not dry_run:
+        record_decisions(new)
     merged = by_barcode + auto + confirmed
-    result = apply_groups(products, merged, dry_run=dry_run)
+    # Qruplar BÜTÜN qərarlardan qurulur (bu qaçışın + əvvəlkilərin + insanın).
+    result = rebuild_groups(products, dry_run=dry_run, extra=new if dry_run else None)
 
     def pair(c: Candidate) -> dict:
         return {"a": c.a_text, "b": c.b_text, "similarity": c.similarity}
