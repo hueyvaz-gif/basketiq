@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field
 
 from app.ads import (
     SLOTS,
+    ad_target,
     create_ad,
     current_ad,
     delete_ad,
@@ -64,12 +65,15 @@ def slot_ad(slot: str):
 
     GÖSTƏRİM BURADA SAYILIR. Dürüst adı «göstərilmək üçün göndərildi»dir:
     istifadəçinin ekranında həqiqətən görünüb-görünmədiyini server bilə bilməz.
+
+    LOKALDA SAYILMIR (`settings.ads_count_enabled`, defolt yalnız production):
+    tərtibatçının öz yeniləmələri reklamverənin hesabatına yazılmasın.
     """
     if slot not in SLOTS:
         raise HTTPException(404, f"Naməlum slot: '{slot}'")
 
     ad = current_ad(slot)
-    if ad:
+    if ad and settings.ads_count_enabled:
         record_impression(ad["id"])
     # `contact` boş slotun CTA-sı üçündür (E20). Ünvan konfiqurasiyadadır -
     # kodda uydurma e-poçt saxlamırıq.
@@ -84,8 +88,10 @@ def click(ad_id: int):
     NİYƏ YÖNLƏNDİRMƏ, JS SAYĞACI YOX? Keçid adi `<a href>`-dir: JS sönük olsa
     da, reklam işləyir və klik yenə sayılır. Sayğac JS-ə bağlansaydı,
     reklamverənin hesabatı istifadəçinin brauzer ayarından asılı olardı.
+
+    Lokalda klik SAYILMIR, amma yönləndirmə eyni işləyir (`ad_target`).
     """
-    hədəf = record_click(ad_id)
+    hədəf = record_click(ad_id) if settings.ads_count_enabled else ad_target(ad_id)
     if not hədəf:
         raise HTTPException(404, "reklam tapılmadı")
     # Yalnız veb ünvanına yönləndiririk: `javascript:` və `data:` sxemləri

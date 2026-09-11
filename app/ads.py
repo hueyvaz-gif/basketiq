@@ -234,6 +234,16 @@ def record_click(ad_id: int) -> str | None:
         return row["target_url"] if row else None
 
 
+def ad_target(ad_id: int) -> str | None:
+    """Hədəf ünvan - SAYMADAN. Sayğac sönülü olanda (lokal) klik yenə yönləndirməlidir."""
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT target_url FROM ads WHERE id = ?", (ad_id,)).fetchone()
+        return row["target_url"] if row else None
+    finally:
+        conn.close()
+
+
 # --------------------------------------------------------------- nümunə sifariş
 
 SAMPLE_IMAGE = "/static/images/ads/sample-banner.svg"

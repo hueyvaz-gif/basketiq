@@ -129,7 +129,13 @@ def test_bitmə_tarixi_başlanğıcdan_əvvəl_ola_bilməz():
 # ----------------------------------------------------------------- sayğaclar
 
 
-def test_göstərim_endpoint_də_sayılır():
+@pytest.fixture
+def sayğac_açıq(monkeypatch):
+    """Sayğac defoltda yalnız istehsalda sayır; testlər lokal mühitdədir - açılır."""
+    monkeypatch.setattr(settings, "ads_count_enabled", True)
+
+
+def test_göstərim_endpoint_də_sayılır(sayğac_açıq):
     """Hesabat rəqəmi serverdə artır: JS sönük olsa da hesabat işləyir."""
     ad_id = _sifariş()
     client.get("/api/ads/slot/home-banner")
@@ -138,13 +144,13 @@ def test_göstərim_endpoint_də_sayılır():
     assert sifarişlər[ad_id]["impressions"] == 2
 
 
-def test_boş_slot_göstərim_saymır():
+def test_boş_slot_göstərim_saymır(sayğac_açıq):
     """Sayılacaq reklam yoxdursa, rəqəm də yaranmamalıdır."""
     client.get("/api/ads/slot/home-banner")
     assert list_ads() == []
 
 
-def test_klik_sayılır_və_yönləndirir():
+def test_klik_sayılır_və_yönləndirir(sayğac_açıq):
     ad_id = _sifariş(target_url="https://example.com/hedef")
     res = client.get(f"/api/ads/{ad_id}/click", follow_redirects=False)
     assert res.status_code == 307
@@ -163,6 +169,66 @@ def test_veb_olmayan_hədəf_yönləndirilmir():
 
 def test_olmayan_reklama_klik_404_verir():
     assert client.get("/api/ads/999999/click", follow_redirects=False).status_code == 404
+
+
+# ------------------------------------------- lokalda sayılmır (2026-09-11)
+#
+# Tərtibatçının öz yeniləmələri real reklamverənin hesabatına yazılırdı: bir
+# gündə LTC LAB-a 15 «göstərim» düşdü, sayğac dəfələrlə əl ilə sıfırlandı.
+
+
+def test_lokalda_göstərim_sayılmır_reklam_isə_göstərilir(monkeypatch):
+    monkeypatch.setattr(settings, "ads_count_enabled", False)
+    ad_id = _sifariş()
+
+    res = client.get("/api/ads/slot/home-banner")
+
+    assert res.json()["ad"]["id"] == ad_id, "sayğac sönülü olsa da reklam göstərilməlidir"
+    assert {a["id"]: a for a in list_ads()}[ad_id]["impressions"] == 0
+
+
+def test_lokalda_klik_sayılmır_amma_yönləndirir(monkeypatch):
+    monkeypatch.setattr(settings, "ads_count_enabled", False)
+    ad_id = _sifariş(target_url="https://example.com/hedef")
+
+    res = client.get(f"/api/ads/{ad_id}/click", follow_redirects=False)
+
+    assert res.status_code == 307 and res.headers["location"] == "https://example.com/hedef"
+    assert {a["id"]: a for a in list_ads()}[ad_id]["clicks"] == 0
+
+
+def test_lokalda_da_olmayan_reklama_klik_404_verir(monkeypatch):
+    monkeypatch.setattr(settings, "ads_count_enabled", False)
+
+    assert client.get("/api/ads/999999/click", follow_redirects=False).status_code == 404
+
+
+@pytest.mark.parametrize(
+    ("app_env", "ads_count", "gözlənən"),
+    [
+        ("production", "", "True"),     # serverdə sayılır
+        ("development", "", "False"),   # lokalda sayılmır
+        ("development", "1", "True"),   # lokalda sayğacı sınamaq üçün açılır
+        ("production", "0", "False"),
+    ],
+)
+def test_sayğac_defoltu_mühitdən_asılıdır(app_env, ads_count, gözlənən):
+    """Ayrı prosesdə: `settings` import zamanı hesablanır, bu prosesdə artıq hazırdır."""
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    env = {**os.environ, "APP_ENV": app_env, "ADS_COUNT": ads_count}
+    çıxış = subprocess.run(
+        [sys.executable, "-c", "from app.config import settings; print(settings.ads_count_enabled)"],
+        cwd=Path(__file__).resolve().parent.parent,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert çıxış.stdout.strip() == gözlənən, çıxış.stderr
 
 
 def test_sayğaclar_əl_ilə_redaktə_oluna_bilmir():

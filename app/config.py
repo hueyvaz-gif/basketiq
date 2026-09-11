@@ -43,7 +43,17 @@ def _path(name: str, default: Path) -> Path:
 
 
 def _bool(name: str, default: bool) -> bool:
-    return os.getenv(name, str(default)).strip().lower() in {"1", "true", "yes", "on"}
+    """
+    Bayraq dəyişəni. BOŞ DƏYƏR = VERİLMƏYİB -> defolt (`_path` və `_int` kimi).
+
+    Əvvəl `ADS_COUNT=` (boş) `False` oxunurdu: istehsalda `.env`-də boş sətir
+    reklam sayğacını SƏSSİZCƏ söndürərdi və `.env.example`-dakı «boş buraxılsa,
+    APP_ENV-dən hesablanır» şərhi yalan olardı (2026-09-11, testdə tutuldu).
+    """
+    raw = os.getenv(name, "").strip().lower()
+    if not raw:
+        return default
+    return raw in {"1", "true", "yes", "on"}
 
 
 def _float(name: str, default: float) -> float:
@@ -121,6 +131,15 @@ class Settings:
     # productionda bağlı. `ADMIN_ENABLED=1` istehsalda da açır - bu, ŞÜURLU
     # qərar tələb edir.
     admin_enabled: bool = _bool("ADMIN_ENABLED", _str("APP_ENV", "development") != "production")
+
+    # REKLAM SAYĞACI (göstərim/klik) — YALNIZ İSTEHSALDA SAYILIR (2026-09-11).
+    #
+    # Lokalda sayt sahibinin öz baxışları real reklamverənin hesabatına
+    # yazılırdı: bir gündə LTC LAB-a 15 «göstərim» düşdü - hamısı səhifəni
+    # yeniləyən tərtibatçı idi (server jurnalı: hər `GET /`-dan sonra bir slot
+    # sorğusu), sayğac isə dəfələrlə əl ilə sıfırlanırdı. Defolt admin_enabled
+    # kimi mühitdən asılıdır; `ADS_COUNT=1` lokalda da sayır (sayğacı sınamaq üçün).
+    ads_count_enabled: bool = _bool("ADS_COUNT", _str("APP_ENV", "development") == "production")
 
     # REKLAM ƏLAQƏ ÜNVANI (E20). Boş slotdakı «Reklam ver» düyməsi buraya
     # yazır. UYDURMA ÜNVAN YAZILMIR: qeyri-mövcud e-poçt reklamverəni
