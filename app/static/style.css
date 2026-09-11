@@ -1092,6 +1092,19 @@ table.lines.is-dense .is-soon-col {
    bu həddən aşağıda market adı başlıqda kəsilir (420px-də ölçüldü). */
 #compareTableWrap table.lines { min-width: 900px; }
 
+/* ADMİN CƏDVƏLLƏRİ DƏ SIXILMIR, SÜRÜŞÜR (2026-09-11, viewport əlavə olunanda).
+   Telefonda (390px) `.table-scroll` qutusu 294px-dir və cədvəl ona sığmağa
+   çalışırdı: uzun mətnli sütunlar dar qalıb onlarla sətrə sınırdı.
+   BRAUZERDƏ ÖLÇÜLDÜ (ən hündür sətir, px):
+     Reklam sifarişləri: minimumsuz 222 · 640→107 · 720→107 (qalanı 71) · 864→65
+     Market əhatəsi:     minimumsuz 296 · 720→112 · 800→96 · 900→95 · 1000→80
+   Seçim: reklam 720 (ən böyük qazanc buradadır, sonra az artır), əhatə 900 -
+   telefonda sətirlər masaüstündəki ilə EYNİ olur (80/64/80/95). 1000 olmaz:
+   masaüstü qutusu 912px-dir və cədvəl orada da sürüşməyə başlayardı.
+   Masaüstündə (1280px) hər iki qayda heç nə dəyişmir - ölçüldü. */
+#adsList table.lines { min-width: 720px; }
+#coverageTable table.lines { min-width: 900px; }
+
 /* Fixed rejimdə eni verilməyən sütunlar qalıq eni BƏRABƏR bölür - məhsul adı
    qiymət sütunu qədər dar qalardı. Ona görə cədvəlin iki ucunu özümüz təyin
    edirik: ad sütunu (çoxsətirli məzmun) və silmə düyməsi. Ortadakı qiymət

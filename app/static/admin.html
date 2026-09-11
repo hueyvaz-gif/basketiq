@@ -10,6 +10,10 @@
   bağlıdır və səhifə 404 verir).
 -->
 <title>Admin — BasketIQ</title>
+<!-- Viewport: onsuz telefon səhifəni 980px kimi qurub kiçildir və mobil
+     qaydalar (`@media (max-width: 600px)`) heç işə düşmür. Bütün digər
+     səhifələrdə (istifadəçi, səbət, /admin/matches) bu teq artıq var. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="/static/style.css">
 <script src="/static/i18n.js"></script>
@@ -136,7 +140,11 @@
         bitən reklam öz-özünə dayanır.
       </p>
 
-      <div id="adsList">
+      <!-- `.table-scroll`: sifariş cədvəli ~450px endədir. Qabı sürüşən
+           olmasa, telefonda (390px) BÜTÜN səhifəni genişləndirirdi - brauzer
+           səhifəni 500px-ə sığdırıb kiçildirdi (viewport əlavə olunanda
+           ölçüldü). «Market əhatəsi» cədvəlinin qabı ilə eyni qayda. -->
+      <div id="adsList" class="table-scroll">
         <div class="skeleton-row" style="height:56px"></div>
       </div>
 
