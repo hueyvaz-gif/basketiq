@@ -56,6 +56,16 @@ def _float(name: str, default: float) -> float:
 # Modul səviyyəsində hesablanır, çünki sinif gövdəsindən funksiya çağırmaq olmaz
 DATA_DIR = _path("DATA_DIR", BASE_DIR / "data")
 
+# YÜKLƏNƏN VƏ YARADILAN ŞƏKİLLƏR: reklam kreativi, məhsul fotosu, kataloq kəsiyi.
+#
+# Lokalda defolt `app/static`-dir - fayllar kodun yanındadır, heç nə dəyişmir.
+# Docker-də `MEDIA_DIR=/data/media` verilir: şəkillər bazanın yanında, EYNİ
+# volume-dadır. Əvvəl onlar həmişə `app/static`-də idi - konteynerdə bu, image-in
+# öz fayl sistemidir və hər yeniləmədə (`build` + `up`) silinirdi, baza isə
+# hələ də onlara istinad edirdi (2026-09-11-də, ilk deploy-dan əvvəl tapıldı).
+# URL-lər DƏYİŞMİR: `/static` mount-u əvvəl koda, sonra buraya baxır (app/main.py).
+MEDIA_DIR = _path("MEDIA_DIR", BASE_DIR / "app" / "static")
+
 
 class Settings:
     # --- LLM ---
@@ -143,6 +153,7 @@ class Settings:
     raw_dir: Path = DATA_DIR / "raw"      # yüklənmiş PDF/JPG kataloqlar
     text_dir: Path = DATA_DIR / "text"    # OCR/pypdf çıxışı
     db_path: Path = _path("DATABASE_PATH", DATA_DIR / "basketiq.db")
+    media_dir: Path = MEDIA_DIR           # şəkillər (yuxarıdakı MEDIA_DIR qeydinə bax)
 
     # --- OCR ---
     tesseract_cmd: str = _str("TESSERACT_CMD", "")
@@ -182,7 +193,10 @@ class Settings:
     def ensure_dirs(self) -> None:
         """Lazımi qovluqlar yoxdursa yaradılır."""
         for path in (self.data_dir, self.raw_dir, self.text_dir,
-                     self.data_dir / "cache" / "extract"):
+                     self.data_dir / "cache" / "extract",
+                     self.media_dir / "images" / "ads",
+                     self.media_dir / "images" / "products",
+                     self.media_dir / "product_images"):
             path.mkdir(parents=True, exist_ok=True)
 
 

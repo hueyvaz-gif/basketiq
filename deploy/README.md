@@ -40,7 +40,11 @@ usermod -aG docker basketiq
 
 ```bash
 su - basketiq
-git clone <repo> basketiq && cd basketiq
+# Repo PRIVATE-dir. Droplet-ə yalnız BU repoya, yalnız OXUMAQ icazəsi olan açar:
+ssh-keygen -t ed25519 -f ~/.ssh/basketiq_deploy -N ""
+cat ~/.ssh/basketiq_deploy.pub   # GitHub → repo Settings → Deploy keys → Add ("write" işarələnmir)
+git config --global core.sshCommand "ssh -i ~/.ssh/basketiq_deploy"   # sonrakı `git pull` üçün də
+git clone git@github.com:hueyvaz-gif/basketiq.git basketiq && cd basketiq
 cp .env.example .env
 nano .env
 ```
@@ -126,7 +130,13 @@ autentifikasiyasız LLM serveri internetdə qalmamalıdır.
 ## Data və ehtiyat nüsxə
 
 Yazılan hər şey **tək volume-dadır** (`basketiq_data` → konteynerdə `/data`):
-baza, xam kataloqlar, OCR mətni, LLM keşi.
+baza, xam kataloqlar, OCR mətni, LLM keşi və şəkillər (`/data/media`: reklam
+kreativləri, məhsul fotoları, kataloq kəsikləri — `MEDIA_DIR`). Şəkillər əvvəl
+`app/static`-də, yəni image-in içində idi və hər yeniləmədə silinirdi.
+
+Volume-un adı `docker-compose.yml`-də **sabitdir** (`name: basketiq_data`).
+Olmasa compose onu qovluq adı ilə prefiksləyir (`basketiq_basketiq_data`) və
+aşağıdakı əmrlər mövcud olmayan — yəni boş yeni — volume-u arxivləyərdi.
 
 ```bash
 # Ehtiyat nüsxə
@@ -140,6 +150,31 @@ docker run --rm -v basketiq_data:/data -v $(pwd):/backup alpine \
 
 Niyə tək volume? Data üç yerə dağılsaydı (baza ayrı, fayllar ayrı, keş ayrı),
 ehtiyat nüsxə natamam ola bilərdi: baza kataloqa istinad edir, fayl isə yoxdur.
+
+### İlk deploy: lokal datanı serverə daşımaq
+
+Baza və şəkillər repoda **yoxdur** (`.gitignore`) — təmiz `git clone`-dan sayt
+boş açılır, reklamın şəkli 404 olur. Lokal datanı volume-un quruluşunda
+(`basketiq.db` + `media/`) bir arxivə yığ:
+
+```bash
+# Lokal maşında, layihə qovluğunda (Git Bash)
+mkdir -p export/media/images
+cp data/basketiq.db export/
+cp -r app/static/images/ads app/static/images/products export/media/images/
+cp -r app/static/product_images export/media/
+tar czf basketiq-data.tar.gz -C export . && rm -rf export
+scp basketiq-data.tar.gz basketiq@<IP>:~/basketiq/
+```
+
+Serverdə — baza açıq ikən üzərinə yazılmasın deyə əvvəl dayandır:
+
+```bash
+docker compose stop basketiq
+docker run --rm -v basketiq_data:/data -v $(pwd):/backup alpine \
+  tar xzf /backup/basketiq-data.tar.gz -C /data
+docker compose up -d basketiq
+```
 
 ## Yeniləmə
 
@@ -162,6 +197,8 @@ data silmək lazım deyil.
 | Azərbaycan dil faylları | `data/tessdata` image-dədir, `TESSDATA_DIR` göstərir |
 | `APP_ENV=production` API açarı tələb edir | açarsız `POST /api/scrape/araz` → **401** |
 | Data qalıcı volume-dadır | `DATA_DIR=/data` |
+| Şəkillər konteyner yenidən yaradılanda qalır | kreativ yükləndi → `/data/media/images/ads` → konteyner silinib yenidən yaradıldı → eyni URL yenə **200** (2026-09-11) |
+| Lokal şəkillər image-ə düşmür | image-də `images/ads`-da yalnız 2 nümunə, `product_images` və `images/products` boş |
 | Ollama daxili şəbəkədən əlçatandır | `/health` → `reachable: true` |
 | compose sintaksisi | `docker compose config` |
 

@@ -19,13 +19,16 @@ services:
     env_file:
       - .env
     environment:
-      # Bu üçü .env-dəkindən ÜSTÜNDÜR - konteynerdə başqa cür ola bilməz.
+      # Bunlar .env-dəkindən ÜSTÜNDÜR - konteynerdə başqa cür ola bilməz.
       # Ollama artıq localhost-da deyil, qonşu servisdədir.
+      # MEDIA_DIR /data-nın İÇİNDƏDİR: şəkillər bazanın yanında, eyni volume-da.
       APP_ENV: production
       OLLAMA_BASE_URL: http://ollama:11434
       DATA_DIR: /data
+      MEDIA_DIR: /data/media
     volumes:
-      # Yazılan hər şey burada: baza, xam kataloqlar, OCR mətni, LLM keşi.
+      # Yazılan hər şey burada: baza, xam kataloqlar, OCR mətni, LLM keşi,
+      # şəkillər (media/).
       # Konteyner silinsə də data qalır.
       - basketiq_data:/data
     depends_on:
@@ -60,6 +63,11 @@ services:
       - basketiq
 
 volumes:
+  # AD SABİTDİR. Olmasa compose onu qovluq adı ilə prefiksləyir
+  # (`basketiq_basketiq_data`) və deploy/README.md-dəki ehtiyat nüsxə əmri
+  # (`-v basketiq_data:/data`) mövcud olmayan, yəni BOŞ yeni volume-u
+  # arxivləyərdi - səssizcə, xətasız.
   basketiq_data:
+    name: basketiq_data
   ollama_models:
   n8n_data:

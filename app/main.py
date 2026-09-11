@@ -7,6 +7,7 @@ Sağlamlıq:   http://localhost:8000/health
 """
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import Depends, FastAPI
 from fastapi.responses import FileResponse
@@ -56,7 +57,21 @@ NO_CACHE = "no-cache, must-revalidate"
 
 
 class RevalidatedStaticFiles(StaticFiles):
-    """Hər statik cavaba `Cache-Control: no-cache` əlavə edir."""
+    """
+    Hər statik cavaba `Cache-Control: no-cache` əlavə edir.
+
+    MEDIA QOVLUĞU (`settings.media_dir`): kod qovluğunda olmayan fayl orada
+    axtarılır - yüklənən kreativ və məhsul şəkilləri Docker-də bazanın
+    volume-undadır, URL isə köhnədir (`/static/images/ads/...`). SIRA QƏSDƏNDİR:
+    əvvəl kod, sonra media - media faylı heç vaxt `style.css`-in yerinə keçə
+    bilməz. Qovluqdan kənara çıxış yoxlaması hər qovluq üçün Starlette-in
+    özündədir (`lookup_path`). Lokalda media elə kod qovluğudur - əlavə yoxdur.
+    """
+
+    def __init__(self, *, directory, media_directory=None, **kwargs):
+        super().__init__(directory=directory, **kwargs)
+        if media_directory is not None and Path(media_directory).resolve() != Path(directory).resolve():
+            self.all_directories = [*self.all_directories, str(media_directory)]
 
     def file_response(self, *args, **kwargs):
         response = super().file_response(*args, **kwargs)
@@ -113,7 +128,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.mount("/static", RevalidatedStaticFiles(directory=STATIC_DIR), name="static")
+app.mount(
+    "/static",
+    RevalidatedStaticFiles(directory=STATIC_DIR, media_directory=settings.media_dir),
+    name="static",
+)
 app.include_router(catalogs.router)
 app.include_router(catalog.router)
 app.include_router(products.router)

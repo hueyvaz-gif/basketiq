@@ -32,7 +32,6 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
-from pathlib import Path
 
 from app.config import settings
 from app.db import db_cursor, get_connection
@@ -45,7 +44,8 @@ USER_AGENT = "BasketIQ-Student-Project/1.0 (educational; contact: groupf766@gmai
 
 SITEMAP_INDEX = "https://www.arazmarket.az/sitemap.xml"
 CATEGORY_SITEMAP = "https://www.arazmarket.az/sitemap-categories.xml"
-IMAGE_DIR = Path(__file__).resolve().parent.parent / "static" / "product_images"
+# Media qovluğundadır (`settings.media_dir`) - Docker-də bazanın volume-u.
+IMAGE_DIR = settings.media_dir / "product_images"
 IMAGE_URL_PREFIX = "/static/product_images"
 
 # Şəkil formatı: webp - eyni keyfiyyətdə PNG-dən 4-5 dəfə kiçikdir və

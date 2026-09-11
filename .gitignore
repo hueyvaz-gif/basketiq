@@ -29,9 +29,12 @@ app/static/product_images/*
 app/static/images/products/*
 !app/static/images/products/.gitkeep
 
-# Yuklenen reklam kreativleri generasiya olunur; numune banner repoda qalir
+# Yuklenen reklam kreativleri generasiya olunur; numune bannerler repoda qalir.
+# sample-rail.svg burada yox idi - repoya dusmurdu, amma kod (app/ads.py) ve
+# test ona istinad edir: temiz clone-da yan lovhe numunesi tapilmirdi.
 app/static/images/ads/*
 !app/static/images/ads/sample-banner.svg
+!app/static/images/ads/sample-rail.svg
 
 # Brauzer yoxlamasi ucun Playwright (Node). `package.json` REPODADIR - hansi
 # alet ve hansi versiya isledildiyi qeyde alinmalidir; qovlugun ozu yox.

@@ -21,6 +21,16 @@ data/cache/
 data/*.db
 data/*.png
 
+# Yüklənən və yaradılan şəkillər image-ə DÜŞMÜR - konteynerdə onlar volume-dadır
+# (MEDIA_DIR=/data/media). Image-ə düşsəydilər, eyni adlı volume faylını
+# KÖLGƏLƏYƏRDİLƏR (`/static` əvvəl kod qovluğuna baxır, app/main.py): məsələn
+# lokal `p12.jpg` serverdəki başqa məhsulun şəklinin yerinə çıxardı.
+app/static/images/ads/*
+!app/static/images/ads/sample-banner.svg
+!app/static/images/ads/sample-rail.svg
+app/static/product_images/
+app/static/images/products/
+
 # Git və sənədlər
 .git/
 .gitignore

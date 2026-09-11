@@ -1257,6 +1257,7 @@ HTTPS, ehtiyat nüsxə, nə sınanıb / nə sınanmayıb.
 | Qərar | Səbəb |
 |---|---|
 | `DATA_DIR` ilə tək volume | baza, kataloqlar, OCR mətni, keş bir yerdə — ehtiyat nüsxə natamam qalmır |
+| Şəkillər `MEDIA_DIR=/data/media`-da | `app/static`-də qalsaydılar hər yeniləmədə silinərdi, baza isə onlara istinad edərdi; URL-lər dəyişmir |
 | Ollama portu dərc olunmur | autentifikasiyasız LLM serveri internetdə qalmamalıdır |
 | `python:3.13-slim`, alpine yox | alpine-də pillow/lxml mənbədən kompilyasiya olunur (dəqiqələr) |
 | Dil faylları image-də | `apt`-dakı `tesseract-ocr-aze` versiyası fərqli ola bilər; bizimki sınanıb |

@@ -38,9 +38,10 @@ from PIL import Image
 
 from app.config import settings
 
-# Şəkillər statik qovluqdadır - server onları birbaşa verir, ayrıca endpoint
-# lazım deyil.
-PRODUCT_IMAGE_DIR = settings.base_dir / "app" / "static" / "images" / "products"
+# Şəkillər media qovluğundadır (`settings.media_dir`; lokalda `app/static`,
+# Docker-də bazanın volume-u) - `/static` mount-u onları birbaşa verir, ayrıca
+# endpoint lazım deyil.
+PRODUCT_IMAGE_DIR = settings.media_dir / "images" / "products"
 
 # Brauzerdəki ünvanın kökü. Bazada yalnız FAYL ADI saxlanılır, tam ünvan isə
 # burada qurulur - qovluq dəyişsə, bazadakı 200 sətri yeniləmək lazım gəlmir.

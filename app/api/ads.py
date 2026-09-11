@@ -47,7 +47,9 @@ admin_router = APIRouter(
 # fayl isə kənardan gəlir.
 CREATIVE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
 CREATIVE_MAX_BYTES = 2 * 1024 * 1024
-CREATIVE_DIR = Path(__file__).resolve().parent.parent / "static" / "images" / "ads"
+# Media qovluğundadır (`settings.media_dir`): Docker-də bazanın volume-u -
+# yeniləmədə itmir. URL köhnədir, `/static` mount-u oranı da görür.
+CREATIVE_DIR = settings.media_dir / "images" / "ads"
 CREATIVE_URL = "/static/images/ads"
 
 
@@ -192,8 +194,9 @@ async def upload_creative(file: UploadFile = File(...)):
     """
     Kreativ şəkli yükləyir və ünvanını qaytarır.
 
-    Fayl `app/static/images/ads/` qovluğuna düşür - məhsul şəkilləri ilə eyni
-    məntiq. Ad TƏSADÜFİ verilir: yüklənən adı saxlasaydıq, eyni adlı ikinci
+    Fayl media qovluğunun `images/ads/` altına düşür (lokalda
+    `app/static/images/ads/`, Docker-də `/data/media/images/ads/`) - məhsul
+    şəkilləri ilə eyni məntiq. Ad TƏSADÜFİ verilir: yüklənən adı saxlasaydıq, eyni adlı ikinci
     fayl birincini əvəz edər və işləyən reklamın şəkli səssizcə dəyişərdi.
     """
     suffix = Path(file.filename or "").suffix.lower()

@@ -32,13 +32,17 @@ COPY . .
 
 # Yazılan hər şey buraya - deployment-də volume kimi bağlanır.
 # Image-in içindəki `data/` yalnız tessdata üçün qalır.
+# Şəkillər də (reklam kreativi, məhsul fotosu, kataloq kəsiyi) EYNİ volume-dadır:
+# `app/static`-də qalsaydılar, hər yeniləmədə (build + up) silinərdilər.
 ENV DATA_DIR=/data \
+    MEDIA_DIR=/data/media \
     TESSDATA_DIR=data/tessdata \
     APP_ENV=production \
     APP_HOST=0.0.0.0 \
     PYTHONUNBUFFERED=1
 
-RUN mkdir -p /data/raw /data/text /data/cache/extract
+RUN mkdir -p /data/raw /data/text /data/cache/extract \
+    /data/media/images/ads /data/media/images/products /data/media/product_images
 
 EXPOSE 8000
 
