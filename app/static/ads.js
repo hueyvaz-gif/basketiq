@@ -15,7 +15,8 @@
 // 3. KEÇİD ADİ `<a href>`-DİR. Klik serverdə sayılır (`/api/ads/{id}/click`
 //    yönləndirir), yəni JS sönük olsa da həm reklam işləyir, həm hesabat.
 //    Sayğac JS-ə bağlansaydı, reklamverənin rəqəmi istifadəçinin brauzer
-//    ayarından asılı olardı.
+//    ayarından asılı olardı. «Ətraflı →» düyməsi də AYRICA keçid deyil -
+//    həmin `<a>`-nın içindəki `span`-dır: klik izləmə tək yoldan keçir.
 //
 // GÖSTƏRİM = GÖRÜNƏ BİLƏN QUTUYA GÖNDƏRİLMİŞ REKLAM (2026-09-11).
 // Server göstərimi `/api/ads/slot/...` sorğusunda sayır. Əvvəl HƏR qutu
@@ -30,6 +31,12 @@
 // EYNİ SLOT İKİ QUTUDA: sol lövhə və dar ekran qutusu (`.ad-inline`) eyni
 // `home-rail-left` slotunu göstərir. CSS onları bir-birinin dəqiq əksi edir -
 // hər enində yalnız biri görünür, yəni yalnız biri soruşulur.
+//
+// CANLI KART (2026-09-11): dolu reklam `.is-live` alır - aurora fonu, şüşə
+// mətn bloku, nadir parıltı, hover-də qalxma. Bütün hərəkət CSS-dədir və
+// YALNIZ transform/opacity işlədir (style.css, «CANLI REKLAM KARTI»). Burada
+// iki iş var: kart görünüş sahəsinə girəndə `.is-visible` alır, çıxanda isə
+// `.is-offscreen` - onda animasiya dayanır.
 
 (() => {
   // BİR SLOT DEYİL, HAMISI. Əvvəl yalnız `#adSlot` doldurulurdu; yan
@@ -56,23 +63,73 @@
   const boşdaGizlənir = (box) =>
     box.classList.contains("ad-rail") || box.hasAttribute("data-hide-empty");
 
+  // --- Görünəndə peyda olma + ekrandan çıxanda dayanma --------------------
+  //
+  // IntersectionObserver: kart görünüş sahəsinə girəndə `.is-visible` alır,
+  // keçidi CSS edir (transform + opacity). Scroll hadisəsinə qulaq asmırıq -
+  // hər piksel sürüşmədə hesablama olardı.
+  //
+  // MÜŞAHİDƏ PEYDA OLANDAN SONRA DA DAVAM EDİR: kart ekrandan çıxanda
+  // `.is-offscreen` alır və aurora/parıltı dayanır - görünməyən yerdə GPU
+  // yanmasın (dizayn auditi: əvvəl kart aşağı sürüşdürüləndə də hərəkət edirdi).
+  //
+  // AZ HƏRƏKƏT rejimində və ya köhnə brauzerdə müşahidəçi YOXDUR: kart
+  // dərhal görünür. Gözləmə vəziyyətində ilişib qalan görünməz reklam
+  // həm istifadəçiyə, həm reklamverənə haqsızlıq olardı.
+  const azHərəkət = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const göstər = (card) => card.classList.add("is-visible");
+  const izləyici =
+    "IntersectionObserver" in window && !azHərəkət
+      ? new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              const card = entry.target;
+              card.classList.toggle("is-offscreen", !entry.isIntersecting);
+              if (!entry.isIntersecting) continue;
+              göstər(card);
+              card.closest("[data-slot]").dataset.revealed = "1";
+            }
+          },
+          { threshold: 0.2 }
+        )
+      : null;
+
+  function canlandır(box) {
+    const card = box.querySelector(".ad-card.is-live");
+    if (!card) return;
+    if (!izləyici) {
+      göstər(card);
+      return;
+    }
+    // Dil dəyişəndə kart yenidən çəkilir - artıq görünmüş kart ikinci dəfə
+    // «peyda olmasın», olduğu yerdə qalsın. Müşahidə isə HƏR kartda qalır.
+    if (box.dataset.revealed === "1") göstər(card);
+    izləyici.observe(card);
+  }
+
   function dolu(ad) {
     const şəkil = ad.image
-      ? `<img class="ad-image" src="${esc(ad.image)}" alt="" loading="lazy">`
+      ? `<span class="ad-media"><img class="ad-image" src="${esc(ad.image)}" alt="" loading="lazy"></span>`
       : "";
 
     // `rel="sponsored nofollow noopener"`: axtarış sistemlərinə keçidin
     // ödənişli olduğunu bildirir - bu, reklamın gizlədilməməsi qaydasının
-    // texniki tərəfidir.
-    return `<a class="ad-card" href="/api/ads/${ad.id}/click"
+    // texniki tərəfidir. `.ad-bg` (aurora) və `.ad-shine` (parıltı, məzmunun
+    // ÜSTÜNDƏ) yalnız dekordur - ekran oxuyucusundan gizlidir.
+    return `<a class="ad-card is-live" href="/api/ads/${ad.id}/click"
                target="_blank" rel="sponsored nofollow noopener">
+        <span class="ad-bg" aria-hidden="true"></span>
         <span class="ad-flag">${esc(t("ads.sponsored"))}</span>
         ${şəkil}
         <span class="ad-body">
           <span class="ad-title">${esc(ad.title)}</span>
           ${ad.body ? `<span class="ad-text">${esc(ad.body)}</span>` : ""}
-          <span class="ad-by">${esc(ad.advertiser)}</span>
+          <span class="ad-foot">
+            <span class="ad-by">${esc(ad.advertiser)}</span>
+            <span class="ad-cta">${esc(t("ads.more"))}<span class="ad-cta-arrow" aria-hidden="true">→</span></span>
+          </span>
         </span>
+        <span class="ad-shine" aria-hidden="true"></span>
       </a>`;
   }
 
@@ -96,10 +153,16 @@
   }
 
   function render(box, data) {
+    // Köhnə kart DOM-dan çıxmazdan əvvəl müşahidədən də çıxır - əks halda
+    // hər dil dəyişikliyi müşahidəçidə «ölü» element saxlayardı.
+    const köhnə = box.querySelector(".ad-card.is-live");
+    if (köhnə && izləyici) izləyici.unobserve(köhnə);
+
     box.innerHTML = data.ad ? dolu(data.ad) : boş(data.contact);
     if (boşdaGizlənir(box)) {
       box.hidden = !data.ad;
     }
+    canlandır(box);
   }
 
   async function loadOne(box) {

@@ -512,3 +512,139 @@ def test_boş_dar_ekran_qutusu_gizlənir():
     assert 'box.hasAttribute("data-hide-empty")' in js
     render = js.split("function render(box, data)")[1].split("\n  }\n")[0]
     assert "boşdaGizlənir(box)" in render and "box.hidden = !data.ad" in render
+
+
+# ------------------------------------------------- canlı reklam kartı
+
+
+def _canli_blok():
+    from pathlib import Path
+
+    css = Path("app/static/style.css").read_text(encoding="utf-8")
+    return css, css.split("CANLI REKLAM KARTI — hərəkət")[1].split("MƏHSUL LÖVHƏSİ")[0]
+
+
+def test_reklam_animasiyaları_yalnız_transform_və_opacity_işlədir():
+    """
+    60fps şərti: yalnız compositor xassələri. `background-position`, `box-shadow`,
+    `width`, `top` kimi xassələri animasiya etmək hər kadrda paint/layout
+    deməkdir - zəif noutbukda aurora titrəyərdi.
+    """
+    import re
+
+    css, _ = _canli_blok()
+    blocks = re.findall(r"@keyframes (ad-[\w-]+)\s*\{(.*?)\n\}", css, re.S)
+    assert len(blocks) >= 3, f"reklam keyframes-i tapılmadı: {[b[0] for b in blocks]}"
+    for name, body in blocks:
+        xassələr = set(re.findall(r"([a-z-]+)\s*:", body))
+        assert xassələr <= {"transform", "opacity"}, f"{name}: {xassələr}"
+
+
+def test_reklam_keçidləri_yalnız_transform_və_opacity_işlədir():
+    """Hover-dəki kölgə dərinləşməsi də `box-shadow` keçidi deyil - hazır qatın opacity-sidir."""
+    import re
+
+    _, blok = _canli_blok()
+    keçidlər = re.findall(r"transition:\s*([^;]+);", blok)
+    assert keçidlər, "canlı kartda keçid tapılmadı"
+    for keçid in keçidlər:
+        # Vergül MÖTƏRİZƏNİN İÇİNDƏ bölmür: `cubic-bezier(.2, .7, .2, 1)`-in öz
+        # vergülləri var və sadə `split(",")` «.7»-ni xassə adı sayırdı.
+        hissələr = re.split(r",(?![^(]*\))", keçid)
+        xassələr = {hissə.strip().split()[0] for hissə in hissələr}
+        assert xassələr <= {"transform", "opacity"}, keçid
+
+
+def test_az_hərəkət_rejimində_reklam_sakitdir():
+    """`prefers-reduced-motion: reduce` - aurora, parıltı, peyda olma, ox: hamısı sönür."""
+    import re
+
+    _, blok = _canli_blok()
+    rm = re.findall(r"@media \(prefers-reduced-motion: reduce\) \{(.*?)\n\}", blok, re.S)
+    assert rm, "canlı kart üçün reduced-motion bloku yoxdur"
+    assert "animation: none" in rm[0]
+    assert "opacity: 1" in rm[0] and "transform: none" in rm[0]
+    # HƏR animasiyalı qat bu blokda sönməlidir. Parıltı `.ad-bg::after`-dən
+    # `.ad-shine::after`-ə köçəndə selektor köhnə qalmışdı - az hərəkət
+    # istəyən istifadəçi parıltını yenə görərdi.
+    for qat in (".ad-bg::before", ".ad-shine::after", ".ad-cta-arrow"):
+        assert qat in rm[0], f"{qat} az hərəkət rejimində sönmür"
+    assert ".ad-bg::after" not in rm[0], "köhnə parıltı selektoru qalıb"
+
+
+def test_ətraflı_düyməsi_klik_izləmə_linkinin_içindədir():
+    """
+    Klik serverdə sayılır (`/api/ads/{id}/click`). CTA ayrıca keçid olsaydı,
+    kliklərin bir hissəsi hesabatdan yan keçərdi.
+    """
+    from pathlib import Path
+
+    js = Path("app/static/ads.js").read_text(encoding="utf-8")
+    dolu = js.split("function dolu(ad)")[1].split("\n  }\n")[0]
+    assert 'href="/api/ads/${ad.id}/click"' in dolu
+    assert dolu.count("<a ") == 1, "kartın içində ikinci keçid var"
+    assert 't("ads.more")' in dolu and "ad-cta-arrow" in dolu
+
+
+def test_kart_görünəndə_peyda_olur_az_hərəkətdə_dərhal():
+    from pathlib import Path
+
+    js = Path("app/static/ads.js").read_text(encoding="utf-8")
+    assert "IntersectionObserver" in js
+    assert 'matchMedia("(prefers-reduced-motion: reduce)")' in js
+    canlandır = js.split("function canlandır(box)")[1].split("\n  }\n")[0]
+    assert "dataset.revealed" in canlandır, "dil dəyişəndə kart ikinci dəfə peyda olmamalıdır"
+
+
+# ---------------------------------------- dizayn auditinin tapıntıları
+
+
+def test_reklam_nişanı_parıltının_üstündədir():
+    """Parıltı keçəndə nişanın kontrastı ~2:1-ə düşürdü - «Reklam» HƏMİŞƏ oxunmalıdır."""
+    import re
+
+    _, blok = _canli_blok()
+    z = lambda sel: int(re.search(re.escape(sel) + r" \{[^}]*z-index:\s*(\d+)", blok).group(1))  # noqa: E731
+    assert z(".ad-card.is-live .ad-flag") > z(".ad-card.is-live .ad-shine")
+
+
+def test_ətraflı_doldurulmuş_düymə_deyil():
+    """
+    Doldurulmuş, ağ mətnli isti pill (a) ana səhifənin əsas düyməsi ilə yarışır,
+    (b) ENDİRİM nişanına bənzəyir - reklamın 1-ci qaydası bunu qadağan edir.
+    """
+    import re
+
+    _, blok = _canli_blok()
+    cta = re.search(r"\.ad-card\.is-live \.ad-cta \{([^}]*)\}", blok).group(1)
+    assert "var(--on-accent)" not in cta, "CTA ağ mətnli doldurulmuş düymədir"
+    assert "background: var(--bg)" in cta
+
+
+def test_canlı_kartda_canlı_bulanıqlıq_yoxdur():
+    """
+    Animasiyalı aurora üstündə `backdrop-filter` hər kadrda bulanıqlığı yenidən
+    hesablayır - «yalnız compositor, 60fps» iddiası zəif cihazda yalan olardı.
+    """
+    _, blok = _canli_blok()
+    kod = "\n".join(s for s in blok.splitlines() if not s.strip().startswith(("/*", "*", "-")))
+    assert "backdrop-filter:" not in kod
+
+
+def test_ekrandan_çıxan_kart_dayanır():
+    from pathlib import Path
+
+    js = Path("app/static/ads.js").read_text(encoding="utf-8")
+    assert 'classList.toggle("is-offscreen", !entry.isIntersecting)' in js
+    assert "unobserve(entry.target)" not in js, "müşahidə peyda olandan sonra da davam etməlidir"
+    _, blok = _canli_blok()
+    assert ".is-offscreen" in blok and "animation-play-state: paused" in blok
+
+
+def test_reklam_keçidləri_layihə_tokenlərini_işlədir():
+    """«Bir müddət, bir əyri» (--motion): uydurma .6s/.45s və fərqli cubic-bezier-lər olmasın."""
+    import re
+
+    _, blok = _canli_blok()
+    for keçid in re.findall(r"transition:\s*([^;]+);", blok):
+        assert not re.search(r"\d+(\.\d+)?m?s\b|cubic-bezier", keçid), keçid

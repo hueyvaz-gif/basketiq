@@ -421,6 +421,7 @@
       ru: "Это место на главной свободно — покажитесь тем, кто сравнивает цены.",
     },
     "ads.cta": { az: "Reklam ver", en: "Advertise here", ru: "Разместить рекламу" },
+    "ads.more": { az: "Ətraflı", en: "Learn more", ru: "Подробнее" },
     "ads.mailSubject": {
       az: "BasketIQ-də reklam",
       en: "Advertising on BasketIQ",

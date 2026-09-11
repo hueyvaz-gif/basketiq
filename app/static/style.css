@@ -211,6 +211,24 @@
 
   --ease: .2s ease;
   --ease-slow: .3s ease;
+
+  /* --- CANLI REKLAM KARTI (2026-09-11) ---
+     Aurora rəngləri LTC LAB kreativinin PİKSELLƏRİNDƏN ÖLÇÜLDÜ (hazırda
+     yeganə ödənişli reklamverən): mavi #0090d8, bənövşəyi #784890, çəhrayı
+     #c01860, loqo mətni #002e3c. Başlığın qradiyent mətni üçün ağ fonda
+     kontrast: bənövşəyi 6.7:1 · çəhrayı 5.9:1 · mavi 3.6:1 - başlıq 22px
+     qalındır, yəni «böyük mətn» (AA həddi 3:1) - hamısı keçir.
+     Reklam başına fərqli brend rəngi lazım olsa, bu tokenlər kartın öz
+     `style`-ından dəyişdirilə bilər - qaydalar yalnız tokenləri oxuyur. */
+  --ad-aurora-blue: #0a8fd4;
+  --ad-aurora-violet: #6a4c9c;
+  --ad-aurora-magenta: #c0185f;
+  --ad-ink: #002e3c;
+  /* Şüşə: ağ şəffaflıq RƏNG DEYİL, işıqdır - amma qayda hər rgba-nı burada
+     istəyir (`test_rənglər_yalnız_token_lərdən_gəlir`). */
+  --ad-glass: rgba(255, 255, 255, .68);
+  --ad-glass-line: rgba(255, 255, 255, .75);
+  --ad-sheen: rgba(255, 255, 255, .5);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2803,6 +2821,302 @@ code {
 @media (max-width: 600px) {
   .ad-card { flex-direction: column; align-items: flex-start; }
   .ad-image { width: 100%; }
+}
+
+/* ============================================================================
+   CANLI REKLAM KARTI — hərəkət (2026-09-11)
+   ============================================================================
+   Dolu reklam `.is-live` alır (`ads.js:dolu`). Məqsəd: diqqət çəkən, amma
+   ucuz görünməyən kart - aurora fonu, şüşə mətn bloku, nadir parıltı.
+
+   QAYDALAR (testlər kilidləyir):
+     - HƏRƏKƏT YALNIZ transform/opacity - compositor-da işləyir, paint və
+       layout yoxdur. Ölçüldü: 60fps, animasiya zamanı LayoutCount +0.
+     - CANLI BULANIQLIQ (backdrop-filter) YOXDUR. Şüşə görünüşünü yarımşəffaf
+       qat + işıqlı kənar verir; aurora onsuz da yumşaqdır. Animasiyalı fonun
+       üstündə backdrop-filter hər kadrda bulanıqlığı yenidən hesablayardı -
+       zəif cihazda «60fps» iddiası yalan olardı (dizayn auditi).
+     - Hover-də kölgənin dərinləşməsi box-shadow KEÇİDİ DEYİL: dərin kölgə
+       hazır qatdadır (`::before`), dəyişən yalnız opacity-sidir.
+     - Parıltı NADİRDİR (11 saniyədə bir) və «Reklam» nişanının ALTINDAN
+       keçir - nişan heç vaxt solğunlaşmır.
+     - «Ətraflı →» DOLDURULMUŞ DÜYMƏ DEYİL: ağ pill + brend rəngli mətn.
+       Doldurulmuş olsaydı ana səhifənin əsas düyməsi («Axtar») ilə yarışar,
+       ağ mətnli isti pill kimi isə ENDİRİM nişanına bənzəyərdi (qayda 1).
+     - Müddətlər layihə tokenlərindəndir (`--motion`, `--ease-slow`).
+     - Ekrandan çıxan kartın animasiyası DAYANIR (`.is-offscreen`, ads.js).
+     - `prefers-reduced-motion`: hamısı sönür, kart statik və tam görünür.
+   Rənglər `:root`-dakı `--ad-*` tokenlərindəndir. BƏNÖVŞƏYİ burada AI
+   siqnalı DEYİL, reklamverənin brend rəngidir - istifadəçinin açıq istəyi
+   (LTC LAB brend rəngləri ilə aurora, 2026-09-11). */
+
+.ad-card.is-live {
+  isolation: isolate;     /* dekor qatlarının z-index-i kartın içində qalsın */
+  overflow: visible;      /* hover kölgəsi kartdan kənara düşür */
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity var(--ease-slow), transform var(--ease-slow);
+}
+
+/* Görünüş sahəsinə girəndə (IntersectionObserver, `ads.js`). */
+.ad-card.is-live.is-visible { opacity: 1; transform: none; }
+
+/* Hover: yüngül qalxma. Baza `.ad-card:hover`-in kölgə sıçrayışı burada
+   ləğv olunur - dərinlik aşağıdakı `::before` qatındadır (opacity ilə). */
+.ad-card.is-live:hover { box-shadow: var(--shadow); }
+.ad-card.is-live.is-visible:hover,
+.ad-card.is-live.is-visible:focus-visible { transform: translateY(-3px); }
+
+.ad-card.is-live::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  box-shadow:
+    0 18px 40px -14px color-mix(in srgb, var(--ad-aurora-violet) 55%, transparent),
+    0 8px 22px -10px color-mix(in srgb, var(--ad-aurora-blue) 45%, transparent);
+  opacity: 0;
+  transition: opacity var(--ease-slow);
+  pointer-events: none;
+}
+.ad-card.is-live:hover::before,
+.ad-card.is-live:focus-visible::before { opacity: 1; }
+
+/* --- Aurora: kartın içində kəsilmiş dekor qatı --- */
+.ad-card.is-live .ad-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Aurora qatı kartdan BÖYÜKDÜR və yalnız transform ilə sürüşür - rənglər
+   yerində qalır, qat özü hərəkət edir. `background-position` animasiyası
+   hər kadrda paint olardı. */
+.ad-card.is-live .ad-bg::before {
+  content: "";
+  position: absolute;
+  inset: -45%;
+  background:
+    radial-gradient(38% 42% at 22% 30%, color-mix(in srgb, var(--ad-aurora-violet) 38%, transparent), transparent 70%),
+    radial-gradient(34% 40% at 78% 26%, color-mix(in srgb, var(--ad-aurora-magenta) 30%, transparent), transparent 70%),
+    radial-gradient(42% 46% at 60% 78%, color-mix(in srgb, var(--ad-aurora-blue) 34%, transparent), transparent 70%);
+  opacity: .55;
+  animation: ad-aurora 20s ease-in-out infinite alternate;
+  transition: opacity var(--ease-slow);
+  will-change: transform;
+}
+.ad-card.is-live:hover .ad-bg::before { opacity: .9; }
+
+/* --- Parıltı: MƏZMUNUN ÜSTÜNDƏN keçir (loqo və şüşə blokun üzərindən) ---
+   Aurora qatında olanda plitə və şüşə onu örtürdü, zolaq yalnız ağ
+   boşluqdan keçirdi və görünmürdü (brauzerdə görüldü). Öz qabı kartı kəsir
+   (`overflow: hidden`), çünki kart hover kölgəsi üçün `overflow: visible`-dır.
+   «Reklam» nişanı bu qatdan YUXARIDADIR (z-index 3 > 2). */
+.ad-card.is-live .ad-shine {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* YOL KARTI TAM KEÇİR. `translateX` faizi zolağın ÖZ enindəndir (kartın
+   22%-i): -300% ≈ kartın -66%-i, 560% ≈ 123%-i. Əvvəlki -160% / 420%
+   ilə zolaq sonda sağ kənarda qalırdı və dövr başlayanda birdən yox olurdu;
+   hündür lövhədə `skewX` üst ucu sağa sürüşdürdüyü üçün gözləmə mövqeyi
+   kartdan çıxmırdı - sol üst küncdə ağ duman qalırdı (dizayn auditi). */
+.ad-card.is-live .ad-shine::after {
+  content: "";
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 22%;
+  background: linear-gradient(100deg, transparent, var(--ad-sheen), transparent);
+  transform: translateX(-300%) skewX(-12deg);
+  animation: ad-sheen 11s ease-in-out 2.5s infinite;
+}
+
+@keyframes ad-aurora {
+  0%   { transform: translate3d(-6%, -4%, 0) rotate(0deg) scale(1); }
+  50%  { transform: translate3d(5%, 3%, 0) rotate(6deg) scale(1.08); }
+  100% { transform: translate3d(-2%, 6%, 0) rotate(-4deg) scale(1.03); }
+}
+
+@keyframes ad-sheen {
+  0%, 88% { transform: translateX(-300%) skewX(-12deg); }
+  100%    { transform: translateX(560%) skewX(-12deg); }
+}
+
+/* Ekrandan çıxan kart DAYANIR - görünməyən yerdə GPU yanmasın (ads.js). */
+.ad-card.is-live.is-offscreen .ad-bg::before,
+.ad-card.is-live.is-offscreen .ad-shine::after,
+.ad-card.is-live.is-offscreen .ad-cta-arrow { animation-play-state: paused; }
+
+/* --- Məzmun qatları dekorun ÜSTÜNDƏ --- */
+.ad-card.is-live .ad-media,
+.ad-card.is-live .ad-body { position: relative; z-index: 1; }
+
+/* Loqo ağ plitədədir (kreativin öz fonu ağdır) - aurora üzərində kart kimi durur. */
+.ad-card.is-live .ad-media {
+  flex: none;
+  border-radius: var(--r-md);
+  background: var(--bg);
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+  transition: transform var(--motion) var(--motion-ease);
+}
+.ad-card.is-live .ad-image { display: block; border-radius: 0; }
+.ad-card.is-live:hover .ad-media { transform: scale(1.03) rotate(-.6deg); }
+
+/* Şüşə mətn bloku: yarımşəffaf qat + işıqlı kənar + üstdə nazik işıq xətti.
+   Canlı bulanıqlıq YOXDUR (yuxarıdakı qaydaya bax). */
+.ad-card.is-live .ad-body {
+  flex: 1;
+  gap: 6px;
+  padding: var(--s2);
+  border-radius: var(--r-md);
+  background: var(--ad-glass);
+  border: 1px solid var(--ad-glass-line);
+  box-shadow: inset 0 1px 0 var(--ad-glass-line);
+}
+
+/* Başlıq: qradiyent mətn. STATİKDİR - qradiyenti hərəkət etdirmək hər kadrda
+   paint olardı. «Canlılıq» hover-dəki xəttdədir (scaleX).
+   MAVİ UC loqonun tünd rəngi ilə qarışdırılıb: saf mavi (3.6:1) aurora və
+   şüşə üzərində hover-də 3:1 həddinə yaxınlaşırdı (dizayn auditi). Qarışıq
+   ~5:1 verir. Bənövşəyi 6.7:1, çəhrayı 5.9:1. */
+.ad-card.is-live .ad-title {
+  position: relative;
+  align-self: flex-start;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+  background: linear-gradient(95deg, var(--ad-aurora-violet), var(--ad-aurora-magenta) 55%,
+    color-mix(in srgb, var(--ad-aurora-blue) 75%, var(--ad-ink)));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.ad-card.is-live .ad-title::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--ad-aurora-violet), var(--ad-aurora-blue));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--ease-slow);
+}
+.ad-card.is-live:hover .ad-title::after,
+.ad-card.is-live:focus-visible .ad-title::after { transform: scaleX(1); }
+
+.ad-card.is-live .ad-text { font-size: 14px; color: var(--text-secondary); }
+
+.ad-card.is-live .ad-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  margin-top: var(--s1);
+}
+.ad-card.is-live .ad-by { font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--ad-ink); }
+
+/* «Ətraflı →»: AYRICA keçid deyil, kartın öz linkinin içindədir (klik izləmə
+   tək yoldan keçir). DOLDURULMUŞ DEYİL - ağ pill, bənövşəyi mətn (6.7:1),
+   brend rəngli nazik kənar. Səbəb yuxarıdakı qaydalardadır. */
+.ad-card.is-live .ad-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 var(--s2);
+  border-radius: var(--r-pill);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ad-aurora-violet);
+  background: var(--bg);
+  border: 1px solid color-mix(in srgb, var(--ad-aurora-violet) 35%, transparent);
+  box-shadow: var(--shadow-1);
+}
+
+/* Ox arabir «işarə edir»; hover-də isə hərəkət dayanır və ox irəli çıxır. */
+.ad-card.is-live .ad-cta-arrow {
+  display: inline-block;
+  animation: ad-nudge 3.2s ease-in-out 1.5s infinite;
+  transition: transform var(--motion) var(--motion-ease);
+}
+.ad-card.is-live:hover .ad-cta-arrow,
+.ad-card.is-live:focus-visible .ad-cta-arrow { animation: none; transform: translateX(4px); }
+
+@keyframes ad-nudge {
+  0%, 70%, 100% { transform: translateX(0); }
+  80%           { transform: translateX(4px); }
+  90%           { transform: translateX(0); }
+}
+
+/* «Reklam» nişanı: şüşə, seyrək hərflər. 11px - layihənin ən kiçik ölçüsü
+   (10px bir dəfə yazılmışdı, audit tutdu). Parıltının ÜSTÜNDƏDİR. */
+.ad-card.is-live .ad-flag {
+  z-index: 3;
+  top: var(--s1);
+  right: var(--s1);
+  letter-spacing: .08em;
+  background: var(--ad-glass);
+  border: 1px solid var(--ad-glass-line);
+}
+
+/* --- Yan lövhə (160px, şaquli) ---
+   Üstdə `--s4` boşluq: «Reklam» nişanı loqonun «lab» hissəsinin üstünə
+   düşürdü (brauzerdə görüldü) - telefonda olduğu kimi, nişana yer açılır. */
+.ad-rail .ad-card.is-live { padding: var(--s4) var(--s1) var(--s1); gap: var(--s1); }
+.ad-rail .ad-card.is-live .ad-media { width: 100%; }
+.ad-rail .ad-card.is-live .ad-body { padding: var(--s1); }
+/* 15px «böyük mətn» deyil: mavisiz qradiyent (hər iki rəng ≥5.9:1). */
+.ad-rail .ad-card.is-live .ad-title {
+  font-size: 15px;
+  background: linear-gradient(95deg, var(--ad-aurora-violet), var(--ad-aurora-magenta));
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.ad-rail .ad-card.is-live .ad-foot { flex-direction: column; align-items: flex-start; gap: 6px; }
+
+/* --- Telefon --- */
+@media (max-width: 600px) {
+  /* Nişan şəklin küncünə düşməsin (brauzerdə görülmüşdü): üstdə yer açılır. */
+  .ad-card.is-live { padding-top: var(--s4); }
+  .ad-card.is-live .ad-media,
+  .ad-card.is-live .ad-body { width: 100%; }
+  .ad-card.is-live .ad-title { font-size: 20px; }
+}
+
+/* --- Az hərəkət: hər şey sakit, kart dərhal və tam görünür ---
+   Fokusdakı qalxma, başlıq xətti və oxun hover sürüşməsi də daxildir -
+   audit onların bu blokdan kənarda qaldığını tutdu. */
+@media (prefers-reduced-motion: reduce) {
+  .ad-card.is-live,
+  .ad-card.is-live.is-visible,
+  .ad-card.is-live.is-visible:hover,
+  .ad-card.is-live.is-visible:focus-visible,
+  .ad-card.is-live:hover .ad-media,
+  .ad-card.is-live:hover .ad-cta-arrow,
+  .ad-card.is-live:focus-visible .ad-cta-arrow { opacity: 1; transform: none; transition-duration: 0s; }
+  .ad-card.is-live .ad-title::after { transition-duration: 0s; }
+  .ad-card.is-live .ad-bg::before,
+  .ad-card.is-live .ad-shine::after,
+  .ad-card.is-live .ad-cta-arrow { animation: none; }
+  .ad-card.is-live .ad-shine::after { opacity: 0; }
+  .ad-card.is-live .ad-bg::before { will-change: auto; }
 }
 
 /* ============================================================================
