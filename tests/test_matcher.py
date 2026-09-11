@@ -173,3 +173,48 @@ class TestUnionFind:
         union.union(1, 2)
         union.union(3, 4)
         assert union.find(1) != union.find(3)
+
+
+class TestFindCandidatesBloklama:
+    """
+    ADDIM 2: find_candidates bloklama + match_key + market + yağlılıq ilə.
+    Blokların özü `test_blocking.py`-dədir; burada nəticəyə baxırıq.
+    """
+
+    @staticmethod
+    def item(pid, name, key, brand=None, stores=(), size=None, unit=None):
+        return {
+            "id": pid,
+            "canonical_key": f"ck{pid}",
+            "match_key": key,
+            "name": name,
+            "brand": brand,
+            "size_value": size,
+            "size_unit": unit,
+            "group_key": f"ck{pid}",
+            "stores": set(stores),
+        }
+
+    def test_match_key_canonical_keyden_ustundur(self):
+        """Bravonun canonical_key-i «450qr|milla|qatiq»-dır — match_key olmasa cüt tapılmazdı."""
+        products = [
+            self.item(1, "qatıq", "milla|qatiq|0.45kg", brand="Milla", stores=[15], size=450, unit="g"),
+            self.item(2, "Milla Qatıq 450qr", "milla|qatiq|0.45kg", stores=[2]),
+        ]
+        candidates = find_candidates(products)
+        assert len(candidates) == 1
+        assert candidates[0].similarity == 1.0
+
+    def test_yagliliq_ferqlidirse_namized_deyil(self):
+        products = [
+            self.item(1, "Milla Süd 2 5% 1l", "milla|sud|1l", stores=[2]),
+            self.item(2, "Milla süd 3.2% 1l", "milla|sud|1l", brand="Milla", stores=[15]),
+        ]
+        assert find_candidates(products) == []
+
+    def test_eyni_marketde_namized_deyil(self):
+        products = [
+            self.item(1, "Milla Süd 1l", "milla|sud|1l", brand="Milla", stores=[2]),
+            self.item(2, "Milla Süd Laktozasız 1l", "laktozasiz|milla|sud|1l", brand="Milla", stores=[2]),
+        ]
+        assert find_candidates(products) == []

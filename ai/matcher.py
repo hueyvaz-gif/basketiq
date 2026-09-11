@@ -32,11 +32,12 @@ from langchain_core.runnables import RunnableLambda
 from pydantic import BaseModel, Field
 
 from ai import cache
+from ai.blocking import candidate_pairs
 from ai.llm import active_model_name, get_llm, message_text
 from ai.prompts import MATCH_PROMPT, MATCH_PROMPT_VERSION
 from app.config import settings
-from app.db import db_cursor, get_connection
-from ingestion.normalize import display_label
+from app.db import PRICE_ROWS_CTE, db_cursor, get_connection
+from ingestion.normalize import display_label, fat_percent, match_key
 
 # Bu həddən aşağı oxşarlıq -> LLM-ə göndərmirik (açıq-aşkar fərqlidir)
 MIN_SIMILARITY = 0.34
@@ -130,39 +131,52 @@ def find_candidates(products: list[dict], min_similarity: float = MIN_SIMILARITY
     """
     LLM-ə göndərməyə dəyən cütləri seçir.
 
-    Şərtlər:
+    HANSI CÜTLƏRİN ümumiyyətlə müqayisə olunduğunu bloklama həll edir
+    (`ai/blocking.py`): eyni brend bloku, fərqli market. Hər cütü hər cütlə
+    müqayisə etmək 13 min məhsulda ~93 milyon cüt demək idi.
+
+    Blok daxilində ucuz şərtlər:
       - ölçüləri ziddiyyət təşkil etməsin
+      - yağlılıq faizləri ziddiyyət təşkil etməsin (2.5% ≠ 3.2%)
       - artıq eyni qrupda olmasınlar
       - oxşarlıq həddi keçsin
+
+    Açar `match_key`-dir (ölçü addan da oxunur); o yoxdursa canonical_key.
     """
     candidates: list[Candidate] = []
 
-    for i, a in enumerate(products):
-        words_a, size_a = key_parts(a["canonical_key"])
-        for b in products[i + 1:]:
-            words_b, size_b = key_parts(b["canonical_key"])
+    for i, j in candidate_pairs(products):
+        a, b = products[i], products[j]
+        key_a = a.get("match_key") or a["canonical_key"]
+        key_b = b.get("match_key") or b["canonical_key"]
+        _, size_a = key_parts(key_a)
+        _, size_b = key_parts(key_b)
 
-            # Hər ikisində ölçü bilinirsə və fərqlidirsə -> fərqli məhsuldur.
-            # Amma birində ölçü ümumiyyətlə tanınmayıbsa (OCR/LLM səhvi), qərarı
-            # LLM-ə buraxırıq - əks halda düzgün uyğunluğu qaçırardıq.
-            if size_a and size_b and size_a != size_b:
-                continue
-            if a.get("group_key") and a["group_key"] == b.get("group_key"):
-                continue
+        # Hər ikisində ölçü bilinirsə və fərqlidirsə -> fərqli məhsuldur.
+        # Amma birində ölçü ümumiyyətlə tanınmayıbsa (OCR/LLM səhvi), qərarı
+        # LLM-ə buraxırıq - əks halda düzgün uyğunluğu qaçırardıq.
+        if size_a and size_b and size_a != size_b:
+            continue
+        # Yağlılıq da eyni qaydadır: yalnız HƏR İKİSİNDƏ yazılıbsa müqayisə olunur.
+        fat_a, fat_b = fat_percent(a.get("name")), fat_percent(b.get("name"))
+        if fat_a is not None and fat_b is not None and fat_a != fat_b:
+            continue
+        if a.get("group_key") and a["group_key"] == b.get("group_key"):
+            continue
 
-            score = similarity(a["canonical_key"], b["canonical_key"])
-            if score < min_similarity:
-                continue
+        score = similarity(key_a, key_b)
+        if score < min_similarity:
+            continue
 
-            candidates.append(
-                Candidate(
-                    a_id=a["id"],
-                    b_id=b["id"],
-                    a_text=product_text(a),
-                    b_text=product_text(b),
-                    similarity=round(score, 3),
-                )
+        candidates.append(
+            Candidate(
+                a_id=a["id"],
+                b_id=b["id"],
+                a_text=product_text(a),
+                b_text=product_text(b),
+                similarity=round(score, 3),
             )
+        )
 
     # Ən oxşarlar əvvəl yoxlansın - limit varsa ən dəyərliləri işlədək
     candidates.sort(key=lambda c: -c.similarity)
@@ -268,15 +282,38 @@ class UnionFind:
 
 
 def load_products() -> list[dict]:
+    """
+    Uyğunlaşdırma üçün məhsullar + hər birinin satıldığı marketlər.
+
+    `stores` bloklama üçündür (`ai/blocking.py`): eyni marketin iki məhsulu
+    heç vaxt eyni sayılmır. Qiyməti olmayan məhsulda boş çoxluqdur.
+
+    `match_key` NULL-dursa burada hesablanır: `_migrate` onu yalnız server
+    başlanğıcında doldurur, yəni gün ərzində çəkilən yeni sətir açarsız
+    qalardı və uyğunlaşdırma onu canonical_key ilə (ölçüsüz) müqayisə edərdi.
+    """
     conn = get_connection()
     try:
         rows = conn.execute(
-            "SELECT id, canonical_key, name, brand, size_value, size_unit, group_key "
+            "SELECT id, canonical_key, match_key, name, brand, size_value, size_unit, group_key "
             "FROM products ORDER BY id"
         ).fetchall()
-        return [dict(r) for r in rows]
+        stores: dict[int, set[int]] = {}
+        for row in conn.execute(
+            f"{PRICE_ROWS_CTE} SELECT DISTINCT product_id, store_id FROM price_rows"
+        ):
+            stores.setdefault(row["product_id"], set()).add(row["store_id"])
     finally:
         conn.close()
+
+    products = []
+    for row in rows:
+        p = dict(row)
+        p["stores"] = stores.get(p["id"], set())
+        if not p["match_key"]:
+            p["match_key"] = match_key(p["name"], p["brand"], p["size_value"], p["size_unit"])
+        products.append(p)
+    return products
 
 
 def apply_groups(products: list[dict], confirmed: list[Candidate]) -> int:
