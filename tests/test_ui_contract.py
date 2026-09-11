@@ -297,6 +297,8 @@ SCRIPT_PAGES = {
     "store.html": ["store.js"],
     "search.html": ["search.js"],
     "basket.html": ["basket-page.js"],
+    # Uyğunluq yoxlaması (ADDIM 5): `/admin`-in alt səhifəsi, öz skripti var.
+    "matches.html": ["matches.js"],
 }
 
 

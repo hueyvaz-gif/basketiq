@@ -1493,6 +1493,84 @@ a.btn { text-decoration: none; }
 .notice.error { background: var(--danger-soft); }
 
 
+/* ============================================================================
+   UYĞUNLAŞDIRMA YOXLAMASI (ADDIM 5, `/admin/matches`)
+   İki məhsul YAN-YANA: insan şəklə, ada, ölçüyə və kataloqun OCR sətrinə
+   baxıb qərar verir. Yeni rəng yoxdur — yalnız mövcud tokenlər və
+   komponentlər (`.card`, `.btn`, `.pill`, `.badge`, `.segmented`).
+   ============================================================================ */
+
+.segmented.match-tabs { align-self: flex-start; }
+.match-list { display: flex; flex-direction: column; gap: var(--s2); }
+.match-list:focus { outline: none; }
+
+.match-pair {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  transition: opacity var(--ease), transform var(--ease);
+}
+.match-pair.is-leaving { opacity: 0; transform: translateY(calc(-1 * var(--s1))); }
+
+.match-meta { display: flex; align-items: center; gap: var(--s1); flex-wrap: wrap; }
+
+/* Sol - sual işarəsi - sağ. Ortadakı «?» qərarın ÖZÜNÜ göstərir: bu iki
+   kart eynidirmi? Dar ekranda kartlar alt-alta düşür və işarə gizlənir. */
+.match-sides {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: var(--s2);
+  align-items: stretch;
+}
+.match-vs { align-self: center; color: var(--text-tertiary); font-size: 19px; font-weight: 600; }
+
+.match-side {
+  display: flex;
+  gap: var(--s2);
+  min-width: 0;
+  padding: var(--s2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+}
+/* Foto qutusu ortaq lövhə qaydası ilə eynidir (`--r-md` + boz altlıq):
+   şəkilsiz məhsulun kateqoriya ikonu da, real foto da eyni qutuda durur. */
+.match-thumb {
+  width: 72px;
+  height: 72px;
+  flex: none;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--bg-subtle);
+}
+.match-info { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.match-name { font-size: 17px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+
+.match-offers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.match-offer { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s1); font-size: 14px; }
+.match-price { font-weight: 600; color: var(--text); }
+/* OCR sətri `.row-raw`-dır — karantin ekranı ilə EYNİ görünüş (sözbəsöz,
+   səhvləri ilə: düzəldilmiş mətn insanı yanıldardı). Burada yalnız sətrin
+   ayrıca sətrə keçməsi lazımdır. */
+.match-offer .row-raw { flex-basis: 100%; margin-top: 0; overflow-wrap: anywhere; }
+
+@media (max-width: 600px) {
+  .match-sides { grid-template-columns: minmax(0, 1fr); }
+  .match-vs { display: none; }
+  /* Hər düymə ayrıca sətirdə, tam endə. Yan-yana qoyulanda 390px-də
+     «✓ Bəli, eynidir» iki sətrə sınırdı (brauzerdə görüldü). */
+  .match-pair .actions .btn { flex: 1 1 100%; }
+
+  /* ÜMUMİ 600px QAYDASI («MOBİL» bölməsi, aşağıda) `.seg-btn` yazısını
+     gizlədir və `.segmented`-i sətrin SONUNA atır - o, üst paneldəki İKONLU
+     tablar üçün yazılıb. Bu səhifənin tablarında ikon yoxdur, yazı yeganə
+     məzmundur: gizlənsə yalnız «236» və «74» qalar, tab siyahısı isə 30
+     kartın ALTINA düşərdi. İki sinifli seçici ümumi qaydadan güclüdür və
+     fayldakı sıradan asılı deyil. */
+  .segmented.match-tabs { order: 0; flex: 0 1 auto; justify-content: flex-start; }
+  .match-tabs .seg-btn { font-size: 14px; gap: var(--s1); }
+}
+
+
 /* Bağlı mənbə (D14): seçilə bilmir, amma OXUNUR. Mətn solğunlaşdırılmır -
    səbəb izahı elə burada yazılır və onu oxumaq lazımdır. Siqnal kursorda
    və sönük radio düyməsindədir. */

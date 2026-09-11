@@ -1,0 +1,89 @@
+<!--
+  UYĞUNLAŞDIRMA YOXLAMASI (ADDIM 5) — `/admin/matches`.
+
+  NƏ ÜÇÜN? Maşın iki növ cütü özü həll edə bilmir:
+    - GÖZLƏYİR: ölçü yalnız bir tərəfdə bilinir («Azərsüd ayran» kataloqda
+      ölçüsüz, Bravoda 290 ml / 1 l). LLM də ölçünü görmür.
+    - LLM QƏRARI: model cavab verib, amma «ümumi ↔ konkret» cütlərdə
+      yanılır («Aura tualet kağızı» ≡ «...32 Rulon»).
+  İnsan iki məhsulu yan-yana görür — şəkil, ad, ölçü, hər marketdə qiymət
+  və kataloqun öz OCR sətri — və bir kliklə qərar verir. Qərar hər şeyin
+  üstündədir və dərhal səbət müqayisəsinə düşür.
+
+  `/admin` ilə EYNİ qapıdadır (`ADMIN_ENABLED`): istehsalda 404 verir.
+-->
+<title>Uyğunluq yoxlaması — BasketIQ</title>
+<!-- Viewport: onsuz telefon səhifəni 980px kimi qurub kiçildir və mobil
+     qaydalar heç işə düşmür (brauzerdə görüldü). -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/i18n.js"></script>
+<script src="/static/icons.js"></script>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/admin">
+      <span class="brand-mark" aria-hidden="true"><svg><use href="#icon-tools"></use></svg></span>
+      <span class="brand-name">BasketIQ — Admin</span>
+    </a>
+
+    <div class="lang-switch" role="group" aria-label="Dil seçimi"
+         data-i18n-attr="aria-label:nav.language">
+      <button class="lang-btn" type="button" data-lang="az" aria-selected="true">AZ</button>
+      <button class="lang-btn" type="button" data-lang="en" aria-selected="false">EN</button>
+      <button class="lang-btn" type="button" data-lang="ru" aria-selected="false">RU</button>
+    </div>
+
+    <a class="btn btn-secondary" href="/admin">
+      <svg aria-hidden="true"><use href="#icon-arrow-right"></use></svg>
+      <span data-i18n="matches.back">Adminə qayıt</span>
+    </a>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <main class="panel" id="panel-matches">
+
+    <div class="page-head">
+      <h1 class="page-title" data-i18n="matches.title">Uyğunluq yoxlaması</h1>
+      <p class="page-sub" data-i18n="matches.sub">
+        Maşının əmin olmadığı cütlər. Qərarınız dərhal səbət müqayisəsinə düşür
+        və növbəti avtomatik qaçış onu dəyişmir.
+      </p>
+    </div>
+
+    <!-- Növbə seçimi: rejim keçididir, hərəkət deyil - ona görə segmented.
+         WAI-ARIA tab nümunəsi: seçilməyən tab `tabindex="-1"`, ox düymələri
+         ilə keçid (matches.js). -->
+    <div class="segmented match-tabs" role="tablist" aria-label="Növbə"
+         data-i18n-attr="aria-label:matches.queue">
+      <button class="seg-btn" type="button" role="tab" id="tabPending" data-queue="pending"
+              aria-selected="true" aria-controls="matchList">
+        <span data-i18n="matches.tabPending">Gözləyir</span>
+        <span class="pill" id="countPending">…</span>
+      </button>
+      <button class="seg-btn" type="button" role="tab" id="tabLlm" data-queue="llm"
+              aria-selected="false" aria-controls="matchList" tabindex="-1">
+        <span data-i18n="matches.tabLlm">LLM qərarı</span>
+        <span class="pill" id="countLlm">…</span>
+      </button>
+    </div>
+
+    <div id="matchStatus"></div>
+    <!-- Uğurlu qərar ekranda iz qoymur (kart sadəcə gedir), amma ekran
+         oxuyucusu onu eşitməlidir. -->
+    <p id="matchLive" class="sr-only" aria-live="polite"></p>
+
+    <div id="matchList" class="match-list" role="tabpanel" aria-labelledby="tabPending" tabindex="-1">
+      <div class="skeleton-row" style="height:160px"></div>
+      <div class="skeleton-row" style="height:160px"></div>
+    </div>
+
+  </main>
+</div>
+
+<script src="/static/store-colors.js"></script>
+<script src="/static/ui.js"></script>
+<script src="/static/matches.js"></script>

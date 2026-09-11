@@ -155,6 +155,17 @@ def admin_page(_: None = Depends(require_admin)):
     return FileResponse(STATIC_DIR / "admin.html", headers={"Cache-Control": NO_CACHE})
 
 
+@app.get("/admin/matches", include_in_schema=False)
+def admin_matches_page(_: None = Depends(require_admin)):
+    """
+    UYĞUNLAŞDIRMA YOXLAMASI (ADDIM 5) — maşının qərar verə bilmədiyi cütlər.
+
+    `/admin`-in alt səhifəsidir və EYNİ qapıdan keçir: qərar bazanı dəyişir
+    (qrupları birləşdirir/dağıdır), yəni istehsalda bağlı olmalıdır.
+    """
+    return FileResponse(STATIC_DIR / "matches.html", headers={"Cache-Control": NO_CACHE})
+
+
 @app.get("/basket", include_in_schema=False)
 def basket_page():
     """
