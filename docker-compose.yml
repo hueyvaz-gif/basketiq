@@ -1,12 +1,18 @@
 # BasketIQ — production yığımı.
 #
-# İşə salmaq:
-#   cp .env.example .env      # sonra .env-i doldur (INGEST_API_KEY MÜTLƏQ dəyiş)
+# İşə salmaq (LLM = Claude API):
+#   cp .env.example .env      # sonra .env-i doldur: INGEST_API_KEY MÜTLƏQ dəyiş,
+#                             # LLM_PROVIDER=claude + ANTHROPIC_API_KEY
 #   docker compose up -d
+#
+# Ollama da lazımdırsa (LLM serverin öz CPU-sunda - ən azı 8 GB RAM):
+#   docker compose --profile ollama up -d
 #   docker compose exec ollama ollama pull qwen3:4b
 #
-# n8n də lazımdırsa:
+# n8n də lazımdırsa (gündəlik avtomatik çəkiliş):
 #   docker compose --profile n8n up -d
+#
+# Profillər birləşir: docker compose --profile ollama --profile n8n up -d
 
 services:
   basketiq:
@@ -31,11 +37,17 @@ services:
       # şəkillər (media/).
       # Konteyner silinsə də data qalır.
       - basketiq_data:/data
-    depends_on:
-      - ollama
+    # `depends_on: ollama` YOXDUR: Ollama seçimlidir. Asılılıq qalsaydı, hər
+    # `up` 9 GB-lıq image-i yenə endirib konteyneri qaldırardı. Ollama yoxdursa
+    # tətbiq işləyir - Claude əsasdır, /health bunu "ok" sayır (app/main.py).
 
+  # Ollama - SEÇİMLİ, yalnız `--profile ollama` ilə qalxır (2026-09-11).
+  # LLM_PROVIDER=claude ilə o yalnız ehtiyatdır, amma image-i ~9 GB-dır
+  # (ölçüldü, `docker images`) və qwen3:4b işləyəndə ~4 GB RAM tutur -
+  # 2 GB-lıq droplet-ə sığmır.
   ollama:
     image: ollama/ollama:latest
+    profiles: ["ollama"]
     restart: unless-stopped
     # Port QƏSDƏN dərc olunmur: Ollama-nı internetə açmaq lazım deyil,
     # ona yalnız basketiq daxili şəbəkədən müraciət edir. Dərc etsək,

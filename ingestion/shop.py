@@ -220,20 +220,9 @@ def _new_driver():
     layihənin qalanı işləməyə davam edir (`scraper.fetch_html_selenium` ilə
     eyni səbəb).
     """
-    from selenium import webdriver
-    from selenium.webdriver.chrome.options import Options
+    from ingestion.browser import chrome_options, new_chrome
 
-    opts = Options()
-    opts.add_argument("--headless=new")
-    opts.add_argument("--disable-gpu")
-    opts.add_argument("--no-sandbox")
-    opts.add_argument("--hide-scrollbars")
-    opts.add_argument("--window-size=1400,1600")
-    # Gizlətmə YOXDUR: robots.txt-i hansı adla oxuyuruqsa, səhifəni də
-    # həmin adla açırıq.
-    opts.add_argument(f"--user-agent={settings.user_agent}")
-
-    driver = webdriver.Chrome(options=opts)
+    driver = new_chrome(chrome_options("--hide-scrollbars", "--window-size=1400,1600"))
     driver.set_page_load_timeout(settings.request_timeout_seconds)
     return driver
 

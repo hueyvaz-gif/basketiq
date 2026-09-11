@@ -13,7 +13,7 @@ from fastapi import Depends, FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from ai.llm import check_llm
+from ai.llm import check_llm, claude_enabled
 from app.api import (
     admin,
     ads,
@@ -241,7 +241,7 @@ def store_page_html(slug: str):
 
 @app.get("/health", response_model=HealthResponse)
 def health():
-    """DB və Ollama işləyirmi? Deploy sonrası ilk yoxlayacağımız endpoint."""
+    """DB və LLM (Claude və ya Ollama) işləyirmi? Deploy sonrası ilk yoxlanan endpoint."""
     llm = check_llm()
     try:
         db = db_stats()
@@ -250,5 +250,10 @@ def health():
         db = {"error": str(e)}
         db_ok = False
 
-    status = "ok" if (db_ok and llm.get("reachable")) else "degraded"
+    # LLM hazırdır: ya Ollama cavab verir, ya da Claude aktivdir. Claude əsas
+    # olanda Ollama yalnız ehtiyatdır və Docker-də seçimlidir (compose profili) -
+    # onun yoxluğu "degraded" deyil. Əks halda Claude ilə işləyən server
+    # həmişə "degraded" görünərdi və real problem bu səs-küydə itərdi.
+    llm_ok = bool(llm.get("reachable")) or claude_enabled()
+    status = "ok" if (db_ok and llm_ok) else "degraded"
     return HealthResponse(status=status, env=settings.app_env, database=db, llm=llm)

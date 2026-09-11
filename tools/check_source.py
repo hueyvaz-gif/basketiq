@@ -417,15 +417,12 @@ def probe_shop(shop: Shop, *, use_selenium: bool = False) -> ShopProbe:
 def _render_with_selenium(url: str) -> str | None:
     """Səhifəni brauzerdə açıb render olunmuş HTML-i qaytarır. Yoxdursa None."""
     try:
-        from selenium import webdriver
-        from selenium.webdriver.chrome.options import Options
+        import selenium  # noqa: F401  (yalnız quraşdırılıbmı - yoxlama)
     except ImportError:
         return None
+    from ingestion.browser import new_chrome
 
-    opts = Options()
-    opts.add_argument("--headless=new")
-    opts.add_argument(f"--user-agent={settings.user_agent}")
-    driver = webdriver.Chrome(options=opts)
+    driver = new_chrome()
     try:
         driver.get(url)
         time.sleep(5)  # render üçün - JS-in şəbəkə sorğusu var

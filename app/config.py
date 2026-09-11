@@ -178,6 +178,12 @@ class Settings:
     request_timeout_seconds: int = _int("REQUEST_TIMEOUT_SECONDS", 30)
     user_agent: str = _str("USER_AGENT", "BasketIQ-Student-Project/1.0")
 
+    # Headless Chrome (ingestion/browser.py). Lokalda boş - Selenium Manager
+    # quraşdırılmış Chrome-u özü tapır. Docker-də Dockerfile verir: Debian-ın
+    # `chromium` + `chromium-driver` paketləri.
+    chrome_binary: str = _str("CHROME_BIN", "")
+    chromedriver_path: str = _str("CHROMEDRIVER_PATH", "")
+
     # --- Səs (Telegram + Whisper) ---
     telegram_bot_token: str = _str("TELEGRAM_BOT_TOKEN", "")
     whisper_model: str = _str("WHISPER_MODEL", "small")

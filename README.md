@@ -1246,9 +1246,8 @@ kənardır və qəsdən **seçimli** edilib — defolt hələ də Ollama-dır, L
 ## Deployment (Docker / DigitalOcean)
 
 ```bash
-cp .env.example .env      # INGEST_API_KEY-i MÜTLƏQ dəyiş
-docker compose up -d
-docker compose exec ollama ollama pull qwen3:4b
+cp .env.example .env      # INGEST_API_KEY-i MÜTLƏQ dəyiş; LLM_PROVIDER=claude + ANTHROPIC_API_KEY
+docker compose up -d      # Ollama seçimlidir: --profile ollama (+ ollama pull qwen3:4b)
 ```
 
 Ətraflı: [`deploy/README.md`](deploy/README.md) — droplet ölçüsü, real qiymət,
@@ -1258,6 +1257,8 @@ HTTPS, ehtiyat nüsxə, nə sınanıb / nə sınanmayıb.
 |---|---|
 | `DATA_DIR` ilə tək volume | baza, kataloqlar, OCR mətni, keş bir yerdə — ehtiyat nüsxə natamam qalmır |
 | Şəkillər `MEDIA_DIR=/data/media`-da | `app/static`-də qalsaydılar hər yeniləmədə silinərdi, baza isə onlara istinad edərdi; URL-lər dəyişmir |
+| Chromium image-dədir | mağaza qatının gündəlik qiymətləri (Wolt) headless brauzerlə çəkilir — onsuz serverdə qiymətlər yenilənmirdi |
+| Ollama compose profilindədir | Claude əsasdır; Ollama-nın ~9 GB image-i və ~4 GB RAM-ı 2 GB-lıq droplet-ə sığmır |
 | Ollama portu dərc olunmur | autentifikasiyasız LLM serveri internetdə qalmamalıdır |
 | `python:3.13-slim`, alpine yox | alpine-də pillow/lxml mənbədən kompilyasiya olunur (dəqiqələr) |
 | Dil faylları image-də | `apt`-dakı `tesseract-ocr-aze` versiyası fərqli ola bilər; bizimki sınanıb |

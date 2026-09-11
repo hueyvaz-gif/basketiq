@@ -15,10 +15,18 @@ FROM python:3.13-slim
 # Tesseract yalnız BINARY kimi lazımdır - dil faylları (aze/rus/tur) layihənin
 # `data/tessdata` qovluğundadır və image-ə birlikdə düşür. Ona görə
 # `tesseract-ocr-aze` paketi quraşdırılmır: versiya fərqi olmasın.
+#
+# CHROMIUM + DRAYVER: mağaza qatının gündəlik qiymətləri (ingestion/shop.py,
+# Wolt) HƏMİŞƏ headless brauzerlə çəkilir - siyahı virtualdır, JS-siz boşdur.
+# Əvvəl burada yox idi: serverdə sayt açılırdı, qiymətlər isə yenilənmirdi
+# (2026-09-11-də, ilk deploy-dan əvvəl tapıldı). Debian paketi Google Chrome-dan
+# yaxşıdır: ayrıca repo/açar lazım deyil, drayver versiyası brauzerlə eynidir.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         tesseract-ocr \
         curl \
+        chromium \
+        chromium-driver \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -37,6 +45,8 @@ COPY . .
 ENV DATA_DIR=/data \
     MEDIA_DIR=/data/media \
     TESSDATA_DIR=data/tessdata \
+    CHROME_BIN=/usr/bin/chromium \
+    CHROMEDRIVER_PATH=/usr/bin/chromedriver \
     APP_ENV=production \
     APP_HOST=0.0.0.0 \
     PYTHONUNBUFFERED=1

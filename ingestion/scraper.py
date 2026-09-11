@@ -213,19 +213,12 @@ def fetch_html_selenium(url: str) -> str:
     Lazy import: selenium yalnız bu funksiya çağırılanda yüklənir, beləliklə
     Chrome quraşdırılmayan serverdə də layihənin qalanı işləyir.
     """
-    from selenium import webdriver
-    from selenium.webdriver.chrome.options import Options
+    from ingestion.browser import new_chrome
 
     if not robots_allows(url):
         raise ScrapeError(f"robots.txt qadağan edir: {url}")
 
-    opts = Options()
-    opts.add_argument("--headless=new")
-    opts.add_argument("--disable-gpu")
-    opts.add_argument("--no-sandbox")
-    opts.add_argument(f"--user-agent={settings.user_agent}")
-
-    driver = webdriver.Chrome(options=opts)
+    driver = new_chrome()
     try:
         driver.set_page_load_timeout(settings.request_timeout_seconds)
         driver.get(url)
