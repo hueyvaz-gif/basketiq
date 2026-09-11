@@ -144,15 +144,24 @@
       </div>
     </section>
 
-    <!-- SƏTİR ARASI REKLAM BURADAN GÖTÜRÜLDÜ (2026-09-10).
-         Əvvəl market şəbəkəsi ilə endirimlər ARASINDA banner vardı. Reklam
-         indi səhifənin KƏNARLARINDADIR (`.ad-rail`, `<main>`-dən əvvəl) -
-         yəni məzmun axını heç bir yerdə kəsilmir.
+    <!-- --- DAR EKRANDA REKLAM (2026-09-11) ---
 
-         `home-banner` slotu `app/ads.py:SLOTS`-da QALIR: admin panelində
-         mövcud sifarişlər görünməlidir və slot gələcəkdə başqa səhifədə
-         işlədilə bilər. Slotu reyestrdən silsək, ona bağlı sətirlər
-         «naməlum slot» olardı. -->
+         Geniş ekranda (≥1440px) reklam YAN LÖVHƏDƏDİR və bu qutu gizlidir.
+         Dar ekranda lövhə üçün yer yoxdur (ölçüldü: 1366px-də yan boşluq
+         148px, lövhə isə 160px) - lövhə gizlənir və SOL LÖVHƏNİN reklamı
+         BURADA, market şəbəkəsi ilə endirimlər arasında görünür. Adi
+         noutbukda reklam heç görünmürdü; istifadəçinin qərarı ilə bu yer.
+
+         Qutu sol lövhə ilə EYNİ slotu göstərir (`home-rail-left`): hər ekran
+         enində ikisindən yalnız biri görünür, `ads.js` isə gizli qutuya
+         sorğu göndərmir - göstərim iki dəfə sayılmır.
+
+         BOŞ SLOTDA QUTU GİZLƏNİR (`data-hide-empty`). Ortada «reklam yeri
+         satılır» kartı olmasın: 2026-09-10-da sətir arası banner məhz buna
+         görə götürülmüşdü. `home-banner` slotu reyestrdə QALIR, amma heç bir
+         səhifədə çəkilmir (`app/ads.py:rendered_slots`). -->
+    <aside class="ad-inline" data-slot="home-rail-left" data-hide-empty
+           aria-label="Reklam" data-i18n-attr="aria-label:ads.label"></aside>
 
     <!-- --- BUGÜNÜN ƏN SƏRFƏLİ ENDİRİMLƏRİ ---
 

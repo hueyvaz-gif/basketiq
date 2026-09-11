@@ -9,6 +9,8 @@
 // 2. BOŞ SLOT GİZLƏNMİR, SATILIR (E20). Sifariş yoxdursa, yerə «Sizin
 //    reklamınız burada ola bilər» yazılır. Boş yeri gizlətmək inventarı
 //    görünməz edir; ən yaxşı satıcı elə yerin özüdür.
+//    İSTİSNA: yan lövhə və məzmun içindəki dar ekran qutusu (`data-hide-empty`)
+//    boş olanda GİZLƏNİR - aşağıda `boşdaGizlənir`.
 //
 // 3. KEÇİD ADİ `<a href>`-DİR. Klik serverdə sayılır (`/api/ads/{id}/click`
 //    yönləndirir), yəni JS sönük olsa da həm reklam işləyir, həm hesabat.
@@ -24,6 +26,10 @@
 //     bir göstərim daha idi.
 // İndi: gizli qutu sorğu göndərmir, dil dəyişəndə yalnız mətn yenidən çəkilir,
 // ekran genişlənib lövhə görünən kimi o, BİR dəfə yüklənir.
+//
+// EYNİ SLOT İKİ QUTUDA: sol lövhə və dar ekran qutusu (`.ad-inline`) eyni
+// `home-rail-left` slotunu göstərir. CSS onları bir-birinin dəqiq əksi edir -
+// hər enində yalnız biri görünür, yəni yalnız biri soruşulur.
 
 (() => {
   // BİR SLOT DEYİL, HAMISI. Əvvəl yalnız `#adSlot` doldurulurdu; yan
@@ -38,9 +44,17 @@
   const cache = new Map();
 
   // GÖRÜNMƏ brauzerin özündən soruşulur: 1440px həddi CSS-dədir
-  // (`.ad-rail { display: none; }`) və burada ikinci nüsxəsi yazılmır -
+  // (`.ad-rail` / `.ad-inline`) və burada ikinci nüsxəsi yazılmır -
   // hədd dəyişəndə JS köhnə rəqəmlə qalardı.
   const görünür = (box) => getComputedStyle(box).display !== "none";
+
+  // BOŞ OLANDA GİZLƏNƏN QUTULAR.
+  // Yan lövhə səhifənin kənarındadır - boş qutu orada sadəcə sınmış görünür.
+  // Dar ekran qutusu (`data-hide-empty`) isə məzmunun ORTASINDADIR: boş
+  // olanda «reklam yeri satılır» kartı göstərsəydi, 2026-09-10-da götürülən
+  // sətir arası banner geri qayıtmış olardı.
+  const boşdaGizlənir = (box) =>
+    box.classList.contains("ad-rail") || box.hasAttribute("data-hide-empty");
 
   function dolu(ad) {
     const şəkil = ad.image
@@ -83,13 +97,7 @@
 
   function render(box, data) {
     box.innerHTML = data.ad ? dolu(data.ad) : boş(data.contact);
-    // BOŞ LÖVHƏ GİZLƏNİR, BOŞ BANNER YOX.
-    //
-    // Fərq yerdədir: banner məzmun axınının içindədir və orada «bu yer
-    // satılır» yazısı satıcı rolunu oynayır. Yan lövhə isə səhifənin
-    // kənarındadır - orada boş qutu sadəcə sınmış görünür və heç kim
-    // onu oxumur.
-    if (box.classList.contains("ad-rail")) {
+    if (boşdaGizlənir(box)) {
       box.hidden = !data.ad;
     }
   }
@@ -113,7 +121,7 @@
       // Keşdən çıxarılır - növbəti fürsətdə (ekran dəyişəndə) yenidən sınanır.
       cache.delete(box);
       box.innerHTML = "";
-      if (box.classList.contains("ad-rail")) box.hidden = true;
+      if (boşdaGizlənir(box)) box.hidden = true;
     }
   }
 
@@ -121,8 +129,9 @@
 
   loadVisible();
 
-  // Pəncərə genişlənib lövhə GÖRÜNƏN kimi bir dəfə yüklənir. `resize`
-  // saniyədə onlarla dəfə gəlir - son hərəkətdən sonra yoxlanılır.
+  // Pəncərə genişlənib lövhə GÖRÜNƏN kimi bir dəfə yüklənir (daralanda isə
+  // dar ekran qutusu). `resize` saniyədə onlarla dəfə gəlir - son hərəkətdən
+  // sonra yoxlanılır.
   let gözlə = null;
   window.addEventListener("resize", () => {
     clearTimeout(gözlə);

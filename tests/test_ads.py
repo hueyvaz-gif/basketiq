@@ -468,3 +468,47 @@ def test_dil_dəyişəndə_reklam_yenidən_soruşulmur():
     dinləyici = js.split('addEventListener("basketiq:lang"')[1].split("});")[0]
     assert "fetch" not in dinləyici and "loadOne" not in dinləyici and "loadVisible" not in dinləyici
     assert "render(" in dinləyici
+
+
+# ---------------------------------------------------- dar ekranda reklam
+
+
+def test_dar_ekran_qutusu_marketlər_ilə_endirimlər_arasındadır():
+    """
+    Dar ekranda (<1440px) yan lövhə üçün yer yoxdur (1366px-də yan boşluq
+    148px, lövhə 160px - ölçüldü). Sol lövhənin reklamı istifadəçinin seçdiyi
+    yerdə, market şəbəkəsi ilə endirimlər arasında görünür.
+    """
+    from pathlib import Path
+
+    html = Path("app/static/index.html").read_text(encoding="utf-8")
+    qutu = html.index('class="ad-inline"')
+    assert html.index('id="storesTitle"') < qutu < html.index('id="dealsTitle"')
+    teq = html[qutu - 20: html.index(">", qutu)]
+    assert 'data-slot="home-rail-left"' in teq, "sol lövhə ilə eyni slot olmalıdır"
+    assert "data-hide-empty" in teq, "boş slotda ortada «reklam yeri satılır» kartı çıxmasın"
+
+
+def test_dar_ekran_qutusu_lövhənin_dəqiq_əksidir():
+    """
+    Lövhə `max-width: 1439px`-də, qutu `min-width: 1440px`-də gizlənir - hər
+    enində ikisindən yalnız biri görünür, yəni yalnız biri soruşulur və
+    göstərim iki dəfə sayılmır. Arada boşluq və ya üst-üstə düşmə olmamalıdır.
+    """
+    import re
+    from pathlib import Path
+
+    css = Path("app/static/style.css").read_text(encoding="utf-8")
+    assert re.search(r"@media \(min-width: 1440px\) \{\s*\.ad-inline \{ display: none; \}", css)
+    assert "max-width: 1439px" in css
+    # `display: block` yazılmamalıdır: `[hidden]`-i üstələyib boş qutunu göstərərdi.
+    assert not re.search(r"\.ad-inline\s*\{[^}]*display:\s*block", css)
+
+
+def test_boş_dar_ekran_qutusu_gizlənir():
+    from pathlib import Path
+
+    js = Path("app/static/ads.js").read_text(encoding="utf-8")
+    assert 'box.hasAttribute("data-hide-empty")' in js
+    render = js.split("function render(box, data)")[1].split("\n  }\n")[0]
+    assert "boşdaGizlənir(box)" in render and "box.hidden = !data.ad" in render

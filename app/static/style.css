@@ -2674,6 +2674,16 @@ code {
 
 .ad-slot { display: block; }
 
+/* DAR EKRAN REKLAMI (`index.html`, `.ad-inline`) — yan lövhənin DƏQİQ əksi:
+   lövhə `max-width: 1439px`-də gizlənir, bu qutu `min-width: 1440px`-də.
+   Hər enində ikisindən yalnız biri görünür - `ads.js` gizli qutuya sorğu
+   göndərmədiyi üçün göstərim iki dəfə sayılmır.
+   `display: block` QƏSDƏN YAZILMIR: müəllif CSS-i brauzerin `[hidden]`
+   qaydasını üstələyərdi və boş slotda gizlədilən qutu yenə görünərdi. */
+@media (min-width: 1440px) {
+  .ad-inline { display: none; }
+}
+
 /* --- YAN REKLAM LÖVHƏLƏRİ (tap.az düzülüşü) ---
    ============================================
    Məzmunun solunda və sağında şaquli banner. Sətir arası bannerdən FƏRQLİ
