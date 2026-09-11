@@ -2573,9 +2573,13 @@ code {
 
 /* Səbət sətri: ad + miqdar + sil. Grid, flex deyil - üç sütunun eni sabitdir
    və uzun ad qalan ikisini sıxışdırmır. */
+/* `minmax(0, 1fr)`, adi `1fr` DEYİL: `1fr` sütunu məzmunun min-content
+   enindən kiçilə bilmir. Telefonda (390px) ad sütunu miqdar düymələrinin
+   ALTINA daşırdı - «1 l süd məhsulları» «−» düyməsinin altında qalırdı
+   (brauzerdə görüldü, viewport əlavə olunandan sonra). */
 .basket-row {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: var(--s3);
   padding: var(--s2) 0;
@@ -2588,11 +2592,24 @@ code {
   color: inherit; text-decoration: none; min-width: 0;
 }
 .basket-name .thumb { width: 44px; height: 44px; border-radius: var(--r-md); flex: none; }
+/* Mətn bloku da kiçilə bilməlidir - əks halda uzun ad flex-dən çıxardı. */
+.basket-name > span:last-child { min-width: 0; overflow-wrap: anywhere; }
 .basket-name:hover strong { text-decoration: underline; }
 
 .qty { display: inline-flex; align-items: center; gap: var(--s1); }
 .qty-value { min-width: 24px; text-align: center; font-weight: 600; }
 .icon-btn.is-sm { min-width: 44px; min-height: 44px; font-size: 18px; }
+
+/* TELEFONDA İKİ SƏTİR: ad yuxarıda tam endə, miqdar + sil aşağıda.
+   Bir sətirdə miqdar (44+24+44) və sil (44) düymələri 390px ekranda ada
+   cəmi ~55px saxlayırdı və «Mastero basmati düyü» üç sətrə sınırdı.
+   Düymələr 44px qalır - toxunma hədəfi kiçilmir, yalnız yeri dəyişir.
+   Miqdar ad mətninin başladığı xəttə çəkilir (plitə 44px + boşluq). */
+@media (max-width: 600px) {
+  .basket-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: var(--s1); column-gap: var(--s2); }
+  .basket-name { grid-column: 1 / -1; }
+  .basket-row .qty { justify-self: start; margin-left: calc(44px + var(--s2)); }
+}
 
 /* Market sətrində avatar və ad YAN-YANA olmalıdır: `.row-label` adi mətn
    üçün qurulub və avatar `inline-flex` olduğu üçün ad alt sətirə düşürdü
