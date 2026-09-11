@@ -154,18 +154,23 @@ ehtiyat nüsxə natamam ola bilərdi: baza kataloqa istinad edir, fayl isə yoxd
 ### İlk deploy: lokal datanı serverə daşımaq
 
 Baza və şəkillər repoda **yoxdur** (`.gitignore`) — təmiz `git clone`-dan sayt
-boş açılır, reklamın şəkli 404 olur. Lokal datanı volume-un quruluşunda
-(`basketiq.db` + `media/`) bir arxivə yığ:
+boş açılır, reklamın şəkli 404 olur. Lokal datanı volume-un quruluşunda bir
+arxivə yığ:
 
 ```bash
-# Lokal maşında, layihə qovluğunda (Git Bash)
-mkdir -p export/media/images
-cp data/basketiq.db export/
-cp -r app/static/images/ads app/static/images/products export/media/images/
-cp -r app/static/product_images export/media/
-tar czf basketiq-data.tar.gz -C export . && rm -rf export
+# Lokal maşında, layihə qovluğunda
+python -m tools.export_data           # -> basketiq-data.tar.gz + sha256
 scp basketiq-data.tar.gz basketiq@<IP>:~/basketiq/
+ssh basketiq@<IP> "sha256sum ~/basketiq/basketiq-data.tar.gz"   # alətin çap etdiyi ilə eyni olmalıdır
 ```
+
+Arxivdə: baza, xam kataloqlar (`raw/`), OCR mətni (`text/`), LLM keşi (`cache/`)
+və şəkillər (`media/`). Əl ilə `cp` niyə kifayət deyil — `tools/export_data.py`
+başlığında: baza ANLIQ NÜSXƏ ilə götürülür (işləyən server yazsa belə bütöv
+qalır), kataloq yolları Windows formatından (`raw\x.pdf`) Linux-da işləyən
+`raw/x.pdf`-ə çevrilir (yalnız arxivdə), sonda arxiv açılıb bazanın istinad
+etdiyi hər faylın yerində olduğu yoxlanılır. Arxiv `.gitignore` və
+`.dockerignore`-dadır — repo qovluğunda dursa da image-ə düşmür.
 
 Serverdə — baza açıq ikən üzərinə yazılmasın deyə əvvəl dayandır:
 
