@@ -436,3 +436,35 @@ def test_numune_kreativ_ozunu_gizletmir():
     svg = Path("app/static/images/ads/sample-rail.svg").read_text(encoding="utf-8")
     assert "NÜMUNƏ" in svg
     assert "160 × 600" in svg or "160x600" in svg.replace(" ", "")
+
+
+# ------------------------------------------- göstərim = görünə bilən qutu
+
+
+def test_gizli_qutu_reklam_soruşmur():
+    """
+    Server göstərimi `/api/ads/slot/...` sorğusunda sayır. Yan lövhə 1440px-dən
+    dar ekranda CSS ilə gizlidir; əvvəl sorğu yenə gedirdi və adi noutbukda
+    heç kimin görmədiyi reklama göstərim yazılırdı (jurnalda ölçüldü,
+    2026-09-11). Görünmə yoxlaması `fetch`-dən ƏVVƏL olmalıdır.
+    """
+    import re
+    from pathlib import Path
+
+    js = Path("app/static/ads.js").read_text(encoding="utf-8")
+    yükləmə = js.split("async function loadOne")[1]
+    assert "görünür(box)" in yükləmə.split("fetch(")[0], "görünmə yoxlaması fetch-dən sonradır"
+    # Hədd JS KODUNDA ikinci dəfə yazılmır - brauzerin özündən soruşulur.
+    # Şərhlər çıxarılır: izah «1440px həddi CSS-dədir» deyə bilər və deməlidir.
+    kod = re.sub(r"^\s*//.*$", "", js, flags=re.M)
+    assert "1440" not in kod and "1439" not in kod
+
+
+def test_dil_dəyişəndə_reklam_yenidən_soruşulmur():
+    """Əvvəl hər dil dəyişikliyi bütün qutuları yenidən soruşurdu - bir göstərim daha."""
+    from pathlib import Path
+
+    js = Path("app/static/ads.js").read_text(encoding="utf-8")
+    dinləyici = js.split('addEventListener("basketiq:lang"')[1].split("});")[0]
+    assert "fetch" not in dinləyici and "loadOne" not in dinləyici and "loadVisible" not in dinləyici
+    assert "render(" in dinləyici

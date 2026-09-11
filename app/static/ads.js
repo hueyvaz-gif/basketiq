@@ -14,6 +14,16 @@
 //    yönləndirir), yəni JS sönük olsa da həm reklam işləyir, həm hesabat.
 //    Sayğac JS-ə bağlansaydı, reklamverənin rəqəmi istifadəçinin brauzer
 //    ayarından asılı olardı.
+//
+// GÖSTƏRİM = GÖRÜNƏ BİLƏN QUTUYA GÖNDƏRİLMİŞ REKLAM (2026-09-11).
+// Server göstərimi `/api/ads/slot/...` sorğusunda sayır. Əvvəl HƏR qutu
+// üçün sorğu gedirdi və iki yerdə hesabat şişirdi (jurnalda ölçüldü):
+//   - yan lövhə 1440px-dən dar ekranda CSS ilə gizlidir, amma sorğu yenə
+//     gedirdi - adi noutbukda heç kimin görmədiyi reklama göstərim yazılırdı;
+//   - dil dəyişəndə bütün qutular yenidən soruşulurdu - hər dil dəyişikliyi
+//     bir göstərim daha idi.
+// İndi: gizli qutu sorğu göndərmir, dil dəyişəndə yalnız mətn yenidən çəkilir,
+// ekran genişlənib lövhə görünən kimi o, BİR dəfə yüklənir.
 
 (() => {
   // BİR SLOT DEYİL, HAMISI. Əvvəl yalnız `#adSlot` doldurulurdu; yan
@@ -22,6 +32,15 @@
   // eyni məntiqlə doldurulur - yeni yer əlavə etmək = HTML-də bir sətir.
   const boxes = [...document.querySelectorAll("[data-slot]")];
   if (!boxes.length) return;
+
+  // Qutu → son cavab. Dil dəyişəndə kart buradan yenidən çəkilir, serverə
+  // sorğu getmir. `null` = sorğu yoldadır (eyni qutu üçün ikinci sorğu getməsin).
+  const cache = new Map();
+
+  // GÖRÜNMƏ brauzerin özündən soruşulur: 1440px həddi CSS-dədir
+  // (`.ad-rail { display: none; }`) və burada ikinci nüsxəsi yazılmır -
+  // hədd dəyişəndə JS köhnə rəqəmlə qalardı.
+  const görünür = (box) => getComputedStyle(box).display !== "none";
 
   function dolu(ad) {
     const şəkil = ad.image
@@ -62,31 +81,59 @@
       </div>`;
   }
 
+  function render(box, data) {
+    box.innerHTML = data.ad ? dolu(data.ad) : boş(data.contact);
+    // BOŞ LÖVHƏ GİZLƏNİR, BOŞ BANNER YOX.
+    //
+    // Fərq yerdədir: banner məzmun axınının içindədir və orada «bu yer
+    // satılır» yazısı satıcı rolunu oynayır. Yan lövhə isə səhifənin
+    // kənarındadır - orada boş qutu sadəcə sınmış görünür və heç kim
+    // onu oxumur.
+    if (box.classList.contains("ad-rail")) {
+      box.hidden = !data.ad;
+    }
+  }
+
   async function loadOne(box) {
+    // Artıq yüklənib (və ya yoldadır), yaxud indi görünmür - sorğu YOX.
+    // Görünməyən qutuya sorğu göndərmək heç kimin görmədiyi reklama
+    // göstərim yazmaq deməkdir (yuxarıdakı qeydə bax).
+    if (cache.has(box) || !görünür(box)) return;
+    cache.set(box, null);
+
     const slot = box.dataset.slot || "home-banner";
     try {
       const res = await fetch(`/api/ads/slot/${encodeURIComponent(slot)}`);
       if (!res.ok) throw new Error("http");
       const data = await res.json();
-      box.innerHTML = data.ad ? dolu(data.ad) : boş(data.contact);
-      // BOŞ LÖVHƏ GİZLƏNİR, BOŞ BANNER YOX.
-      //
-      // Fərq yerdədir: banner məzmun axınının içindədir və orada «bu yer
-      // satılır» yazısı satıcı rolunu oynayır. Yan lövhə isə səhifənin
-      // kənarındadır - orada boş qutu sadəcə sınmış görünür və heç kim
-      // onu oxumur.
-      if (box.classList.contains("ad-rail")) {
-        box.hidden = !data.ad;
-      }
+      cache.set(box, data);
+      render(box, data);
     } catch {
       // Reklam qatı səhifənin qalanını qırmamalıdır: slot sadəcə boş qalır.
+      // Keşdən çıxarılır - növbəti fürsətdə (ekran dəyişəndə) yenidən sınanır.
+      cache.delete(box);
       box.innerHTML = "";
       if (box.classList.contains("ad-rail")) box.hidden = true;
     }
   }
 
-  const load = () => boxes.forEach(loadOne);
+  const loadVisible = () => boxes.forEach(loadOne);
 
-  load();
-  document.addEventListener("basketiq:lang", load);
+  loadVisible();
+
+  // Pəncərə genişlənib lövhə GÖRÜNƏN kimi bir dəfə yüklənir. `resize`
+  // saniyədə onlarla dəfə gəlir - son hərəkətdən sonra yoxlanılır.
+  let gözlə = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(gözlə);
+    gözlə = setTimeout(loadVisible, 200);
+  });
+
+  // Dil dəyişəndə YALNIZ MƏTN yenidən çəkilir - serverə sorğu getmir,
+  // yəni dil dəyişikliyi göstərim sayılmır.
+  document.addEventListener("basketiq:lang", () => {
+    for (const [box, data] of cache) {
+      if (data) render(box, data);
+    }
+  });
 })();
